@@ -33,6 +33,9 @@ exports.createUser = function(req,res){
     var nickname = req.body.nickname || res.json(trans_json("닉네임을 입력하지 않았습니다",0));
     var phone = req.body.phone       || res.json(trans_json("폰번호를 입력하지 않았습니다",0));
 
+
+    
+
     if (typeof(email) != "string" || typeof(password) != "string" ||
         typeof(nickname) != "string" || typeof(phone) != "string") {
         res.json(trans_json("올바른 타입을 사용해 주세요.",0));
