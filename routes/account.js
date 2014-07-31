@@ -24,7 +24,7 @@ exports.getUserInfo = function(req,res){
 
 function trans_json(message,code,result){
     return { code : code || 1, message : message || '메세지', result : result || null}
-};
+}
 
 exports.createUser = function(req,res){
 
@@ -32,6 +32,7 @@ exports.createUser = function(req,res){
     var password = req.body.password || res.json(trans_json("password를 입력하지 않았습니다",0));
     var nickname = req.body.nickname || res.json(trans_json("닉네임을 입력하지 않았습니다",0));
     var phone = req.body.phone       || res.json(trans_json("폰번호를 입력하지 않았습니다",0));
+
 
 
     if (typeof(email) != "string" || typeof(password) != "string" ||
@@ -64,7 +65,7 @@ exports.destroyUserAccount = function(req,res){
         "code": 1,
         "message": "success",
         "result" : null
-    }
+    };
 
     res.json(data);
 };
@@ -90,7 +91,7 @@ exports.updateAccountSettings = function(req,res){
         "code": 1,
         "message": "success",
         "result" : null
-    }
+    };
 
     res.json(data);
 };
