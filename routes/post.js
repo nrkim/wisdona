@@ -3,15 +3,47 @@
  */
 exports.createPost = function(req,res){
 
-    var test=  "";
-    var test2 =  "";
 
+    var user_id = req.body.user_id,
+        comment = req.body.comment,
+        bookmark_cnt = req.body.bookmark_cnt,
+        book_condition_id = req.body.book_condition_id,
+        name = req.body.name,
+        genre_id = req.body.genre_id,
+        first_image = req.body.first_image,
+        second_image = req.body.second_image,
+        third_image = req.body.third_image,
+        fourth_image = req.body.fourth_image,
+        author = req.body.author,
+        translator = req.body.translator,
+        publisher = req.body.publisher,
+        pub_date = req.body.pub_date,
+        isbn = req.body.isbn,
+        isbn13 = req.body.isbn13;
 
     var data = {
-            "code": 1,
-            "message": "success",
-            "result" : null
-        };
+        code : 1,
+        message : "success",
+        result: {
+            user_id : user_id,
+            comment : comment,
+            bookmark_cnt : bookmark_cnt,
+            book_condition_id : book_condition_id,
+            name : name,
+            genre_id : genre_id,
+            first_image : first_image,
+            second_image : second_image,
+            third_image : third_image,
+            fourth_image : fourth_image,
+            author : author,
+            translator : translator,
+            publisher : publisher,
+            pub_date : pub_date,
+            isbn : isbn,
+            isbn13 : isbn13
+        }
+    };
+
     res.json(data);
 };
 
