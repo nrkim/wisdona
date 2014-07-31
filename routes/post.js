@@ -3,6 +3,10 @@
  */
 exports.createPost = function(req,res){
 
+    var test=  "";
+    var test2 =  "";
+
+
     var data = {
             "code": 1,
             "message": "success",
