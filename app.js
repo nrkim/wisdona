@@ -11,14 +11,7 @@ var routes = require('./routes')
     ,user = require('./routes/user');
 
 var app = express();
-var mysql = require('mysql');
-var connection = mysql.createConnection({
-    host :'wisdona.cz09lkhuij69.ap-northeast-1.rds.amazonaws.com',
-    port : 3306,
-    user : 'admin',
-    password : 'zktldhvpdk',
-    database : 'wisdonadb'
-});
+
 
 app.use(express.bodyParser());
 
