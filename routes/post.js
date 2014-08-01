@@ -3,7 +3,7 @@
  */
 exports.createPost = function(req,res){
 
-
+    // 뚜둥..
     var user_id = req.body.user_id,
         comment = req.body.comment,
         bookmark_cnt = req.body.bookmark_cnt,
