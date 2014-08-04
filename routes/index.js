@@ -15,10 +15,18 @@ exports.index = function(req,res){
     res.render('index',{title: 'Express'});
 };
 
+var isLoggedIn = function (req, res, next) {
+
+    if (req.isAuthenticated()) {
+        return next();
+    }
+
+    return res.redirect('/');
+}
+
 module.exports = function(app,passport) {
 
     // 로그인
-//    app.get('/login', getLoginForm);
     app.post('/login', passport.authenticate('local-login', {
         successRedirect: '/profile',        // success하면 redirect 어떻게 하는 게 좋은가
         failureRedirect: '/login',

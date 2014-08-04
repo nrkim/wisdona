@@ -21,7 +21,7 @@ exports.user_info = function(rows,i){
 
 exports.review = function(rows,i){
     return {
-        user : {
+        user           : {
             user_id          : rows[i].user_id,
             nick_name        : rows[i].nickname,
             profile_image_url: rows[i].book_image_path
@@ -47,9 +47,10 @@ exports.post_list = function(rows,i){
     };
 }
 
+
 exports.message_list = function(rows,i){
     return {
-        user : {
+        user                : {
             user_id           : rows[i].from_user_id,
             nick_name         : rows[i].nickname,
             profile_image_url : rows[i].image
@@ -61,3 +62,17 @@ exports.message_list = function(rows,i){
         last_update         : rows[i].last_update
     };
 }
+
+exports.message_window = function(rows,i){
+    return {
+        user        : {
+            user_id             : rows[i].user_id,
+            nick_name           : rows[i].nickname,
+            profile_image_url   : rows[i].image
+        },
+        message     : rows[i].message,
+        create_date : rows[i].create_date
+    }
+}
+
+

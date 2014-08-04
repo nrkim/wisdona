@@ -1,19 +1,39 @@
 /* GET users listing. */
 
+//json 객체 생성관련 함수 불러오기
 var json = require("./json");
-var url = require('url');
 var trans_json = json.trans_json;
 var review = json.review;
 var post_list = json.post_list;
 
+// db 셋팅
+var dbConfig = require('../config/database');
 var mysql = require('mysql');
-var connection = mysql.createConnection({
-    host :'wisdona.cz09lkhuij69.ap-northeast-1.rds.amazonaws.com',
-    port : 3306,
-    user : 'admin',
-    password : 'zktldhvpdk',
-    database : 'wisdonadb'
-});
+
+
+
+
+/*exports.db_template(query,query_params,){
+    try {
+        var connection = mysql.createConnection(dbConfig.url);
+        connection.query(query, query_params, function (err,rows,info) {
+            if (err) {
+                connection.end();
+                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
+            }
+
+            for(var i =0; i<rows.length; i++) {
+                posts.push(post_list(rows, i));
+            }
+
+            connection.end();
+            res.json(trans_json('success',1,posts));
+        });
+    } catch(err) {
+        connection.end();
+        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
+    }
+}*/
 
 exports.getUserPostList = function(req,res){
     //parameter로 받은 사용자 아이디
@@ -39,8 +59,10 @@ exports.getUserPostList = function(req,res){
         "JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id WHERE p.user_id = 5 LIMIT ?, ?";
 
     try {
+        var connection = mysql.createConnection(dbConfig.url);
         connection.query(query, [user_id,start,end], function (err,rows,info) {
             if (err) {
+                connection.end();
                 res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
             }
 
@@ -48,9 +70,11 @@ exports.getUserPostList = function(req,res){
                 posts.push(post_list(rows, i));
             }
 
+            connection.end();
             res.json(trans_json('success',1,posts));
         });
     } catch(err) {
+        connection.end();
         res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
     }
 
@@ -86,16 +110,21 @@ exports.getReviewList = function(req,res){
         "WHERE u.user_id = ? LIMIT ?, ? ";
 
     try {
+        var connection = mysql.createConnection(dbConfig.url);
         connection.query(query, [user_id,start,end], function (err,rows,info) {
-            if (err)        //에러 코드 분석 구문
+            if (err) {        //에러 코드 분석 구문
+                connection.end();
                 res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
+            }
 
             for(var i =0; i<rows.length; i++)
                 reviews.push(review(rows,i));
 
+            connection.end();
             res.json(trans_json('success',1,reviews));
         });
     } catch(err) {
+        connection.end();
         res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
     }
 
@@ -125,8 +154,10 @@ exports.getRequestPostList = function(req,res){
         "WHERE t.req_user_id = ? LIMIT ?, ?";
 
     try {
+        var connection = mysql.createConnection(dbConfig.url);
         connection.query(query, [user_id,start,end], function (err,rows,info) {
             if (err) {
+                connection.end();
                 res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
             }
 
@@ -134,9 +165,11 @@ exports.getRequestPostList = function(req,res){
                 posts.push(post_list(rows, i));
             }
 
+            connection.end();
             res.json(trans_json('success',1,posts));
         });
     } catch(err) {
+        connection.end();
         res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
     }
 

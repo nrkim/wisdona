@@ -2,18 +2,14 @@
  * Created by nrkim on 2014. 7. 29..
  */
 
+//json 객체 생성관련 함수 불러오기
 var json = require('./json');
 var trans_json = json.trans_json;
 var user_info = json.user_info;
 
+// db 셋팅
+var dbConfig = require('../config/database');
 var mysql = require('mysql');
-var connection = mysql.createConnection({
-    host :'wisdona.cz09lkhuij69.ap-northeast-1.rds.amazonaws.com',
-    port : 3306,
-    user : 'admin',
-    password : 'zktldhvpdk',
-    database : 'wisdonadb'
-});
 
 exports.getUserInfo = function(req,res){
     var user_id = req.params.user_id || res.json(trans_json("존재하지 않는 사용자 입니다.",0));
@@ -25,16 +21,20 @@ exports.getUserInfo = function(req,res){
     "JOIN trade t ON t.trade_id = m.trade_id WHERE u.user_id = ? GROUP BY u.user_id";
 
     try {
+        var connection = mysql.createConnection(dbConfig.url);
         connection.query(query,[user_id],function(err,rows,info){
             if (err){
+                connection.end();
                 res.json(trans_json("sql 에러가 일어났습니다.",0));
             }
 
+            connection.end();
             res.json(trans_json("success",1,user_info(rows)));
         });
     }
     catch(err){
         console.log(err);
+        connection.end();
         res.json(trans_json("데이터 연결 오류입니다",0));
     }
 };
@@ -55,6 +55,7 @@ exports.createUser = function(req,res){
 
     // 생성 시간 저장해 주기
     try{
+        var connection = mysql.createConnection(dbConfig.url);
         connection.query(query,[email,password,nickname],function(err,info){
             if(err){
                 console.log(typeof (err));
@@ -68,14 +69,17 @@ exports.createUser = function(req,res){
                         //common id도 실행
                         res.json(trans_json('nickname은 유일해야 합니다.',0));'
                 }*/
+                connection.end();
                 res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.',0));
             }
         });
 
+        connection.end();
         res.json(trans_json("success",1));
     }
     catch(err) {
         console.log(err);
+        connection.end();
         res.json(trans_json("데이터 연결 오류입니다",0));
     }
 };
@@ -88,18 +92,22 @@ exports.destroyUserAccount = function(req,res){
     var query = 'UPDATE user SET sleep_mode = 1 WHERE user_id = ?';
 
     try{
+        var connection = mysql.createConnection(dbConfig.url);
         connection.query(query,[user_id],function(err,info){
             if(err){
                 console.log('info\n',info);
+                connection.end();
                 res.json(trans_json('이미 삭제되었거나 존재하지 않는 아이디 입니다.',0));
             }
         });
     }
     catch(err) {
         console.log(err);
+        connection.end();
         res.json(trans_json("데이터 연결 오류입니다",0));
     }
 
+    connection.end();
     res.json(trans_json("success",1));
 };
 
@@ -114,16 +122,19 @@ exports.getAccountSettings = function(req,res){
         "JOIN trade t ON t.trade_id = m.trade_id WHERE u.user_id = ? GROUP BY u.user_id";
 
     try {
+        var connection = mysql.createConnection(dbConfig.url);
         connection.query(query,[user_id],function(err,rows,info){
             if (err){
+                connection.end();
                 res.json(trans_json("sql 에러가 일어났습니다.",0));
             }
-
+            connection.end();
             res.json(trans_json("success",1,user_info(rows)));
         });
     }
     catch(err){
         console.log(err);
+        connection.end();
         res.json(trans_json("데이터 연결 오류입니다",0));
     }
 };
