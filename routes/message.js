@@ -21,9 +21,8 @@ exports.getMessageGroupList = function(req,res){
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     // query string 처리
-    var query_str = (url.parse(req.url, true)).query;
-    var page = JSON.parse(query_str.page) || 0;
-    var count = JSON.parse(query_str.count) || 10;
+    var page = JSON.parse(req.query.page) || 0;
+    var count = JSON.parse(req.query.count) || 10;
 
     // 페이징 관련 계산
     var start = (page-1)*count;
@@ -40,15 +39,15 @@ exports.getMessageGroupList = function(req,res){
 
     //쿼리문
     var query =
-        "select m.from_user_id, nickname, image, m.trade_id, title, message, be_message_cnt, t.last_update " +
-        "from user u " +
-            "join message m on m.from_user_id = u.user_id " +
-            "join trade t on m.trade_id = t.trade_id " +
-            "join post p on t.post_id = p.post_id " +
-            "join book b on p.book_id = b.book_id " +
-            "inner join ( select max(create_date) as max_date " +
-            "from message group by from_user_id ) d " +
-            "where m.to_user_id = ? and m.create_date  = d.max_date limit ?, ? ";
+        "SELECT m.from_user_id, nickname, image, m.trade_id, title, message, be_message_cnt, t.last_update " +
+        "FROM user u " +
+            "JOIN message m ON m.from_user_id = u.user_id " +
+            "JOIN trade t ON m.trade_id = t.trade_id " +
+            "JOIN post p ON t.post_id = p.post_id " +
+            "JOIN book b ON p.book_id = b.book_id " +
+            "INNER JOIN ( SELECT max(create_date) AS max_date " +
+            "FROM message GROUP BY from_user_id ) d " +
+            "WHERE m.to_user_id = ? AND m.create_date  = d.max_date LIMIT ?, ? ";
 
     try {
         connection.query(query, [user_id,start,end], function (err,rows,info) {

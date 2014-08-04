@@ -20,9 +20,8 @@ exports.getUserPostList = function(req,res){
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     // query string 처리
-    var query_str = (url.parse(req.url, true)).query;
-    var page = JSON.parse(query_str.page) || 0;
-    var count = JSON.parse(query_str.count) || 10;
+    var page = JSON.parse(req.query.page) || 0;
+    var count = JSON.parse(req.query.count) || 10;
 
     // 페이징 관련 계산
     var start = (page-1)*count;
@@ -34,9 +33,10 @@ exports.getUserPostList = function(req,res){
         res.json(trans_json("타입을 확인해 주세요",0));
     }
 
-    var query = "select post_id, book_image_path, title, author, translator, publisher, pub_date, " +
-        "bookmark_cnt, condition_name from post p join book b on p.book_id = b.book_id " +
-        "join book_condition bc on p.book_condition_id = bc.book_condition_id where p.user_id = 5 limit 0, 10";
+    var query =
+        "SELECT post_id, book_image_path, title, author, translator, publisher, pub_date, " +
+        "bookmark_cnt, condition_name FROM post p JOIN book b ON p.book_id = b.book_id " +
+        "JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id WHERE p.user_id = 5 LIMIT 0, 10";
 
     try {
         connection.query(query, [user_id,start,end], function (err,rows,info) {
@@ -62,9 +62,8 @@ exports.getReviewList = function(req,res){
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     // query string 처리
-    var query_str = (url.parse(req.url, true)).query;
-    var page = JSON.parse(query_str.page) || 0;
-    var count = JSON.parse(query_str.count) || 10;
+    var page = JSON.parse(req.query.page) || 0;
+    var count = JSON.parse(req.query.count) || 10;
 
     // 페이징 관련 계산
     var start = (page-1)*count;
@@ -84,7 +83,7 @@ exports.getReviewList = function(req,res){
         "JOIN book b ON p.book_id = b.book_id " +
         "JOIN trade t ON p.post_id = t.post_id " +
         "JOIN review r ON r.trade_id = t.trade_id " +
-        "WHERE u.user_id = ? limit ?, ? ";
+        "WHERE u.user_id = ? LIMIT ?, ? ";
 
     try {
         connection.query(query, [user_id,start,end], function (err,rows,info) {
@@ -106,9 +105,8 @@ exports.getRequestPostList = function(req,res){
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     // query string 처리
-    var query_str = (url.parse(req.url, true)).query;
-    var page = JSON.parse(query_str.page) || 0;
-    var count = JSON.parse(query_str.count) || 10;
+    var page = JSON.parse(req.query.page) || 0;
+    var count = JSON.parse(req.query.count) || 10;
 
     // 페이징 관련 계산
     var start = (page-1)*count;
@@ -120,10 +118,11 @@ exports.getRequestPostList = function(req,res){
         res.json(trans_json("타입을 확인해 주세요",0));
     }
 
-    var query = "select t.post_id, book_image_path, title, author, translator, publisher, " +
-        "pub_date, bookmark_cnt, condition_name from trade t join post p on t.post_id = p.post_id " +
-        "join book b on p.book_id = b.book_id join book_condition bc on p.book_condition_id = bc.book_condition_id " +
-        "where t.req_user_id = 16 limit 0, 10;";
+    var query =
+        "SELECT t.post_id, book_image_path, title, author, translator, publisher, " +
+        "pub_date, bookmark_cnt, condition_name FROM trade t JOIN post p ON t.post_id = p.post_id " +
+        "JOIN book b ON p.book_id = b.book_id JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id " +
+        "WHERE t.req_user_id = 16 LIMIT 0, 10;";
 
     try {
         connection.query(query, [user_id,start,end], function (err,rows,info) {
