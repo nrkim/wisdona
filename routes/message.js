@@ -1,134 +1,59 @@
 /**
  * Created by nrkim on 2014. 7. 29..
  */
+var json = require("./json");
+var url = require('url');
+var trans_json = json.trans_json;
+var message_list = json.message_list;
+
+var mysql = require('mysql');
+var connection = mysql.createConnection({
+    host :'wisdona.cz09lkhuij69.ap-northeast-1.rds.amazonaws.com',
+    port : 3306,
+    user : 'admin',
+    password : 'zktldhvpdk',
+    database : 'wisdonadb'
+});
+
 exports.getMessageGroupList = function(req,res){
-    var data = {
-        "success": 1,
-        "message": "success",
-        "result": [
-            {
-                "user": {
-                    "user_id": 123,
-                    "nick_name": "수지",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/123.jpg"
-                },
-                "trade_id": 5,
-                "book_name": "아프니까 청춘이다",
-                "last_message": "배송 요청 드린 메시지대로 배송 부탁 드립니다 :)",
-                "unread_messages_cnt": 2,
-                "last_update": "2014-07-27 22:32:52"
-            },
-            {
-                "user": {
-                    "user_id": 789,
-                    "nick_name": "지민",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/789.jpg"
-                },
-                "trade_id": 6,
-                "book_name": "해리포터와 마법사의 돌",
-                "last_message": "책잘받았습니다^^",
-                "unread_messages_cnt": 1,
-                "last_update": "2014-07-2722: 32: 52"
-            },
-            {
-                "user": {
-                    "user_id": 789,
-                    "nick_name": "해리포터와 불사조 기사단",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/789.jpg"
-                },
-                "trade_id": 6,
-                "book_name": "",
-                "last_message": "잘 받았어요",
-                "unread_messages_cnt": 1,
-                "last_update": "2014-07-2722: 32: 52"
-            },
-            {
-                "user": {
-                    "user_id": 789,
-                    "nick_name": "퐁퐁이",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/789.jpg"
-                },
-                "trade_id": 6,
-                "book_name": "자기 앞의 생",
-                "last_message": "책잘받았습니다^^",
-                "unread_messages_cnt": 1,
-                "last_update": "2014-07-2722: 32: 52"
-            },
-            {
-                "user": {
-                    "user_id": 789,
-                    "nick_name": "홍두깨부인",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/789.jpg"
-                },
-                "trade_id": 6,
-                "book_name": "자바스크립트 전문가가 되는길",
-                "last_message": "책잘받았습니다^^",
-                "unread_messages_cnt": 1,
-                "last_update": "2014-07-2722: 32: 52"
-            },
-            {
-                "user": {
-                    "user_id": 789,
-                    "nick_name": "지민",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/789.jpg"
-                },
-                "trade_id": 6,
-                "book_name": "불멸의 이순신",
-                "last_message": "책잘받았습니다^^",
-                "unread_messages_cnt": 1,
-                "last_update": "2014-07-2722: 32: 52"
-            },
-            {
-                "user": {
-                    "user_id": 789,
-                    "nick_name": "지민",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/789.jpg"
-                },
-                "trade_id": 6,
-                "book_name": "뿌리깊은 나무",
-                "last_message": "책잘받았습니다^^",
-                "unread_messages_cnt": 1,
-                "last_update": "2014-07-2722: 32: 52"
-            },
-            {
-                "user": {
-                    "user_id": 789,
-                    "nick_name": "지민",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/789.jpg"
-                },
-                "trade_id": 6,
-                "book_name": "이순신",
-                "last_message": "책잘받았습니다^^",
-                "unread_messages_cnt": 1,
-                "last_update": "2014-07-2722: 32: 52"
-            },
-            {
-                "user": {
-                    "user_id": 789,
-                    "nick_name": "지민",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/789.jpg"
-                },
-                "trade_id": 6,
-                "book_name": "객체지향 프로그래밍 전문가 과정",
-                "last_message": "책잘받았습니다^^",
-                "unread_messages_cnt": 1,
-                "last_update": "2014-07-2722: 32: 52"
-            },
-            {
-                "user": {
-                    "user_id": 789,
-                    "nick_name": "지민",
-                    "profile_image_url": "http://wisdona.com/images/user/profile/789.jpg"
-                },
-                "trade_id": 6,
-                "book_name": "뿌리갚은 나무",
-                "last_message": "책잘받았습니다^^",
-                "unread_messages_cnt": 1,
-                "last_update": "2014-07-2722: 32: 52"
+
+    //parameter로 받은 사용자 아이디
+/*    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+
+    // query string 처리
+    var query_str = (url.parse(req.url, true)).query;
+    var page = JSON.parse(query_str.page) || 0;
+    var count = JSON.parse(query_str.count) || 10;
+
+    // 페이징 관련 계산
+    var start = (page-1)*count;
+    var end = start+count;
+    var messages = [];
+
+    //타입 체크
+    if (typeof user_id != "number" || typeof page != "number" || typeof count != "number"){
+        res.json(trans_json("타입을 확인해 주세요",0));
+    }
+
+    //쿼리문
+    var query =;
+
+    try {
+        connection.query(query, [user_id,start,end], function (err,rows,info) {
+            if (err) {
+                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
             }
-        ]
-    };
-    res.json(data);
+
+            for(var i =0; i<rows.length; i++) {
+                messages.push(message_list(rows, i));
+            }
+
+            res.json(trans_json('success',1,messages));
+        });
+    } catch(err) {
+        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
+    }
+    */
 };
 
 exports.destroyMessageGroup = function(req,res){

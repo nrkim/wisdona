@@ -11,9 +11,13 @@ var routes = require('./routes')
     ,user = require('./routes/user');
 
 var app = express();
+//var favicon = require('static-favicon');
 
 
+//app.use(favicon());
 app.use(express.bodyParser());
+//app.use(bodyParser.urlencoded());
+
 
 // 로그인
 

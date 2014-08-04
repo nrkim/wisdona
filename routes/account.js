@@ -2,6 +2,10 @@
  * Created by nrkim on 2014. 7. 29..
  */
 
+var json = require('./json');
+var trans_json = json.trans_json;
+var user_info = json.user_info;
+
 var mysql = require('mysql');
 var connection = mysql.createConnection({
     host :'wisdona.cz09lkhuij69.ap-northeast-1.rds.amazonaws.com',
@@ -11,39 +15,14 @@ var connection = mysql.createConnection({
     database : 'wisdonadb'
 });
 
-/*
-
-function Result(message,code,result){
-    console.log(code);
-    this.code = code || 1
-    this.message = message || "메시지"
-    this.result = result || null
-}
-*/
-
-function trans_json(message,code,result){
-
-    return { code : code || 0, message : message || '메세지', result : result || null}
-};
-
-function user_info(rows){
-    return {
-        nick_name : rows[0].nickname,
-        profile_image_url : rows[0].image,
-        self_intro : rows[0].self_intro,
-        bookmark_cnt : rows[0].bookmark_total_cnt,
-        unread_msg_cnt : rows[0].unread_msg_cnt,
-        like_cnt : rows[0].like_total_cnt,
-        sad_cnt : rows[0].sad_total_cnt
-    }
-};
-
 exports.getUserInfo = function(req,res){
-    var user_id = req.params.user_id //res.json(trans_json("존재하지 않는 사용자 입니다.",0));
+    var user_id = req.params.user_id || res.json(trans_json("존재하지 않는 사용자 입니다.",0));
     console.log('user_id: '+user_id);
 
     var query =
-    "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, SUM(be_message_cnt) unread_msg_cnt, like_total_cnt, sad_total_cnt FROM user u JOIN message m ON u.user_id = m.to_user_id JOIN trade t ON t.trade_id = m.trade_id WHERE u.user_id = ? GROUP BY u.user_id";
+    "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, SUM(be_message_cnt) unread_msg_cnt, " +
+    "like_total_cnt, sad_total_cnt FROM user u JOIN message m ON u.user_id = m.to_user_id " +
+    "JOIN trade t ON t.trade_id = m.trade_id WHERE u.user_id = ? GROUP BY u.user_id";
 
     try {
         connection.query(query,[user_id],function(err,rows,info){
@@ -58,12 +37,10 @@ exports.getUserInfo = function(req,res){
         console.log(err);
         res.json(trans_json("데이터 연결 오류입니다",0));
     }
-
-
 };
 
 exports.createUser = function(req,res){
-
+    //curl로 테스트 해볼것
     var email = req.body.email       || res.json(trans_json("email을 입력하지 않았습니다",0));
     var password = req.body.password || res.json(trans_json("password를 입력하지 않았습니다",0));
     var nickname = req.body.nickname || res.json(trans_json("닉네임을 입력하지 않았습니다",0));
@@ -76,17 +53,26 @@ exports.createUser = function(req,res){
     var query = 'INSERT INTO user(email,password,nickname,bookmark_total_cnt,like_total_cnt,sad_total_cnt,sleep_mode)'+
         'VALUES(?,?,?,0,0,0,0)';
 
+    // 생성 시간 저장해 주기
     try{
         connection.query(query,[email,password,nickname],function(err,info){
             if(err){
-                console.log(err);
+                console.log(typeof (err));
+                console.log(err);//error
+
+                //error code 분석
+                /*switch(err.code){
+                    case 'PROTOCOL_CONNECTION_LOST' :
+                        res.json(trans_json('접속 오류입니다.',0));
+                    case 'ER_DUP_ENTRY' :
+                        //common id도 실행
+                        res.json(trans_json('nickname은 유일해야 합니다.',0));'
+                }*/
                 res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.',0));
-                //console.log('아이디 또는 비밀번호 중복');
-                //ER_DUP_ENTRY(error!!);
             }
         });
-        console.log('success??');
-        res.json(trans_json("success"));
+
+        res.json(trans_json("success",1));
     }
     catch(err) {
         console.log(err);
@@ -117,8 +103,29 @@ exports.destroyUserAccount = function(req,res){
     res.json(trans_json("success",1));
 };
 
+//페이스북 계정 정보
 exports.getAccountSettings = function(req,res){
+    var user_id = req.params.user_id || res.json(trans_json("존재하지 않는 사용자 입니다.",0));
+    console.log('user_id: '+user_id);
 
+    var query =
+        "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, SUM(be_message_cnt) unread_msg_cnt, " +
+        "like_total_cnt, sad_total_cnt FROM user u JOIN message m ON u.user_id = m.to_user_id " +
+        "JOIN trade t ON t.trade_id = m.trade_id WHERE u.user_id = ? GROUP BY u.user_id";
+
+    try {
+        connection.query(query,[user_id],function(err,rows,info){
+            if (err){
+                res.json(trans_json("sql 에러가 일어났습니다.",0));
+            }
+
+            res.json(trans_json("success",1,user_info(rows)));
+        });
+    }
+    catch(err){
+        console.log(err);
+        res.json(trans_json("데이터 연결 오류입니다",0));
+    }
 };
 
 exports.updateAccountSettings = function(req,res){
