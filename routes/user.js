@@ -36,7 +36,7 @@ exports.getUserPostList = function(req,res){
     var query =
         "SELECT post_id, book_image_path, title, author, translator, publisher, pub_date, " +
         "bookmark_cnt, condition_name FROM post p JOIN book b ON p.book_id = b.book_id " +
-        "JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id WHERE p.user_id = 5 LIMIT 0, 10";
+        "JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id WHERE p.user_id = 5 LIMIT ?, ?";
 
     try {
         connection.query(query, [user_id,start,end], function (err,rows,info) {
@@ -122,7 +122,7 @@ exports.getRequestPostList = function(req,res){
         "SELECT t.post_id, book_image_path, title, author, translator, publisher, " +
         "pub_date, bookmark_cnt, condition_name FROM trade t JOIN post p ON t.post_id = p.post_id " +
         "JOIN book b ON p.book_id = b.book_id JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id " +
-        "WHERE t.req_user_id = 16 LIMIT 0, 10;";
+        "WHERE t.req_user_id = ? LIMIT ?, ?";
 
     try {
         connection.query(query, [user_id,start,end], function (err,rows,info) {
