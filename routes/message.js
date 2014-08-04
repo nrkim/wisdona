@@ -18,7 +18,7 @@ var connection = mysql.createConnection({
 exports.getMessageGroupList = function(req,res){
 
     //parameter로 받은 사용자 아이디
-/*    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     // query string 처리
     var query_str = (url.parse(req.url, true)).query;
@@ -30,19 +30,33 @@ exports.getMessageGroupList = function(req,res){
     var end = start+count;
     var messages = [];
 
+    console.log('start ',start);
+    console.log('end',end);
+
     //타입 체크
     if (typeof user_id != "number" || typeof page != "number" || typeof count != "number"){
         res.json(trans_json("타입을 확인해 주세요",0));
     }
 
     //쿼리문
-    var query =;
+    var query =
+        "select m.from_user_id, nickname, image, m.trade_id, title, message, be_message_cnt, t.last_update " +
+        "from user u " +
+            "join message m on m.from_user_id = u.user_id " +
+            "join trade t on m.trade_id = t.trade_id " +
+            "join post p on t.post_id = p.post_id " +
+            "join book b on p.book_id = b.book_id " +
+            "inner join ( select max(create_date) as max_date " +
+            "from message group by from_user_id ) d " +
+            "where m.to_user_id = ? and m.create_date  = d.max_date limit ?, ? ";
 
     try {
         connection.query(query, [user_id,start,end], function (err,rows,info) {
             if (err) {
+                console.log(rows);
                 res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
             }
+            console.log(rows);
 
             for(var i =0; i<rows.length; i++) {
                 messages.push(message_list(rows, i));
@@ -53,7 +67,6 @@ exports.getMessageGroupList = function(req,res){
     } catch(err) {
         res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
     }
-    */
 };
 
 exports.destroyMessageGroup = function(req,res){

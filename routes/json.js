@@ -50,14 +50,14 @@ exports.post_list = function(rows,i){
 exports.message_list = function(rows,i){
     return {
         user : {
-            user_id           : rows[i].user_id,
+            user_id           : rows[i].from_user_id,
             nick_name         : rows[i].nickname,
             profile_image_url : rows[i].image
         },
         trade_id            : rows[i].trade_id,
         book_name           : rows[i].title,
-        last_message        : rows[i].last_message,
-        unread_messages_cnt : rows[i].message_cnt, // 이거 다시 정해줄 것
+        last_message        : rows[i].message,
+        unread_messages_cnt : rows[i].be_message_cnt, // 이거 다시 정해줄 것
         last_update         : rows[i].last_update
     };
 }
