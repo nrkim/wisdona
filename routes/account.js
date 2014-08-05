@@ -73,10 +73,10 @@ exports.createUser = function(req,res){
                 connection.end();
                 res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.',0));
             }
-        });
 
-        connection.end();
-        res.json(trans_json("success",1));
+            connection.end();
+            res.json(trans_json("success",1));
+        });
     }
     catch(err) {
         console.log(err);

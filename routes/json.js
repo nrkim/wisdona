@@ -88,3 +88,11 @@ exports.user_detail = function(rows,i){
         push_settings     : rows[i].push_settings
     }
 }
+
+
+exports.news_list = function(rows,i){
+    return {
+        title   : rows[i].title,
+        content : rows[i].content
+    }
+}

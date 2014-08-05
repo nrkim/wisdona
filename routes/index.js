@@ -9,7 +9,8 @@ var routes = require('../routes')
     ,post = require('../routes/post')
     ,review = require('../routes/review')
     ,trade = require('../routes/trade')
-    ,user = require('../routes/user');
+    ,user = require('../routes/user')
+    ,other = require('../routes/other');
 
 exports.index = function(req,res){
     res.render('index',{title: 'Express'});
@@ -79,5 +80,14 @@ module.exports = function(app,passport) {
 
     // 카테고리
     app.get('/categories', category.getCategoryList);
+
+    // 기타
+    app.get('/genres',other.getGenreList);
+    app.get('/book_conditions',other.getBookConditionList);
+    app.post('/users/:user_id/ask/create',other.getQnaList);
+    app.get('/rules/terms',other.getServiceTerms);
+    app.get('/rules/privacy',other.getPrivacy);
+    app.get('/news', other.getNewsList);
+    app.get('/faq', other.getFaqList);
 
 }
