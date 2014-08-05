@@ -98,6 +98,10 @@ exports.destroyUserAccount = function(req,res){
                 connection.end();
                 res.json(trans_json('이미 삭제되었거나 존재하지 않는 아이디 입니다.',0));
             }
+            connection.commit();
+             connection.end();
+             res.json(trans_json("success",1));
+
         });
     }
     catch(err) {
@@ -106,8 +110,8 @@ exports.destroyUserAccount = function(req,res){
         res.json(trans_json("데이터 연결 오류입니다",0));
     }
 
-    connection.end();
-    res.json(trans_json("success",1));
+
+
 };
 
 //페이스북 계정 정보
@@ -146,13 +150,13 @@ exports.updateAccountSettings = function(req,res){
     var user_id = JSON.parse(req.params.user_id)  || trans_json("아이디를 입력하지 않았습니다.",0);
     var updated = {};
 
-    if (req.body.nick_name)     updated.nick_name = JSON.parse(req.body.nick_name);
-    if (req.body.profile_image) updated.profile_image = JSON.parse(req.body.profile_image);
-    if (req.body.self_intro)    updated.self_intro = JSON.parse(req.body.self_intro);
-    if (req.body.full_name)     updated.name = JSON.parse(req.body.full_name);
-    if (req.body.phone)         updated.phone = JSON.parse(req.body.phone);
-    if (req.body.address)       updated.address = JSON.parse(req.body.address);
-    if (req.body.push_settings) updated.push_settings = JSON.parse(req.body.push_settings);
+    if (req.body.nick_name)     updated.nick_name = req.body.nick_name;
+    if (req.body.profile_image) updated.profile_image = req.body.profile_image;
+    if (req.body.self_intro)    updated.self_intro = req.body.self_intro;
+    if (req.body.full_name)     updated.name = req.body.full_name;
+    if (req.body.phone)         updated.phone = req.body.phone;
+    if (req.body.address)       updated.address = req.body.address;
+    if (req.body.push_settings) updated.push_settings = req.body.push_settings;
 
     query =
         'UPDATE user SET ? WHERE user_id = ? ';
@@ -167,14 +171,13 @@ exports.updateAccountSettings = function(req,res){
                 res.json(trans_json("",0));
             }
 
-            console.log(rows);
+            connection.commit();
             connection.end();
             res.json(trans_json("success",1));
         });
     }
     catch(err){
         console.log(err);
-        connection.end();
         res.json(trans_json("데이터 연결 오류입니다",0));
     }
 };

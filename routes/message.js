@@ -72,32 +72,27 @@ exports.getMessageGroupList = function(req,res){
 };
 
 exports.destroyMessageGroup = function(req,res){
-    var data= {
-        "result": "success",
-        "result_msg": "success"
-    };
 
-    var query1 = "update trade set do_show_group = 0 where trade_id = ?";
+    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
 
-    var query2 = "update trade set be_show_group = 0 where trade_id = ?";
+    var query = "update trade t join post p on p.post_id = t.post_id " +
+        "set be_show_group = (case when req_user_id = ? then false else true end), " +
+        "do_show_group = (case when user_id = ? then false else true end) " +
+        "where trade_id =?";
 
     try {
         var connection = mysql.createConnection(dbConfig.url);
         //if var trans
-        connection.query(query, [trade_id,start,end], function (err,rows,info) {
+        connection.query(query, [user_id,user_id,trade_id], function (err,rows,info) {
             if (err) {
                 //console.log(rows);
                 connection.end();
                 res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
             }
-            console.log(rows);
-
-            for(var i =0; i<rows.length; i++) {
-                messages.push(message_window(rows, i));
-            }
-
+            connection.commit();
             connection.end();
-            res.json(trans_json('success',1,messages));
+            res.json(trans_json('success',1));
         });
     } catch(err) {
         connection.end();
@@ -174,8 +169,8 @@ exports.getMessageList = function(req,res){
     var query =
         "select user_id, nickname, image, message, m.create_date " +
         "from trade t join message m on t.trade_id = m.trade_id join user u on m.from_user_id = u.user_id where t.trade_id = ? limit ?, ? ";
-
     //sample 예제 trade_id =3, 0, 10
+
     try {
         var connection = mysql.createConnection(dbConfig.url);
         connection.query(query, [trade_id,start,end], function (err,rows,info) {
