@@ -77,7 +77,32 @@ exports.destroyMessageGroup = function(req,res){
         "result_msg": "success"
     };
 
-    res.json(data);
+    var query1 = "update trade set do_show_group = 0 where trade_id = ?";
+
+    var query2 = "update trade set be_show_group = 0 where trade_id = ?";
+
+    try {
+        var connection = mysql.createConnection(dbConfig.url);
+        //if var trans
+        connection.query(query, [trade_id,start,end], function (err,rows,info) {
+            if (err) {
+                //console.log(rows);
+                connection.end();
+                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
+            }
+            console.log(rows);
+
+            for(var i =0; i<rows.length; i++) {
+                messages.push(message_window(rows, i));
+            }
+
+            connection.end();
+            res.json(trans_json('success',1,messages));
+        });
+    } catch(err) {
+        connection.end();
+        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
+    }
 };
 
 
@@ -131,16 +156,9 @@ exports.getMessageList = function(req,res){
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
-
-    console.log(user_id);
-    console.log(trade_id);
-
     // query string 처리
     var page = JSON.parse(req.query.page) || 0;
     var count = JSON.parse(req.query.count) || 10;
-
-    console.log(page);
-    console.log(count);
 
     // 페이징 관련 계산
     var start = (page-1)*count;
@@ -154,15 +172,13 @@ exports.getMessageList = function(req,res){
 
     //쿼리문
     var query =
-        "select from_user_id, nickname, image, message, m.create_date " +
-        "from trade t join message m on t.trade_id = m.trade_id " +
-        "join user u on u.user_id = m.from_user_id " +
-        "where t.trade_id = 1 limit 0, 10";
+        "select user_id, nickname, image, message, m.create_date " +
+        "from trade t join message m on t.trade_id = m.trade_id join user u on m.from_user_id = u.user_id where t.trade_id = ? limit ?, ? ";
 
-    //sample 예제 to_user_id =16, 0, 10
+    //sample 예제 trade_id =3, 0, 10
     try {
         var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query, [user_id,start,end], function (err,rows,info) {
+        connection.query(query, [trade_id,start,end], function (err,rows,info) {
             if (err) {
                 //console.log(rows);
                 connection.end();

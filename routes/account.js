@@ -143,51 +143,28 @@ exports.getAccountSettings = function(req,res){
 
 exports.updateAccountSettings = function(req,res){
 
-    var user_id = req.params.user_id  || trans_json("아이디를 입력하지 않았습니다.",0);
-    var to_be_updated = {};
+    var user_id = JSON.parse(req.params.user_id)  || trans_json("아이디를 입력하지 않았습니다.",0);
+    var updated = {};
 
-    if (req.body.nick_name)     to_be_updated.nick_name = JSON.parse(req.body.nick_name);
-    if (req.body.profile_image) to_be_updated.profile_image = JSON.parse(req.body.profile_image);
-    if (req.body.self_intro)    to_be_updated.self_intro = JSON.parse(req.body.self_intro);
-    if (req.body.full_name)     to_be_updated.name = JSON.parse(req.body.full_name);
-    if (req.body.phone)         to_be_updated.phone = JSON.parse(req.body.phone);
-    if (req.body.address)       to_be_updated.address = JSON.parse(req.body.address);
-    if (req.body.push_settings) to_be_updated.push_settings = JSON.parse(req.body.push_settings);
+    if (req.body.nick_name)     updated.nick_name = JSON.parse(req.body.nick_name);
+    if (req.body.profile_image) updated.profile_image = JSON.parse(req.body.profile_image);
+    if (req.body.self_intro)    updated.self_intro = JSON.parse(req.body.self_intro);
+    if (req.body.full_name)     updated.name = JSON.parse(req.body.full_name);
+    if (req.body.phone)         updated.phone = JSON.parse(req.body.phone);
+    if (req.body.address)       updated.address = JSON.parse(req.body.address);
+    if (req.body.push_settings) updated.push_settings = JSON.parse(req.body.push_settings);
 
-    console.log("to_be_update", to_be_updated);
-
-    var arr=[];
-    var result=[];
-    for (var prop in to_be_updated){
-        arr.push(prop);
-        result.push(prop);
-        result.push(to_be_updated[prop]);
-    }
-    result.push(user_id);
-
-    for (var i =0; i< result.legnth; i++){
-        result[i]=JSON.parse(result[i]);
-    }
-    console.log("??  : " ,arr);
-    console.log(result);
-
-    console.log(arr.map(function () { return "? = ?"; }).join(', '));
     query =
-        'UPDATE user SET '+
-        arr.map(function () { return '? = ?'; }).join(', ')+
-        ' WHERE user_id = ? ';
-
-    console.log(query);
-
+        'UPDATE user SET ? WHERE user_id = ? ';
 
     try {
         var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query,result,function(err,rows,info){
+        connection.query(query,[updated,user_id],function(err,rows,info){
             console.log(rows);
             if (err){
                 console.log(rows);
                 connection.end();
-                res.json(trans_json("sql 에러가 일어났습니다.",0));
+                res.json(trans_json("",0));
             }
 
             console.log(rows);
