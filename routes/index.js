@@ -27,11 +27,11 @@ var isLoggedIn = function (req, res, next) {
 module.exports = function(app,passport) {
 
     // 로그인
-    app.post('/login', passport.authenticate('local-login', {
+    /*app.post('/login', passport.authenticate('local-login', {
         successRedirect: '/profile',        // success하면 redirect 어떻게 하는 게 좋은가
         failureRedirect: '/login',
         failureFlash: true
-    }));
+    }));*/
     app.get('/request-activation-email/:user_id', login.requestActivationEmail);
     app.post('/request-send-email', login.requestSendEmail);
     app.post('/logout', login.logout);
@@ -40,11 +40,11 @@ module.exports = function(app,passport) {
 
     // 계정 생성,정보 관련
     app.get('/users/:user_id/profile/show', account.getUserInfo);
-    app.post('/users/create', passport.authenticate('local-signup', {
+    /*app.post('/users/create', passport.authenticate('local-signup', {
         successRedirect: '/profile',
         failureRedirect: '/signup',
         failureFlash: true
-    }));
+    }));*/
     app.post('/users/destroy', account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', account.getAccountSettings);
     app.post('/users/:user_id/account-settings/update', account.updateAccountSettings);

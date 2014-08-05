@@ -6,6 +6,7 @@
 var json = require('./json');
 var trans_json = json.trans_json;
 var user_info = json.user_info;
+var user_detail = json.user_detail;
 
 // db 셋팅
 var dbConfig = require('../config/database');
@@ -61,7 +62,7 @@ exports.createUser = function(req,res){
                 console.log(typeof (err));
                 console.log(err);//error
 
-                //error code 분석
+                //error code
                 /*switch(err.code){
                     case 'PROTOCOL_CONNECTION_LOST' :
                         res.json(trans_json('접속 오류입니다.',0));
@@ -87,8 +88,6 @@ exports.createUser = function(req,res){
 exports.destroyUserAccount = function(req,res){
     //계정 삭제시 휴면 계정
     var user_id = req.body.user_id || res.json(trans_json("아이디가 없습니다",0));
-    console.log('user_id : ',user_id);
-
     var query = 'UPDATE user SET sleep_mode = 1 WHERE user_id = ?';
 
     try{
@@ -114,22 +113,25 @@ exports.destroyUserAccount = function(req,res){
 //페이스북 계정 정보
 exports.getAccountSettings = function(req,res){
     var user_id = req.params.user_id || res.json(trans_json("존재하지 않는 사용자 입니다.",0));
-    console.log('user_id: '+user_id);
 
     var query =
-        "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, SUM(be_message_cnt) unread_msg_cnt, " +
-        "like_total_cnt, sad_total_cnt FROM user u JOIN message m ON u.user_id = m.to_user_id " +
-        "JOIN trade t ON t.trade_id = m.trade_id WHERE u.user_id = ? GROUP BY u.user_id";
+        "SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings " +
+        "FROM user " +
+        "WHERE user_id = ?";
 
     try {
         var connection = mysql.createConnection(dbConfig.url);
         connection.query(query,[user_id],function(err,rows,info){
+            console.log(rows);
             if (err){
+                console.log(rows);
                 connection.end();
-                res.json(trans_json("sql 에러가 일어났습니다.",0));
+               res.json(trans_json("sql 에러가 일어났습니다.",0));
             }
+
+            console.log(rows);
             connection.end();
-            res.json(trans_json("success",1,user_info(rows)));
+            res.json(trans_json("success",1,user_detail(rows,0)));
         });
     }
     catch(err){
@@ -140,11 +142,62 @@ exports.getAccountSettings = function(req,res){
 };
 
 exports.updateAccountSettings = function(req,res){
-    var data = {
-        "code": 1,
-        "message": "success",
-        "result" : null
-    };
 
-    res.json(data);
+    var user_id = req.params.user_id  || trans_json("아이디를 입력하지 않았습니다.",0);
+    var to_be_updated = {};
+
+    if (req.body.nick_name)     to_be_updated.nick_name = JSON.parse(req.body.nick_name);
+    if (req.body.profile_image) to_be_updated.profile_image = JSON.parse(req.body.profile_image);
+    if (req.body.self_intro)    to_be_updated.self_intro = JSON.parse(req.body.self_intro);
+    if (req.body.full_name)     to_be_updated.name = JSON.parse(req.body.full_name);
+    if (req.body.phone)         to_be_updated.phone = JSON.parse(req.body.phone);
+    if (req.body.address)       to_be_updated.address = JSON.parse(req.body.address);
+    if (req.body.push_settings) to_be_updated.push_settings = JSON.parse(req.body.push_settings);
+
+    console.log("to_be_update", to_be_updated);
+
+    var arr=[];
+    var result=[];
+    for (var prop in to_be_updated){
+        arr.push(prop);
+        result.push(prop);
+        result.push(to_be_updated[prop]);
+    }
+    result.push(user_id);
+
+    for (var i =0; i< result.legnth; i++){
+        result[i]=JSON.parse(result[i]);
+    }
+    console.log("??  : " ,arr);
+    console.log(result);
+
+    console.log(arr.map(function () { return "? = ?"; }).join(', '));
+    query =
+        'UPDATE user SET '+
+        arr.map(function () { return '? = ?'; }).join(', ')+
+        ' WHERE user_id = ? ';
+
+    console.log(query);
+
+
+    try {
+        var connection = mysql.createConnection(dbConfig.url);
+        connection.query(query,result,function(err,rows,info){
+            console.log(rows);
+            if (err){
+                console.log(rows);
+                connection.end();
+                res.json(trans_json("sql 에러가 일어났습니다.",0));
+            }
+
+            console.log(rows);
+            connection.end();
+            res.json(trans_json("success",1));
+        });
+    }
+    catch(err){
+        console.log(err);
+        connection.end();
+        res.json(trans_json("데이터 연결 오류입니다",0));
+    }
 };

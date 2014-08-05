@@ -76,3 +76,15 @@ exports.message_window = function(rows,i){
 }
 
 
+exports.user_detail = function(rows,i){
+    return {
+        user_id           : rows[i].user_id,
+        nick_name         : rows[i].nickname,
+        profile_image_url : rows[i].image,
+        self_intro        : rows[i].self_intro,
+        name              : rows[i].name,
+        phone             : rows[i].phone,
+        address           : rows[i].address,
+        push_settings     : rows[i].push_settings
+    }
+}
