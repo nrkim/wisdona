@@ -5,7 +5,11 @@
 var json = require('./json');
 var trans_json = json.trans_json;
 var user_info = json.user_info;
-var user_detail = json.user_detail;
+var user_detail = json.user_detail
+    ,template = require('./templete')
+    ,template_get_list = template.template_get_list
+    ,template_get_element = template.template_get_element
+    ,template_post = template.template_post;
 
 // db 셋팅
 var dbConfig = require('../config/database');
@@ -27,25 +31,10 @@ exports.createUserReview = function(req,res){
         "join post p on t.post_id = p.post_id " +
         "where t.trade_id = ? ";
 
-    try{
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query,[user_id,user_id,comments,points,trade_id],function(err,info){
-            if(err){
-                console.log(typeof (err));
-                console.log(err);//error
-
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.',0));
-            }
-
-            connection.end();
-            res.json(trans_json("success",1));
-        });
-    }
-    catch(err) {
-        console.log(err);
-        connection.end();
-        res.json(trans_json("데이터 연결 오류입니다",0));
-    }
+    template_post(
+        req,res,
+        query,
+        [user_id,user_id,comments,points,trade_id]
+    );
 
 };

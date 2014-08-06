@@ -41,11 +41,11 @@ module.exports = function(app,passport) {
 
     // 계정 생성,정보 관련
     app.get('/users/:user_id/profile/show', account.getUserInfo);
-    /*app.post('/users/create', passport.authenticate('local-signup', {
-        successRedirect: '/profile',
-        failureRedirect: '/signup',
-        failureFlash: true
-    }));*/
+
+    app.post('/users/create', passport.authenticate('local-signup',
+
+    ), account.createUser);
+
     app.post('/users/destroy', account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', account.getAccountSettings);
     app.post('/users/:user_id/account-settings/update', account.updateAccountSettings);

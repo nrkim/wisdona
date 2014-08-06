@@ -6,7 +6,11 @@
 var json = require("./json");
 var trans_json = json.trans_json;
 var message_list = json.message_list;
-var message_window = json.message_window;
+var message_window = json.message_window
+    ,template = require('./templete')
+    ,template_get_list = template.template_get_list
+    ,template_get_element = template.template_get_element
+    ,template_post = template.template_post;
 
 // db 셋팅
 var dbConfig = require('../config/database');
@@ -48,27 +52,13 @@ exports.getMessageGroupList = function(req,res){
 
     //sample 예제 to_user_id =16, 0, 10
 
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query, [user_id,start,end], function (err,rows,info) {
-            if (err) {
-                //console.log(rows);
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
-            }
-            console.log(rows);
+    template_get_list(
+        req,res,
+        query,
+        [user_id,start,end],
+        message_list
+    );
 
-            for(var i =0; i<rows.length; i++) {
-                messages.push(message_list(rows, i));
-            }
-
-            connection.end();
-            res.json(trans_json('success',1,messages));
-        });
-    } catch(err) {
-        connection.end();
-        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
-    }
 };
 
 exports.destroyMessageGroup = function(req,res){
@@ -81,23 +71,11 @@ exports.destroyMessageGroup = function(req,res){
         "do_show_group = (case when user_id = ? then false else true end) " +
         "where trade_id =?";
 
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        //if var trans
-        connection.query(query, [user_id,user_id,trade_id], function (err,rows,info) {
-            if (err) {
-                //console.log(rows);
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
-            }
-            connection.commit();
-            connection.end();
-            res.json(trans_json('success',1));
-        });
-    } catch(err) {
-        connection.end();
-        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
-    }
+    template_post(
+        req,res,
+        query,
+        [user_id,user_id,trade_id]
+    );
 };
 
 
@@ -115,34 +93,13 @@ exports.createMessage = function(req,res){
         'VALUES(?,?,?,0,0,0,0)';
 
     // 생성 시간 저장해 주기
-    try{
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query,[email,password,nickname],function(err,info){
-            if(err){
-                console.log(typeof (err));
-                console.log(err);//error
 
-                //error code 분석
-                /*switch(err.code){
-                 case 'PROTOCOL_CONNECTION_LOST' :
-                 res.json(trans_json('접속 오류입니다.',0));
-                 case 'ER_DUP_ENTRY' :
-                 //common id도 실행
-                 res.json(trans_json('nickname은 유일해야 합니다.',0));'
-                 }*/
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.',0));
-            }
-        });
+    template_post(
+        req,res,
+        query,
+        [email,password,nickname]
+    );
 
-        connection.end();
-        res.json(trans_json("success",1));
-    }
-    catch(err) {
-        console.log(err);
-        connection.end();
-        res.json(trans_json("데이터 연결 오류입니다",0));
-    }
 };
 
 exports.getMessageList = function(req,res){
@@ -171,25 +128,10 @@ exports.getMessageList = function(req,res){
         "from trade t join message m on t.trade_id = m.trade_id join user u on m.from_user_id = u.user_id where t.trade_id = ? limit ?, ? ";
     //sample 예제 trade_id =3, 0, 10
 
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query, [trade_id,start,end], function (err,rows,info) {
-            if (err) {
-                //console.log(rows);
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
-            }
-            console.log(rows);
-
-            for(var i =0; i<rows.length; i++) {
-                messages.push(message_window(rows, i));
-            }
-
-            connection.end();
-            res.json(trans_json('success',1,messages));
-        });
-    } catch(err) {
-        connection.end();
-        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
-    }
+    template_get_list(
+      req,res,
+        query,
+        [trade_id,start,end],
+        message_window
+    );
 };

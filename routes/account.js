@@ -6,38 +6,35 @@
 var json = require('./json');
 var trans_json = json.trans_json;
 var user_info = json.user_info;
-var user_detail = json.user_detail;
+var user_detail = json.user_detail
+    ,template = require('./templete')
+    ,template_get_list = template.template_get_list
+    ,template_get_element = template.template_get_element
+    ,template_post = template.template_post;
 
 // db 셋팅
-var dbConfig = require('../config/database');
-var mysql = require('mysql');
+//var dbConfig = require('../config/database');
+//var mysql = require('mysql');
 
 exports.getUserInfo = function(req,res){
     var user_id = req.params.user_id || res.json(trans_json("존재하지 않는 사용자 입니다.",0));
-    console.log('user_id: '+user_id);
+    var query = "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, " +
+        "(case when u.user_id = p.user_id then be_message_cnt else do_message_cnt end) unread_msg_cnt, " +
+        "like_total_cnt, sad_total_cnt FROM user u JOIN message m ON u.user_id = m.to_user_id " +
+        "JOIN ( select * " +
+        "from trade " +
+        "where current_status = 0 " +
+        ") t ON t.trade_id = m.trade_id " +
+        "join post p on p.post_id = t.post_id " +
+        "WHERE u.user_id = 4 " +
+        "GROUP BY u.user_id ";
 
-    var query =
-    "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, SUM(be_message_cnt) unread_msg_cnt, " +
-    "like_total_cnt, sad_total_cnt FROM user u JOIN message m ON u.user_id = m.to_user_id " +
-    "JOIN trade t ON t.trade_id = m.trade_id WHERE u.user_id = ? GROUP BY u.user_id";
-
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query,[user_id],function(err,rows,info){
-            if (err){
-                connection.end();
-                res.json(trans_json("sql 에러가 일어났습니다.",0));
-            }
-
-            connection.end();
-            res.json(trans_json("success",1,user_info(rows)));
-        });
-    }
-    catch(err){
-        console.log(err);
-        connection.end();
-        res.json(trans_json("데이터 연결 오류입니다",0));
-    }
+    template_get_element(
+        req,res,
+        query,
+        [user_id],
+        user_info
+    );
 };
 
 exports.createUser = function(req,res){
@@ -46,43 +43,24 @@ exports.createUser = function(req,res){
     var password = req.body.password || res.json(trans_json("password를 입력하지 않았습니다",0));
     var nickname = req.body.nickname || res.json(trans_json("닉네임을 입력하지 않았습니다",0));
 
+    console.log('hello!!!');
+
+
     if (typeof(email) != "string" || typeof(password) != "string" ||
         typeof(nickname) != "string" ) {
         res.json(trans_json("올바른 타입을 사용해 주세요.",0));
     }
 
-    var query = 'INSERT INTO user(email,password,nickname,bookmark_total_cnt,like_total_cnt,sad_total_cnt,sleep_mode)'+
-        'VALUES(?,?,?,0,0,0,0)';
+    var query = 'INSERT INTO user(email,password,nickname,bookmark_total_cnt,like_total_cnt,sad_total_cnt,sleep_mode,create_date)'+
+        'VALUES(?,?,?,0,0,0,0,now())';
 
     // 생성 시간 저장해 주기
-    try{
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query,[email,password,nickname],function(err,info){
-            if(err){
-                console.log(typeof (err));
-                console.log(err);//error
+    template_post(
+        req,res,
+        query,
+        [email,password,nickname]
+    );
 
-                //error code
-                /*switch(err.code){
-                    case 'PROTOCOL_CONNECTION_LOST' :
-                        res.json(trans_json('접속 오류입니다.',0));
-                    case 'ER_DUP_ENTRY' :
-                        //common id도 실행
-                        res.json(trans_json('nickname은 유일해야 합니다.',0));'
-                }*/
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.',0));
-            }
-
-            connection.end();
-            res.json(trans_json("success",1));
-        });
-    }
-    catch(err) {
-        console.log(err);
-        connection.end();
-        res.json(trans_json("데이터 연결 오류입니다",0));
-    }
 };
 
 exports.destroyUserAccount = function(req,res){
@@ -90,27 +68,11 @@ exports.destroyUserAccount = function(req,res){
     var user_id = req.body.user_id || res.json(trans_json("아이디가 없습니다",0));
     var query = 'UPDATE user SET sleep_mode = 1 WHERE user_id = ?';
 
-    try{
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query,[user_id],function(err,info){
-            if(err){
-                console.log('info\n',info);
-                connection.end();
-                res.json(trans_json('이미 삭제되었거나 존재하지 않는 아이디 입니다.',0));
-            }
-            connection.commit();
-             connection.end();
-             res.json(trans_json("success",1));
-
-        });
-    }
-    catch(err) {
-        console.log(err);
-        connection.end();
-        res.json(trans_json("데이터 연결 오류입니다",0));
-    }
-
-
+    template_post(
+        req,res,
+        query,
+        [user_id]
+    );
 
 };
 
@@ -123,26 +85,14 @@ exports.getAccountSettings = function(req,res){
         "FROM user " +
         "WHERE user_id = ?";
 
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query,[user_id],function(err,rows,info){
-            console.log(rows);
-            if (err){
-                console.log(rows);
-                connection.end();
-               res.json(trans_json("sql 에러가 일어났습니다.",0));
-            }
 
-            console.log(rows);
-            connection.end();
-            res.json(trans_json("success",1,user_detail(rows,0)));
-        });
-    }
-    catch(err){
-        console.log(err);
-        connection.end();
-        res.json(trans_json("데이터 연결 오류입니다",0));
-    }
+    template_get_element(
+      req,res,
+      query,
+      [user_id],
+      user_detail
+    );
+
 };
 
 exports.updateAccountSettings = function(req,res){
@@ -151,6 +101,8 @@ exports.updateAccountSettings = function(req,res){
     var updated = {};
 
     if (req.body.nick_name)     updated.nick_name = req.body.nick_name;
+
+    // profile image --> req.files 로 처리!!
     if (req.body.profile_image) updated.profile_image = req.body.profile_image;
     if (req.body.self_intro)    updated.self_intro = req.body.self_intro;
     if (req.body.full_name)     updated.name = req.body.full_name;
@@ -161,23 +113,10 @@ exports.updateAccountSettings = function(req,res){
     query =
         'UPDATE user SET ? WHERE user_id = ? ';
 
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query,[updated,user_id],function(err,rows,info){
-            console.log(rows);
-            if (err){
-                console.log(rows);
-                connection.end();
-                res.json(trans_json("",0));
-            }
 
-            connection.commit();
-            connection.end();
-            res.json(trans_json("success",1));
-        });
-    }
-    catch(err){
-        console.log(err);
-        res.json(trans_json("데이터 연결 오류입니다",0));
-    }
+    template_post(
+        req,res,
+        query,
+        [updated,user_id]
+    );
 };

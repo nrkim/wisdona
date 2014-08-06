@@ -4,36 +4,16 @@
 var json = require("./json");
 var trans_json = json.trans_json;
 var review = json.review;
-var post_list = json.post_list;
+var post_list = json.post_list
+    ,template = require('./templete')
+    ,template_get_list = template.template_get_list
+    ,template_get_element = template.template_get_element
+    ,template_post = template.template_post;
 
 // db 셋팅
 var dbConfig = require('../config/database');
 var mysql = require('mysql');
 
-
-
-
-/*exports.db_template(query,query_params,){
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query, query_params, function (err,rows,info) {
-            if (err) {
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
-            }
-
-            for(var i =0; i<rows.length; i++) {
-                posts.push(post_list(rows, i));
-            }
-
-            connection.end();
-            res.json(trans_json('success',1,posts));
-        });
-    } catch(err) {
-        connection.end();
-        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
-    }
-}*/
 
 exports.getUserPostList = function(req,res){
     //parameter로 받은 사용자 아이디
@@ -58,25 +38,12 @@ exports.getUserPostList = function(req,res){
         "bookmark_cnt, condition_name FROM post p JOIN book b ON p.book_id = b.book_id " +
         "JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id WHERE p.user_id = 5 LIMIT ?, ?";
 
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query, [user_id,start,end], function (err,rows,info) {
-            if (err) {
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
-            }
-
-            for(var i =0; i<rows.length; i++) {
-                posts.push(post_list(rows, i));
-            }
-
-            connection.end();
-            res.json(trans_json('success',1,posts));
-        });
-    } catch(err) {
-        connection.end();
-        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
-    }
+    template_get_list(
+        req,res,
+        query,
+        [user_id,start,end],
+        post_list
+    );
 
 };
 
@@ -108,27 +75,14 @@ exports.getReviewList = function(req,res){
         "JOIN trade t ON p.post_id = t.post_id " +
         "JOIN review r ON r.trade_id = t.trade_id " +
         "WHERE u.user_id = ? LIMIT ?, ? ";
-
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query, [user_id,start,end], function (err,rows,info) {
-            if (err) {        //에러 코드 분석 구문
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
-            }
-
-            for(var i =0; i<rows.length; i++)
-                reviews.push(review(rows,i));
-
-            connection.end();
-            res.json(trans_json('success',1,reviews));
-        });
-    } catch(err) {
-        connection.end();
-        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
-    }
-
+    template_get_list(
+      req,res,
+      query,
+      [user_id,start,end],
+      review
+    );
 };
+
 exports.getRequestPostList = function(req,res){
     //parameter로 받은 사용자 아이디
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
@@ -153,25 +107,12 @@ exports.getRequestPostList = function(req,res){
         "JOIN book b ON p.book_id = b.book_id JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id " +
         "WHERE t.req_user_id = ? LIMIT ?, ?";
 
-    try {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query, [user_id,start,end], function (err,rows,info) {
-            if (err) {
-                connection.end();
-                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
-            }
 
-            for(var i =0; i<rows.length; i++) {
-                posts.push(post_list(rows, i));
-            }
-
-            connection.end();
-            res.json(trans_json('success',1,posts));
-        });
-    } catch(err) {
-        connection.end();
-        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
-    }
-
+    template_get_list(
+        req,res,
+        query,
+        [user_id,start,end],
+        post_list
+    );
 };
 
