@@ -103,3 +103,23 @@ exports.faq_list = function(rows,i){
         content : rows[i].answer
     }
 }
+
+exports.policy = function(rows,i){
+    return {
+        content : rows[i].content
+    }
+}
+
+exports.book_state = function(rows,i){
+    return {
+        book_condition_id: rows[i].book_condition_id,
+        book_condition   : rows[i].condition_name
+    }
+}
+
+exports.genre_list = function(rows,i){
+    return   {
+        genre_id : rows[i].genre_id,
+        genre    : rows[i].genre
+    }
+}
