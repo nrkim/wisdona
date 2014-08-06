@@ -3,8 +3,8 @@
  */
 var json = require('./json');
 var trans_json = json.trans_json;
-var user_info = json.user_info;
-var user_detail = json.user_detail;
+var news_list = json.news_list;
+var faq_list = json.faq_list;
 
 // db 셋팅
 var dbConfig = require('../config/database');
@@ -33,7 +33,9 @@ exports.getPrivacy = function(req,res){
 
 exports.getNewsList = function(req,res){
 
-    var query = "select title, content from news";
+    var query = "SELECT title, content FROM news";
+
+    var news =[];
 
     try {
         var connection = mysql.createConnection(dbConfig.url);
@@ -44,11 +46,11 @@ exports.getNewsList = function(req,res){
             }
 
             for(var i =0; i<rows.length; i++) {
-                posts.push(news_list(rows, i));
+                news.push(news_list(rows, i));
             }
 
             connection.end();
-            res.json(trans_json('success',1,posts));
+            res.json(trans_json('success',1,news));
         });
     } catch(err) {
         connection.end();
@@ -58,4 +60,27 @@ exports.getNewsList = function(req,res){
 
 exports.getFaqList = function(req,res){
 
+    var query = "SELECT question, answer FROM faq";
+
+    var faq =[];
+
+    try {
+        var connection = mysql.createConnection(dbConfig.url);
+        connection.query(query, function (err,rows,info) {
+            if (err) {
+                connection.end();
+                res.json(trans_json('아이디 또는 비밀번호 중복 됩니다.', 0));
+            }
+
+            for(var i =0; i<rows.length; i++) {
+                faq.push(faq_list(rows, i));
+            }
+
+            connection.end();
+            res.json(trans_json('success',1,faq));
+        });
+    } catch(err) {
+        connection.end();
+        res.json(trans_json('데이터베이스 연결 오류입니다.', 0));
+    }
 };

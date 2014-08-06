@@ -96,3 +96,10 @@ exports.news_list = function(rows,i){
         content : rows[i].content
     }
 }
+
+exports.faq_list = function(rows,i){
+    return  {
+        title : rows[i].question,
+        content : rows[i].answer
+    }
+}
