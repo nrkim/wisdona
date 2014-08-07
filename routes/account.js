@@ -17,8 +17,13 @@ var user_detail = json.user_detail
 //var mysql = require('mysql');
 
 exports.getUserInfo = function(req,res){
+
+    console.log(req.user.user_id);
+    console.log(req.session.passport.user);
+
     var user_id = req.params.user_id || res.json(trans_json("존재하지 않는 사용자 입니다.",0));
-    var query = "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, " +
+    var query =
+        "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, " +
         "(case when u.user_id = p.user_id then be_message_cnt else do_message_cnt end) unread_msg_cnt, " +
         "like_total_cnt, sad_total_cnt FROM user u JOIN message m ON u.user_id = m.to_user_id " +
         "JOIN ( select * " +
@@ -39,28 +44,12 @@ exports.getUserInfo = function(req,res){
 
 exports.createUser = function(req,res){
     //curl로 테스트 해볼것
-    var email = req.body.email       || res.json(trans_json("email을 입력하지 않았습니다",0));
-    var password = req.body.password || res.json(trans_json("password를 입력하지 않았습니다",0));
-    var nickname = req.body.nickname || res.json(trans_json("닉네임을 입력하지 않았습니다",0));
-
-    console.log('hello!!!');
-
-
-    if (typeof(email) != "string" || typeof(password) != "string" ||
-        typeof(nickname) != "string" ) {
-        res.json(trans_json("올바른 타입을 사용해 주세요.",0));
+    if(req.user){
+        res.json(trans_json('success',1));
     }
-
-    var query = 'INSERT INTO user(email,password,nickname,bookmark_total_cnt,like_total_cnt,sad_total_cnt,sleep_mode,create_date)'+
-        'VALUES(?,?,?,0,0,0,0,now())';
-
-    // 생성 시간 저장해 주기
-    template_post(
-        req,res,
-        query,
-        [email,password,nickname]
-    );
-
+    else{
+        res.json(trans_json('사용자 추가 실패',0));
+    }
 };
 
 exports.destroyUserAccount = function(req,res){

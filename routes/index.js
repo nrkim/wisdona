@@ -28,23 +28,18 @@ var isLoggedIn = function (req, res, next) {
 module.exports = function(app,passport) {
 
     // 로그인
-    /*app.post('/login', passport.authenticate('local-login', {
-        successRedirect: '/profile',        // success하면 redirect 어떻게 하는 게 좋은가
-        failureRedirect: '/login',
-        failureFlash: true
-    }));*/
+    app.post('/login', passport.authenticate('local-login'),login.login);
+    app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
     app.get('/request-activation-email/:user_id', login.requestActivationEmail);
     app.post('/request-send-email', login.requestSendEmail);
     app.post('/logout', login.logout);
     app.post('/activation-email/:authkey', login.activationEmail);
-    app.get('/update-password/:authkey', login.updatePassword);
+
 
     // 계정 생성,정보 관련
-    app.get('/users/:user_id/profile/show', account.getUserInfo);
+    app.get('/users/profile/show', account.getUserInfo);
 
-    app.post('/users/create', passport.authenticate('local-signup',
-
-    ), account.createUser);
+    app.post('/users/create', passport.authenticate('local-signup'),account.createUser);
 
     app.post('/users/destroy', account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', account.getAccountSettings);

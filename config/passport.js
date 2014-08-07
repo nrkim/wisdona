@@ -9,7 +9,9 @@ module.exports = function(passport) {
 
     passport.serializeUser(function(user, done) {
         console.log('passport.serializeUser ====> ', user);
-        done(null, user.id);
+
+        console.log("user id???",user.user_id);
+        done(null, user.user_id);
     });
 
     passport.deserializeUser(function(id, done) {
@@ -17,7 +19,9 @@ module.exports = function(passport) {
             if (err) {
                 return done(err);
             }
-            var selectSql = 'SELECT user_id, email, password FROM user WHERE user_id = ?';
+
+            console.log("deserializeUser : ",id);
+            var selectSql = 'SELECT user_id, email, password nickname FROM user WHERE user_id = ?';
             connection.query(selectSql, [id], function(err, rows, fields) {
                 var user = rows[0];
                 connection.release();
@@ -33,6 +37,12 @@ module.exports = function(passport) {
             passReqToCallback: true
         },
         function(req, email, password, done) {
+            console.log("nickname is :",req.body.nickname);
+            console.log("password is : ",password);
+            console.log('email is',email);
+
+
+
             process.nextTick(function() {
                 connectionPool.getConnection(function(err, connection) {
                     if (err) {
@@ -40,15 +50,21 @@ module.exports = function(passport) {
                     }
 
                     var selectSql = 'SELECT user_id FROM user WHERE email = ?';
+                    console.log("log!!");
                     connection.query(selectSql, [email], function(err, rows, fields) {
+                        console.log("log2!!");
                         if (err) {
+                            console.log("log3!!");
                             connection.release();
                             return done(err);
                         }
                         if (rows.length) {
+                            console.log("log4!!");
                             connection.release();
                             return done(null, false, req.flash('signupMessage', 'That email is already taken.'));
                         } else {
+                            console.log(rows);
+                            console.log("log5!!");
                             async.waterfall([
                                     function generateSalt(callback) {
                                         var rounds = 10;
@@ -69,16 +85,26 @@ module.exports = function(passport) {
                                 ],
                                 function(err, user) {
                                     if (err) {
+                                        console.log("log6!!");
                                         connection.release();
                                         return done(err);
                                     }
-                                    var insertSql = 'INSERT INTO user(email, password) VALUES(?, ?)';
-                                    connection.query(insertSql, [user.email, user.password], function(err, result) {
+
+                                    console.log(typeof(user.nickname));
+
+                                    var insertSql = 'INSERT INTO user(email,password,nickname,bookmark_total_cnt,like_total_cnt,sad_total_cnt,sleep_mode,create_date)'+
+                                        'VALUES(?,?,?,0,0,0,0,now())';
+
+                                    connection.query(insertSql, [user.email, user.password, req.body.nickname], function(err, result) {
                                         if (err) {
+                                            console.log("log7!!");
+                                            console.log(err.code);
                                             connection.release();
                                             return done(err);
                                         }
-                                        user.id = result.insertId;
+                                        console.log("log8!!");
+                                        console.log(result.insertId);
+                                        user.user_id = result.insertId;
                                         connection.release();
                                         return done(null, user);
                                     });
