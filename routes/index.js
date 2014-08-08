@@ -37,7 +37,7 @@ module.exports = function(app,passport) {
 
 
     // 계정 생성,정보 관련
-    app.get('/users/profile/show', account.getUserInfo);
+    app.get('/users/:user_id/profile/show', account.getUserInfo);
 
     app.post('/users/create', passport.authenticate('local-signup'),account.createUser);
 

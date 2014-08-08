@@ -12,27 +12,21 @@ var user_detail = json.user_detail
     ,template_get_element = template.template_get_element
     ,template_post = template.template_post;
 
-// db 셋팅
-//var dbConfig = require('../config/database');
-//var mysql = require('mysql');
 
 exports.getUserInfo = function(req,res){
 
-    console.log(req.user.user_id);
-    console.log(req.session.passport.user);
-
     var user_id = req.params.user_id || res.json(trans_json("존재하지 않는 사용자 입니다.",0));
     var query =
-        "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, " +
-        "(case when u.user_id = p.user_id then be_message_cnt else do_message_cnt end) unread_msg_cnt, " +
-        "like_total_cnt, sad_total_cnt FROM user u JOIN message m ON u.user_id = m.to_user_id " +
-        "JOIN ( select * " +
+        "select u.user_id, nickname, image, self_intro, bookmark_total_cnt, " +
+        "sum(case when u.user_id = req_user_id then be_message_cnt else do_message_cnt end) unread_msg_cnt, " +
+        "like_total_cnt, sad_total_cnt " +
+        "from ( select * " +
         "from trade " +
         "where current_status = 0 " +
-        ") t ON t.trade_id = m.trade_id " +
-        "join post p on p.post_id = t.post_id " +
-        "WHERE u.user_id = 4 " +
-        "GROUP BY u.user_id ";
+        ") t join post p on p.post_id = t.post_id " +
+        "join user u on p.user_id = u.user_id or t.req_user_id = u.user_id " +
+        "where u.user_id = 30 " +
+        "group by u.user_id";
 
     template_get_element(
         req,res,

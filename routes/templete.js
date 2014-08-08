@@ -6,7 +6,7 @@ var json = require('./json');
 var trans_json = json.trans_json;
 
 
-exports.template_get_list = function(req,res,query,params,get_list){
+exports.template_get_list = function(req,res,query,params,get_list,callback){
     connectionPool.getConnection(function(err, connection) {
         if (err) {
             res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
@@ -24,13 +24,17 @@ exports.template_get_list = function(req,res,query,params,get_list){
                 list.push(get_list(rows,i));
             }
 
+            if(callback){
+                callback(req,res);
+            }
+
             connection.release();
             res.json(trans_json("success",1,list));
         });
     });
 };
 
-exports.template_get_element = function(req,res,query,params,get_element){
+exports.template_get_element = function(req,res,query,params,get_element,callback){
     connectionPool.getConnection(function(err, connection) {
         if (err) {
             res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
@@ -42,13 +46,17 @@ exports.template_get_element = function(req,res,query,params,get_element){
                 res.json(trans_json(err.code+" sql 에러입니다.", 0));        //에러 코드 처리
             }
 
+            if(callback){
+                callback(req,res);
+            }
+
             connection.release();
             res.json(trans_json("success",1,get_element(rows,0)));
         });
     });
 };
 
-exports.template_post = function(req,res,query,params){
+exports.template_post = function(req,res,query,params,callback){
     connectionPool.getConnection(function(err, connection) {
         if (err) {
             res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
@@ -58,6 +66,10 @@ exports.template_post = function(req,res,query,params){
             if(err){
                 connection.release();
                 res.json(trans_json(err.code+" sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
+            }
+
+            if(callback){
+                callback(req,res);
             }
 
             connection.release();
