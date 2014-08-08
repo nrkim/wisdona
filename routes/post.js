@@ -17,6 +17,14 @@ function getJsonData( code, message, result ){
 
     return data;
 }
+
+
+
+function sendPostList() {
+
+}
+
+
 exports.createPost = function(req,res) {
     var user_id = req.params.user_id,
         comment = req.body.comment,
@@ -378,7 +386,6 @@ exports.getPostList = function(req,res){
     var sort = req.query.sort;
     var theme = req.query.theme;
 
-
     // 파라미터 초기화
     if ( !page ) page = 0;
     if ( !count ) count = 20;
@@ -388,73 +395,105 @@ exports.getPostList = function(req,res){
     var start = page * count;
     var end = start + (count - 1);
 
+    // WHERE 조건절 변수
+    var where = "";
+
+    // ORDER BY 정렬 변수
+    var sorter = "";
+
     // 쿼리 함수
     function sendQuery(query, data) {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query(query, data, function (err, rows, fields) {
+        connectionPool.getConnection(function(err, connection) {
             if (err) {
-                connection.end();
-                return res.json(getJsonData(0, err.message, null));
+                res.json(getJsonData(0, 'DB 오류', null));
             }
+            connection.query(query, data, function (err, rows, fields) {
+                if (err) {
+                    connection.release();
+                    return res.json(getJsonData(0, err.message, null));
+                }
+                var list = [];
+                for ( var i = 0; i < rows.length; i++ ){
+                    var current_status = rows[i].current_status || 0;
+                    var item = {
+                        post_id : rows[i].post_id,
+                        thumbnail_url : rows[i].thumbnail_path,
+                        book_name : rows[i].title,
+                        author : rows[i].author,
+                        publisher : rows[i].translator,
+                        publication_date : rows[i].pub_date,
+                        bookmark_count : rows[i].bookmark_cnt,
+                        current_status : current_status
+                    };
+                    list.push(item);
+                };
 
-            connection.end();
-            res.json(getJsonData(1, 'success', null));
+                connection.release();
+                res.json(getJsonData(1, 'success', list));
+            });
         });
-    }
-
-
-    /*테스트
-    var sorter = "book_condition_id";
-    var sorter2 = "create_date";
-    var data = [category_id, sorter, sorter2, start, end];
-    var query = "SELECT * FROM post WHERE category_id = ? ORDER BY ??, ?? DESC LIMIT ?, ?;";
-    sendQuery(query, data);
-
-    테스트*/
-
+    };
 
     // 테마 파라미터 있는 경우
     if ( theme ) {
-
-    }else{
-        // 정렬방법
-        var sorter;
-        switch (sort) {
-            case "new" :
-                sorter = "";
+        switch (theme) {
+            case "popular" :
+                sorter = "p.hits DESC,";
                 break;
-            case "condition" :
-                sorter = "book_condition_id,";
+            case "first" :
+                sorter = "p.bookmark_cnt DESC,";
+                where = "WHERE b.reg_count = 1 ";
                 break;
-            case "bm_asc" :
-                sorter = "bookmark_cnt,";
+            case "pub_date" :
+                sorter = "p.bookmark_cnt DESC,";
+                where = "WHERE b.pub_date >= NOW() -  INTERVAL 12 MONTH ";
                 break;
-            case "bm_desc" :
-                sorter = "bookmark_cnt DESC,";
+            case "free" :
+                sorter = "p.bookmark_cnt DESC,";
+                where = "WHERE p.bookmark_cnt = 0 ";
                 break;
             default :
-                sorter = "";
+                return res.json(getJsonData(0, "'theme' 쿼리가 잘못 지정 되었습니다. 다음 중 한가지 ['popular', 'first', 'pub_date', 'free']", null));
+                break;
+        }
+    }else{
+        console.log(sort);
+        // 정렬방법
+        switch (sort) {
+            case "new" :
+                break;
+            case "condition" :
+                sorter = "p.book_condition_id,";
+                break;
+            case "bm_asc" :
+                sorter = "p.bookmark_cnt,";
+                break;
+            case "bm_desc" :
+                sorter = "p.bookmark_cnt DESC,";
+                break;
+            case null :
+                break;
+            default :
+                return res.json(getJsonData(0, "'sort' 쿼리가 잘못 지정 되었습니다. 다음 중 한가지 ['new', 'condition', 'bm_asc', 'bm_desc']", null));
                 break;
         }
 
         // 카테고리 있는 경우
-        var where;
         if ( category_id ){
             where = "WHERE category_id = " + category_id + " ";
         }
-
-        var data = [start, end];
-        var query =
-            "SELECT p.post_id, pi.thumbnail_path, b.title, b.author, b.translator, b.publisher, b.pub_date, p.bookmark_cnt, t.current_status " +
-            "FROM post p " +
-            "JOIN book b ON p.book_id = b.book_id " +
-            "JOIN post_image pi ON p.post_id = pi.post_id " +
-            "LEFT JOIN (SELECT * FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where +
-            "GROUP BY p.post_id ORDER BY " + sorter + " create_date DESC LIMIT ?, ?;";
-        //console.log(query);
-        sendQuery("SELECT * FROM post LIMIT ?, ?;", data);
-
     }
+
+    var data = [start, end];
+    var query =
+        "SELECT p.post_id, pi.thumbnail_path, b.title, b.author, b.translator, b.publisher, b.pub_date, p.bookmark_cnt, t.current_status " +
+        "FROM post p " +
+        "JOIN book b ON p.book_id = b.book_id " +
+        "JOIN post_image pi ON p.post_id = pi.post_id " +
+        "LEFT JOIN (SELECT * FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where +
+        "GROUP BY p.post_id ORDER BY " + sorter + " p.create_date DESC LIMIT ?, ?;";
+    console.log(query);
+    sendQuery(query, data);
 };
 
 
