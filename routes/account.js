@@ -8,9 +8,9 @@ var trans_json = json.trans_json;
 var user_info = json.user_info;
 var user_detail = json.user_detail
     ,template = require('./templete')
-    ,template_get_list = template.template_get_list
     ,template_get_element = template.template_get_element
-    ,template_post = template.template_post;
+    ,template_post = template.template_post
+    ,logout = require('./login').logout;
 
 
 exports.getUserInfo = function(req,res){
@@ -25,7 +25,7 @@ exports.getUserInfo = function(req,res){
         "where current_status = 0 " +
         ") t join post p on p.post_id = t.post_id " +
         "join user u on p.user_id = u.user_id or t.req_user_id = u.user_id " +
-        "where u.user_id = 30 " +
+        "where u.user_id = ? " +
         "group by u.user_id";
 
     template_get_element(
@@ -54,7 +54,8 @@ exports.destroyUserAccount = function(req,res){
     template_post(
         req,res,
         query,
-        [user_id]
+        [user_id],
+        logout
     );
 
 };
