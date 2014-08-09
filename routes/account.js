@@ -28,6 +28,15 @@ exports.getUserInfo = function(req,res){
         "where u.user_id = ? " +
         "group by u.user_id";
 
+    // 테스트 케이스
+    // 2 : 요청자: 10 게시자: 4  post: 16
+    // 3 : 요청자: 15 게시자: 30 post: 17
+    // 4 : 요청자: 20 게시자: 6  post: 18
+    // 7 : 요청자: 30 게시자: 3  post: 15
+    // 8 : 요청자: 30 게시자: 7  post: 19
+    // 사용자 아이디 30은 8개의 않읽은 메시지 있음
+
+
     template_get_element(
         req,res,
         query,

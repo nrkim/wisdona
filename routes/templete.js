@@ -5,6 +5,7 @@
 var json = require('./json');
 var trans_json = json.trans_json;
 
+// json 객체 만드는 탬플릿 만들기
 
 exports.template_get_list = function(req,res,query,params,get_list,callback){
     connectionPool.getConnection(function(err, connection) {
@@ -19,6 +20,15 @@ exports.template_get_list = function(req,res,query,params,get_list,callback){
                 connection.release();
                 res.json(trans_json(err.code+" 중복된 데이터를 금지합니다.", 0));        //에러 코드 처리
             }
+
+            //list.reduce(function(pre,now){
+            //    return pre.push(get_list(rows,i));
+            //});
+
+            //[0,1,2,3,4].reduce(function(previousValue, currentValue, index, array){
+            //    return previousValue + currentValue;
+            //});
+
 
             for(var i =0; i<rows.length; i++) {
                 list.push(get_list(rows,i));
@@ -77,8 +87,3 @@ exports.template_post = function(req,res,query,params,callback){
         });
     });
 };
-
-
-
-
-

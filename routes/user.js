@@ -36,7 +36,7 @@ exports.getUserPostList = function(req,res){
     var query =
         "SELECT post_id, book_image_path, title, author, translator, publisher, pub_date, " +
         "bookmark_cnt, condition_name FROM post p JOIN book b ON p.book_id = b.book_id " +
-        "JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id WHERE p.user_id = 5 LIMIT ?, ?";
+        "JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id WHERE p.user_id = ? LIMIT ?, ?";
 
     template_get_list(
         req,res,

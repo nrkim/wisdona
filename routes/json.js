@@ -126,7 +126,26 @@ exports.genre_list = function(rows,i){
 
 exports.category_list = function(rows,i){
     return {
-        "category_id": rows[i].category_id,
-        "category": rows[i].category
+        category_id : rows[i].category_id,
+        category    : rows[i].category
+    }
+}
+
+
+exports.unread_msg_lst = function(rows,i){
+    return {
+        message     : rows[i].message,
+        create_date : rows[i].create_date
+    }
+}
+
+exports.unread_msgs = function(rows,i,unread_msg_lst){
+    return {
+        user : {
+            user_id             : rows[i].user_id,
+            nick_name           : rows[i].nickname,
+            profile_image_url   : rows[i].image
+        },
+        list : unread_msg_lst
     }
 }

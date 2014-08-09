@@ -55,6 +55,9 @@ module.exports = function(app,passport) {
     app.post('/users/:user_id/message-groups/destroy', message.destroyMessageGroup);
     app.post('/users/:user_id/message-groups/:trade_id/create', message.createMessage);
     app.get('/users/:user_id/message-groups/:trade_id/list', message.getMessageList);
+    app.get('/users/:user_id/message-groups/:trade_id/unread/list',message.getUnreadMessgeList);
+    app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',message.confirmMessage);
+
 
     // 평가
     app.post('/users/:user_id/reviews/create', review.createUserReview);
