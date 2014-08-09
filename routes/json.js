@@ -42,8 +42,7 @@ exports.post_list = function(rows,i){
         publisher       : rows[i].translator,
         published       : rows[i].publisher,
         publication_date: rows[i].pub_date,
-        bookmark_count  : rows[i].bookmark_cnt,
-        current_status  : rows[i].condition_name
+        bookmark_count  : rows[i].bookmark_cnt
     };
 };
 
@@ -129,23 +128,19 @@ exports.category_list = function(rows,i){
         category_id : rows[i].category_id,
         category    : rows[i].category
     }
-}
+};
+
 
 
 exports.unread_msg_lst = function(rows,i){
     return {
+        trade_id    : rows[i].trade_id,
         message     : rows[i].message,
-        create_date : rows[i].create_date
-    }
-}
-
-exports.unread_msgs = function(rows,i,unread_msg_lst){
-    return {
-        user : {
-            user_id             : rows[i].user_id,
-            nick_name           : rows[i].nickname,
-            profile_image_url   : rows[i].image
-        },
-        list : unread_msg_lst
-    }
-}
+        create_date : rows[i].create_date,
+        user        : {
+            user_id           : rows[i].user_id,
+            nick_name         : rows[i].from_user_id,
+            profile_image_url : rows[i].image
+        }
+    };
+};

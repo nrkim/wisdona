@@ -5,85 +5,58 @@
 var json = require('./json');
 var trans_json = json.trans_json;
 
-// json 객체 만드는 탬플릿 만들기
+// 커넥션 관련 탬플릿
 
-exports.template_get_list = function(req,res,query,params,get_list,callback){
-    connectionPool.getConnection(function(err, connection) {
-        if (err) {
-            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
-        }
+exports.template_get = function(req,res,query,params,get_list,callback){
+    try {
+        connectionPool.getConnection(function (err, connection) {
+            if (err) {
+                res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
+            }
 
-        var list=[];
+            connection.query(query, params, function (err, rows, fields) {
+                if (err) {
+                    connection.release();
+                    throw err;
+                    //throw err;
+                    //res.json(trans_json(err.code + " 중복된 데이터를 금지합니다.", 0));        //에러 코드 처리
+                }
 
-        connection.query(query,params, function(err, rows, fields) {
-            if(err){
+                //데이터 결과가 없을 떄 에러인 경우도 있고 에러가 아닌 경우도 있음 / 두가지경우가 있기 때문에 flag parameter 필요
+                //for문을 forEach함수로 바꿈
+
+                rows.forEach(function (row, i, arr) {
+                    arr[i] = get_list(arr, i);
+                    //return arr;
+                });
+
                 connection.release();
-                res.json(trans_json(err.code+" 중복된 데이터를 금지합니다.", 0));        //에러 코드 처리
-            }
-
-            //list.reduce(function(pre,now){
-            //    return pre.push(get_list(rows,i));
-            //});
-
-            //[0,1,2,3,4].reduce(function(previousValue, currentValue, index, array){
-            //    return previousValue + currentValue;
-            //});
-
-
-            for(var i =0; i<rows.length; i++) {
-                list.push(get_list(rows,i));
-            }
-
-            if(callback){
-                callback(req,res);
-            }
-
-            connection.release();
-            res.json(trans_json("success",1,list));
+                res.json(trans_json("success", 1, rows));
+            });
         });
-    });
-};
-
-exports.template_get_element = function(req,res,query,params,get_element,callback){
-    connectionPool.getConnection(function(err, connection) {
-        if (err) {
-            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
-        }
-
-        connection.query(query,params, function(err, rows, fields) {
-            if(err){
-                connection.release();
-                res.json(trans_json(err.code+" sql 에러입니다.", 0));        //에러 코드 처리
-            }
-
-            if(callback){
-                callback(req,res);
-            }
-
-            connection.release();
-            res.json(trans_json("success",1,get_element(rows,0)));
-        });
-    });
+    } catch(err){
+        callback(err);
+    }
 };
 
 exports.template_post = function(req,res,query,params,callback){
-    connectionPool.getConnection(function(err, connection) {
-        if (err) {
-            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
-        }
+    try {
+        connectionPool.getConnection(function (err, connection) {
+            if (err) {
+                res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
+            }
 
-        connection.query(query,params, function(err, rows, fields) {
-            if(err){
+            connection.query(query, params, function (err, rows, fields) {
+                if (err) {
+                    connection.release();
+                    res.json(trans_json(err.code + " sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
+                }
+
                 connection.release();
-                res.json(trans_json(err.code+" sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
-            }
-
-            if(callback){
-                callback(req,res);
-            }
-
-            connection.release();
-            res.json(trans_json("success",1));
+                res.json(trans_json("success", 1));
+            });
         });
-    });
+    } catch (err){
+        callback(err);
+    }
 };

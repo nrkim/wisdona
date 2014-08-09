@@ -4,12 +4,12 @@
 
 //json 객체 불러오기
 var json = require("./json");
+var async = require("async");
 var trans_json = json.trans_json;
 var message_list = json.message_list;
 var message_window = json.message_window
     ,template = require('./templete')
-    ,template_get_list = template.template_get_list
-    ,template_get_element = template.template_get_element
+    ,template_get = template.template_get
     ,template_post = template.template_post
     ,unread_msgs=json.unread_msgs
     ,unread_msg_lst= json.unread_msg_lst;
@@ -57,7 +57,7 @@ exports.getMessageGroupList = function(req,res){
 
     //sample 예제 to_user_id =5, 1, 10
 
-    template_get_list(
+    template_get(
         req,res,
         query,
         [user_id,start,end],
@@ -135,7 +135,7 @@ exports.getMessageList = function(req,res){
         "JOIN user u ON m.from_user_id = u.user_id WHERE t.trade_id = ? LIMIT ?, ? ";
     //sample 예제 trade_id =3, 0, 10
 
-    template_get_list(
+    template_get(
       req,res,
         query,
         [trade_id,start,end],
@@ -145,45 +145,39 @@ exports.getMessageList = function(req,res){
 
 
 exports.getUnreadMessgeList = function(req,res){
+
     var user_id = JSON.parse(req.params.user_id)   || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
-    var query = "select u.user_id, nickname, image, message, m.create_date " +
-        "from user u join message m on u.user_id= m.to_user_id " +
-        "where trade_id = ? and u.user_id =? order by create_date desc ";
+    var get_query =
+        "SELECT trade_id, message, m.create_date, from_user_id, nickname, image " +
+        "FROM user u JOIN message m ON u.user_id = m.from_user_id " +
+        "WHERE m.to_user_id = ? AND m.is_sended = FALSE";
+
+    var update_query =
+        "UPDATE message SET is_sended = true WHERE m.to_user_id = ? AND is_sended = FALSE"
 
     // 테스트 케이스 trade_id =4, user_id = 5
+    async.series([
+        template_get(req,res,get_query,[user_id]),
+        template_post(req,res,update_query,[user_id])
+    ],function(err,results){
+        if (err){
+            //return console.log(err);
+            rollback;
+        }
+    });     // transaction 처리
 
-        connectionPool.getConnection(function(err, connection) {
-            if (err) {
-                res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
-            }
-
-            var list=[];
-
-            connection.query(query,[trade_id,user_id], function(err, rows, fields) {
-                if(err){
-                    connection.release();
-                    res.json(trans_json(err.code+" 중복된 데이터를 금지합니다.", 0));        //에러 코드 처리
-                }
-
-                for(var i =0; i<rows.length; i++) {
-                    list.push(unread_msg_lst(rows,i));
-                }
-
-                connection.release();
-                res.json(trans_json("success",1,unread_msgs(rows,0,list)));
-            });
-        });
 };
 
 exports.confirmMessage = function(req,res){
+
     var user_id = JSON.parse(req.params.user_id)   || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
-    var query = "update message m " +
-        "set m.is_read = true " +
-        "where m.trade_id = ? and to_user_id = ? ";
+    var query = "UPDATE message m " +
+        "SET m.is_read = true " +
+        "WHERE m.trade_id = ? AND to_user_id = ? ";
 
     template_post(
         req,res,

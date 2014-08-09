@@ -5,6 +5,8 @@ var LocalStrategy = require('passport-local').Strategy
     , bcrypt = require('bcrypt-nodejs')
     , async = require('async');
 
+//passport 커스터마이징
+
 module.exports = function(passport) {
 
     passport.serializeUser(function(user, done) {

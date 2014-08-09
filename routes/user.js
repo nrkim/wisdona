@@ -6,8 +6,7 @@ var trans_json = json.trans_json;
 var review = json.review;
 var post_list = json.post_list
     ,template = require('./templete')
-    ,template_get_list = template.template_get_list
-    ,template_get_element = template.template_get_element
+    ,template_get = template.template_get
     ,template_post = template.template_post;
 
 // db 셋팅
@@ -24,7 +23,7 @@ exports.getUserPostList = function(req,res){
     var count = JSON.parse(req.query.count) || 10;
 
     // 페이징 관련 계산
-    var start = (page-1)*count;
+    var start = page*count;
     var end = start+count;
     var posts = [];
 
@@ -35,14 +34,12 @@ exports.getUserPostList = function(req,res){
 
     var query =
         "SELECT post_id, book_image_path, title, author, translator, publisher, pub_date, " +
-        "bookmark_cnt, condition_name FROM post p JOIN book b ON p.book_id = b.book_id " +
-        "JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id WHERE p.user_id = ? LIMIT ?, ?";
+        "bookmark_cnt FROM post p JOIN book b ON p.book_id = b.book_id " +
+        "WHERE p.user_id = ? LIMIT ?, ?"
 
-    template_get_list(
-        req,res,
-        query,
-        [user_id,start,end],
-        post_list
+    template_get(
+        req,res,query,
+        [user_id,start,end],post_list
     );
 
 };
@@ -57,7 +54,7 @@ exports.getReviewList = function(req,res){
     var count = JSON.parse(req.query.count) || 10;
 
     // 페이징 관련 계산
-    var start = (page-1)*count;
+    var start = page*count;
     var end = start+count;
     var reviews = [];
 
@@ -75,7 +72,7 @@ exports.getReviewList = function(req,res){
         "JOIN trade t ON p.post_id = t.post_id " +
         "JOIN review r ON r.trade_id = t.trade_id " +
         "WHERE u.user_id = ? LIMIT ?, ? ";
-    template_get_list(
+    template_get(
       req,res,
       query,
       [user_id,start,end],
@@ -92,7 +89,7 @@ exports.getRequestPostList = function(req,res){
     var count = JSON.parse(req.query.count) || 10;
 
     // 페이징 관련 계산
-    var start = (page-1)*count;
+    var start = page*count;
     var end = start+count;
     var posts = [];
 
@@ -108,7 +105,7 @@ exports.getRequestPostList = function(req,res){
         "WHERE t.req_user_id = ? LIMIT ?, ?";
 
 
-    template_get_list(
+    template_get(
         req,res,
         query,
         [user_id,start,end],

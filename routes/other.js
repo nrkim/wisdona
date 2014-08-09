@@ -9,19 +9,18 @@ var json = require('./json')
     ,policy = json.policy
     ,book_state = json.book_state
     ,genre_list = json.genre_list
-    ,template_get_list = template.template_get_list
-    ,template_get_element = template.template_get_element
+    ,tempate_get = template.template_get
     ,template_post = template.template_post;
 
 exports.getGenreList = function(req,res) {
-    template_get_list(req,res,
+    tempate_get(req,res,
         "select genre_id, genre from genre"
         ,null,genre_list);
 };
 
 
 exports.getBookConditionList = function(req,res) {
-    template_get_list(req,res,
+    tempate_get(req,res,
         "select * from book_condition"
         ,null,book_state);
 };
@@ -37,7 +36,7 @@ exports.getQnaList = function(req,res){
 };
 
 exports.getServiceTerms = function(req,res){
-    template_get_element(
+    tempate_get(
         req,res,
         "select content from service_board where service_board_id =1",
         null,
@@ -46,7 +45,7 @@ exports.getServiceTerms = function(req,res){
 };
 
 exports.getPrivacy = function(req,res) {
-    template_get_element(
+    tempate_get(
         req,res,
         "select content from service_board where service_board_id =2",
         null,
@@ -55,7 +54,7 @@ exports.getPrivacy = function(req,res) {
 }
 
 exports.getNewsList = function(req,res){
-    template_get_list(
+    tempate_get(
         req,res,
         "SELECT title, content FROM news",
         null,
@@ -64,7 +63,7 @@ exports.getNewsList = function(req,res){
 };
 
 exports.getFaqList = function(req,res){
-    template_get_list(
+    tempate_get(
         req,res,
         "SELECT question, answer FROM faq",
         null,

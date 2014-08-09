@@ -6,8 +6,7 @@ var json = require('./json');
 var trans_json = json.trans_json
 ,bcrypt = require('bcrypt-nodejs')
     ,template = require('./templete')
-    ,template_get_list = template.template_get_list
-    ,template_get_element = template.template_get_element
+    ,template_get = template.template_get
     ,template_post = template.template_post;
 
 exports.login = function(req,res){

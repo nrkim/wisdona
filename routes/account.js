@@ -8,7 +8,7 @@ var trans_json = json.trans_json;
 var user_info = json.user_info;
 var user_detail = json.user_detail
     ,template = require('./templete')
-    ,template_get_element = template.template_get_element
+    ,template_get = template.template_get
     ,template_post = template.template_post
     ,logout = require('./login').logout;
 
@@ -37,7 +37,7 @@ exports.getUserInfo = function(req,res){
     // 사용자 아이디 30은 8개의 않읽은 메시지 있음
 
 
-    template_get_element(
+    template_get(
         req,res,
         query,
         [user_id],
@@ -74,12 +74,16 @@ exports.getAccountSettings = function(req,res){
     var user_id = req.params.user_id || res.json(trans_json("존재하지 않는 사용자 입니다.",0));
 
     var query =
-        "SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings " +
+        "SELECT user_id, nickname, image, self_intro, name, phone, address " +
         "FROM user " +
-        "WHERE user_id = ?";
+        "WHERE user_id = ?"
+
+    //    "SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings " +
+    //    "FROM user " +
+    //    "WHERE user_id = ?";
 
 
-    template_get_element(
+    template_get(
       req,res,
       query,
       [user_id],
@@ -90,12 +94,16 @@ exports.getAccountSettings = function(req,res){
 
 exports.updateAccountSettings = function(req,res){
 
-    var user_id = JSON.parse(req.params.user_id)  || trans_json("아이디를 입력하지 않았습니다.",0);
+
+    // passport 적용용
+   var user_id = JSON.parse(req.session.passport.user)  || trans_json("아이디를 입력하지 않았습니다.",0);
+
+    //var user_id = JSON.parse(req.params.user_id)  || trans_json("아이디를 입력하지 않았습니다.",0);
     var updated = {};
 
     if (req.body.nick_name)     updated.nick_name = req.body.nick_name;
 
-    // profile image --> req.files 로 처리!!
+    // profile image --> req.files 로 처리 -> 파일 업로드 구현 할것
     if (req.body.profile_image) updated.profile_image = req.body.profile_image;
     if (req.body.self_intro)    updated.self_intro = req.body.self_intro;
     if (req.body.full_name)     updated.name = req.body.full_name;
