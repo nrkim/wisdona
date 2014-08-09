@@ -491,14 +491,83 @@ exports.getPostList = function(req,res){
         "JOIN book b ON p.book_id = b.book_id " +
         "JOIN post_image pi ON p.post_id = pi.post_id " +
         "LEFT JOIN (SELECT * FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where +
-        "GROUP BY p.post_id ORDER BY " + sorter + " p.create_date DESC LIMIT ?, ?;";
+        "GROUP BY p.post_id " +
+        "ORDER BY " + sorter + " p.create_date DESC LIMIT ?, ?;";
     console.log(query);
     sendQuery(query, data);
 };
 
 
 exports.searchPosts = function(req,res){
+    var keyword = req.query.q;
+    var category_id = req.query.category_id;
+    var page = req.query.page;
+    var count = req.query.count;
 
+    // 파라미터 초기화
+    if ( !page ) page = 0;
+    if ( !count ) count = 20;
+
+    // limit 변수 초기화
+    var start = page * count;
+    var end = start + (count - 1);
+
+    // WHERE 조건절 변수
+    var where = "WHERE ";
+
+    // 쿼리 함수
+    function sendQuery(query, data) {
+        connectionPool.getConnection(function(err, connection) {
+            if (err) {
+                res.json(getJsonData(0, 'DB 오류', null));
+            }
+            connection.query(query, data, function (err, rows, fields) {
+                if (err) {
+                    connection.release();
+                    return res.json(getJsonData(0, err.message, null));
+                }
+                var list = [];
+                for ( var i = 0; i < rows.length; i++ ){
+                    var current_status = rows[i].current_status || 0;
+                    var item = {
+                        post_id : rows[i].post_id,
+                        thumbnail_url : rows[i].thumbnail_path,
+                        book_name : rows[i].title,
+                        author : rows[i].author,
+                        publisher : rows[i].translator,
+                        publication_date : rows[i].pub_date,
+                        bookmark_count : rows[i].bookmark_cnt,
+                        current_status : current_status
+                    };
+                    list.push(item);
+                };
+
+                connection.release();
+                res.json(getJsonData(1, 'success', list));
+            });
+        });
+    };
+
+
+    // 카테고리 있는 경우
+    if ( category_id ){
+        where = where + "p.category_id = " + category_id + " and ";
+    }
+
+    where = where + "(b.title LIKE '%" + keyword + "%' or b.author LIKE '%" + keyword + "%') ";
+
+
+    var data = [start, end];
+    var query =
+        "SELECT p.post_id, pi.thumbnail_path, b.title, b.author, b.translator, b.publisher, b.pub_date, p.bookmark_cnt, t.current_status " +
+        "FROM post p " +
+        "JOIN book b ON p.book_id = b.book_id " +
+        "JOIN post_image pi ON p.post_id = pi.post_id " +
+        "LEFT JOIN (SELECT * FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where +
+        "GROUP BY p.post_id " +
+        "ORDER BY p.create_date DESC LIMIT ?, ?;";
+    console.log(query);
+    sendQuery(query, data);
 }
 exports.reportPost = function(req,res){
 
