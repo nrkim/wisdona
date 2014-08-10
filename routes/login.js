@@ -10,11 +10,6 @@ var trans_json = json.trans_json
     ,template_post = template.template_post;
 
 exports.login = function(req,res){
-    console.log("login~~~~~~~~~~~~~~~~");
-    console.log(req.user);
-    console.log(req.session);
-    console.log(req.user.user_id);
-    console.log(req.session.passport.user);
 
     if(req.session.passport.user){
         res.json(trans_json('success',1));
@@ -22,8 +17,6 @@ exports.login = function(req,res){
     else{
         res.json(trans_json('로그인 실패',0));
     }
-
-    //res.json(data);
 };
 
 exports.requestActivationEmail = function(req,res){
@@ -67,7 +60,7 @@ exports.activationEmail = function(req,res){
 
 exports.updatePassword = function(req,res){
 
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃되었습니다. 다시 로그인 해주세요.",0));
+    var user_id = req.session.passport.user  || res.json(trans_json("로그아웃되었습니다. 다시 로그인 해주세요.",0));
     var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.",0));
     var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));
 
@@ -76,7 +69,7 @@ exports.updatePassword = function(req,res){
             res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
         }
 
-        var query = "select password from user where user_id = ?"
+        var query = "SELECT password FROM user WHERE user_id = ?"
         connection.query(query,[user_id], function(err, rows, fields) {
             if(err){
                 connection.release();

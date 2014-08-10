@@ -7,10 +7,14 @@ var trans_json = json.trans_json;
 
 // 커넥션 관련 탬플릿
 
+
+// 서버가 죽지 않기 위한 에러 핸들링
+//
+
+
 exports.template_get = function(req,res,query,params,get_list,callback){
     try {
 
-        console.log("yes??");
         connectionPool.getConnection(function (err, connection) {
             if (err) {
                 res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
@@ -19,9 +23,7 @@ exports.template_get = function(req,res,query,params,get_list,callback){
             connection.query(query, params, function (err, rows, fields) {
                 if (err) {
                     connection.release();
-                    throw err;
-                    //throw err;
-                    //res.json(trans_json(err.code + " 중복된 데이터를 금지합니다.", 0));        //에러 코드 처리
+                    throw err;      // 에러 처리
                 }
 
                 console.log('template_get');
@@ -29,8 +31,6 @@ exports.template_get = function(req,res,query,params,get_list,callback){
 
                 //데이터 결과가 없을 떄 에러인 경우도 있고 에러가 아닌 경우도 있음 / 두가지경우가 있기 때문에 flag parameter 필요
                 //for문을 forEach함수로 바꿈
-
-                console.log('rows is ',rows.length);
 
                 if(rows.length == 0) {
                     console.log('length is 0');

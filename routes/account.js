@@ -3,6 +3,7 @@
  */
 
 //json 객체 생성관련 함수 불러오기
+
 var json = require('./json');
 var trans_json = json.trans_json;
 var user_info = json.user_info;
@@ -13,13 +14,18 @@ var user_detail = json.user_detail
     ,logout = require('./login').logout;
 
 // 서버가 죽지 않기 위해 해야 할 일은 ?
-
 exports.getUserInfo = function(req,res){
 
+    //1. req.session.passport.user에서 session이 없으면 서버가 죽음 isAuthenticate를 사용할것
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     //타입 체크
     if(typeof(user_id) != "number") trans_json('사용자 아이디가 숫자 타입이 아닙니다.',0);
+
+
+    // 유저 정보를 얻는 쿼리
+    // 유저는 게시물을 한번도 써본적이 없거나 혹은 거래를 한번도 해보지 않았거나 거래를 진행 중인 사람으로
+    // 각각 unread_msg_cnt를 구하는 연산을 적용
 
     var query =
         "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, " +
@@ -46,8 +52,7 @@ exports.getUserInfo = function(req,res){
         function(err){
             console.log(err);
             trans_json("데이터를 전송하지 못하였습니다.",0);
-        }
-    );
+        });
 };
 
 exports.createUser = function(req,res){
@@ -79,14 +84,9 @@ exports.getAccountSettings = function(req,res){
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     var query =
-        "SELECT user_id, nickname, image, self_intro, name, phone, address " +
-        "FROM user " +
-        "WHERE user_id = ?"
-
-    //    "SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings " +
-    //    "FROM user " +
-    //    "WHERE user_id = ?";
-
+        "SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings " +
+        "FROM (SELECT * FROM user WHERE sleep_mode = 0) u " +
+        "WHERE user_id = ?";
 
     template_get(
       req,res,
@@ -100,7 +100,7 @@ exports.getAccountSettings = function(req,res){
 exports.updateAccountSettings = function(req,res){
 
 
-    // passport 적용용
+    // passport 적용
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     //var user_id = JSON.parse(req.params.user_id)  || trans_json("아이디를 입력하지 않았습니다.",0);

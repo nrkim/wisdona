@@ -62,6 +62,7 @@ exports.message_list = function(rows,i){
     };
 };
 
+// 메시지는 가장 최신 메시지를 가져와야하지 않나
 exports.message_window = function(rows,i){
     return {
         user        : {

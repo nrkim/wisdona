@@ -33,21 +33,18 @@ exports.getMessageGroupList = function(req,res){
     // 페이징 관련 계산
     var start = page*count;
     var end = start+count;
-    var messages = [];
 
     //타입 체크
     if (typeof user_id != "number" || typeof page != "number" || typeof count != "number"){
         res.json(trans_json("타입을 확인해 주세요",0));
     }
 
-    //쿼리문
+    // 메시지 그룹의 리스트를 가져오는 쿼리문
+    // 해당 거래의 메시지를 가저옴
     var query =
         "SELECT m.from_user_id, nickname, image, m.trade_id, title, message, be_message_cnt, m.create_date " +
-        "FROM user u JOIN message m ON m.from_user_id = u.user_id " +
-            "JOIN ( select * " +
-            "FROM trade " +
-            "WHERE current_status = 0 " +
-            ") t ON m.trade_id = t.trade_id " +
+        "FROM (SELECT * FROM user WHERE sleep_mode = 0) JOIN message m ON m.from_user_id = u.user_id " +
+            "JOIN trade t ON m.trade_id = t.trade_id " +
             "JOIN post p ON t.post_id = p.post_id " +
             "JOIN book b ON p.book_id = b.book_id " +
             "INNER JOIN ( SELECT max(create_date) AS max_date " +
@@ -56,7 +53,6 @@ exports.getMessageGroupList = function(req,res){
             "GROUP BY t.trade_id LIMIT ?, ? ";
 
     //sample 예제 to_user_id =5, 1, 10
-
     template_get(
         req,res,
         query,
@@ -71,10 +67,10 @@ exports.destroyMessageGroup = function(req,res){
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
     var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
 
-    var query = "update trade t join post p on p.post_id = t.post_id " +
-        "set be_show_group = (case when req_user_id = ? then false else true end), " +
-        "do_show_group = (case when user_id = ? then false else true end) " +
-        "where trade_id =?";
+    var query = "UPDATE trade t JOIN post p ON p.post_id = t.post_id " +
+        "SET be_show_group = (CASE WHEN req_user_id = ? THEN false ELSE true END), " +
+        "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
+        "WHERE trade_id = ?";
 
     template_post(
         req,res,
@@ -93,9 +89,6 @@ exports.createMessage = function(req,res){
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
     var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
 
-    console.log('user_id :',user_id);
-    console.log('trade id :',trade_id);
-    console.log('ddds : ',message);
 
     if (typeof(user_id) != "number" || typeof(trade_id) != "number" ||
         typeof(message) != "string" ) {
@@ -103,13 +96,11 @@ exports.createMessage = function(req,res){
     }
 
     var query =
-        "insert into message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
-        "select ?, (case when req_user_id = ? then p.user_id else req_user_id end), ?,0, t.trade_id, 0 " +
-        "from trade t " +
-        "join post p on t.post_id = p.post_id " +
-        "where t.trade_id = ? ";
-
-    // 생성 시간 저장해 주기
+        "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
+        "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
+        "FROM trade t " +
+        "JOIN post p ON t.post_id = p.post_id " +
+        "WHERE t.trade_id = ? ";
 
     template_post(
         req,res,
