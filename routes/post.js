@@ -10,9 +10,6 @@ var _ = require('underscore'),
     mime = require('mime'),
     im = require('imagemagick');
 
-// db 셋팅
-var dbConfig = require('../config/database');
-var mysql = require('mysql');
 
 // 출력 JSON
 function getJsonData( code, message, result ){
@@ -229,9 +226,7 @@ exports.createPost = function(req,res) {
                                             if (err) {
                                                 connection.rollback(function () {
                                                     connection.release();
-                                                    res.json({
-                                                        error: err.message
-                                                    });
+                                                    res.json(getJsonData(0, err.message, null));
                                                 });
                                             } else {
                                                 connection.release();

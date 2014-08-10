@@ -91,7 +91,7 @@ exports.createMessage = function(req,res){
 
     var user_id = JSON.parse(req.params.user_id)      || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
-    var message = JSON.parse(req.body.message)   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
+    var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
 
     console.log('user_id :',user_id);
     console.log('trade id :',trade_id);
