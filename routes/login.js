@@ -67,7 +67,6 @@ exports.activationEmail = function(req,res){
 
 exports.updatePassword = function(req,res){
 
-    console.log('login?????');
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃되었습니다. 다시 로그인 해주세요.",0));
     var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.",0));
     var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));

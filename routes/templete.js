@@ -9,6 +9,8 @@ var trans_json = json.trans_json;
 
 exports.template_get = function(req,res,query,params,get_list,callback){
     try {
+
+        console.log("yes??");
         connectionPool.getConnection(function (err, connection) {
             if (err) {
                 res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
@@ -32,7 +34,7 @@ exports.template_get = function(req,res,query,params,get_list,callback){
 
                 if(rows.length == 0) {
                     console.log('length is 0');
-                    res.json(trans_json("일치하는 정보가 없습니다.",0));
+                    throw new Error('ROWS_NULL');
                 }
                 else{
                     console.log('foreach is executed');
@@ -48,25 +50,32 @@ exports.template_get = function(req,res,query,params,get_list,callback){
             });
         });
     } catch(err){
+        console.log('error section :err');
+        console.log(callback);
         callback(err);
     }
 };
 
 exports.template_post = function(req,res,query,params,callback){
     try {
+        console.log('template_post');
         connectionPool.getConnection(function (err, connection) {
             if (err) {
                 res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
             }
+            console.log('template_post');
 
             connection.query(query, params, function (err, rows, fields) {
                 if (err) {
+                    console.log(err);
                     connection.release();
                     res.json(trans_json(err.code + " sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
                 }
-
-                connection.release();
-                res.json(trans_json("success", 1));
+                else{
+                    connection.commit();
+                    connection.release();
+                    res.json(trans_json("success", 1));
+                }
             });
         });
     } catch (err){

@@ -12,21 +12,23 @@ var user_detail = json.user_detail
     ,template_post = template.template_post
     ,logout = require('./login').logout;
 
+// 서버가 죽지 않기 위해 해야 할 일은 ?
 
 exports.getUserInfo = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-    var query =
-        "select u.user_id, nickname, image, self_intro, bookmark_total_cnt, " +
-        "ifnull(sum(case when u.user_id = req_user_id then be_message_cnt else do_message_cnt end),0) unread_msg_cnt, " +
-            "like_total_cnt, sad_total_cnt " +
-            "from post p left join trade t on p.post_id = t.post_id " +
-            "right join user u on p.user_id = u.user_id or t.req_user_id = u.user_id " +
-            "where u.user_id = ? " +
-            "group by u.user_id";
+    //타입 체크
+    if(typeof(user_id) != "number") trans_json('사용자 아이디가 숫자 타입이 아닙니다.',0);
 
-    console.log('query is executed');
+    var query =
+        "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, " +
+        "IFNULL(SUM(CASE WHEN u.user_id = req_user_id THEN be_message_cnt ELSE do_message_cnt END),0) unread_msg_cnt, " +
+            "like_total_cnt, sad_total_cnt " +
+            "FROM post p LEFT JOIN trade t ON p.post_id = t.post_id " +
+            "RIGHT JOIN ( select * from user where sleep_mode = 0) u on p.user_id = u.user_id OR t.req_user_id = u.user_id " +
+            "WHERE u.user_id = ? " +
+            "GROUP BY u.user_id";
 
     // 테스트 케이스
     // 2 : 요청자: 10 게시자: 4  post: 16
@@ -35,8 +37,6 @@ exports.getUserInfo = function(req,res){
     // 7 : 요청자: 30 게시자: 3  post: 15
     // 8 : 요청자: 30 게시자: 7  post: 19
     // 사용자 아이디 30은 8개의 않읽은 메시지 있음
-
-    if(typeof(user_id) != "number") trans_json('사용자 아이디가 숫자 타입이 아닙니다.',0);
 
     template_get(
         req,res,
@@ -62,7 +62,7 @@ exports.createUser = function(req,res){
 
 exports.destroyUserAccount = function(req,res){
     //계정 삭제시 휴면 계정
-    var user_id = req.body.user_id || res.json(trans_json("아이디가 없습니다",0));
+    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
     var query = 'UPDATE user SET sleep_mode = 1 WHERE user_id = ?';
 
     template_post(
@@ -76,7 +76,7 @@ exports.destroyUserAccount = function(req,res){
 
 //페이스북 계정 정보
 exports.getAccountSettings = function(req,res){
-    var user_id = req.params.user_id || res.json(trans_json("존재하지 않는 사용자 입니다.",0));
+    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     var query =
         "SELECT user_id, nickname, image, self_intro, name, phone, address " +
@@ -101,7 +101,7 @@ exports.updateAccountSettings = function(req,res){
 
 
     // passport 적용용
-   var user_id = JSON.parse(req.session.passport.user)  || trans_json("아이디를 입력하지 않았습니다.",0);
+    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     //var user_id = JSON.parse(req.params.user_id)  || trans_json("아이디를 입력하지 않았습니다.",0);
     var updated = {};
