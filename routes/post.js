@@ -1,13 +1,20 @@
 /**
- * Created by nrkim on 2014. 7. 29..
+ * Created by onam on 2014. 7. 29..
  */
 
-var async = require('async');
+var _ = require('underscore'),
+    async = require('async'),
+    fstools = require('fs-tools'),
+    fs = require('fs'),
+    path = require('path'),
+    mime = require('mime'),
+    im = require('imagemagick');
 
 // db 셋팅
 var dbConfig = require('../config/database');
 var mysql = require('mysql');
 
+// 출력 JSON
 function getJsonData( code, message, result ){
     var data = {
         code : code,
@@ -18,255 +25,229 @@ function getJsonData( code, message, result ){
     return data;
 }
 
-
-
-function sendPostList() {
-
-}
-
-
 exports.createPost = function(req,res) {
-    var user_id = req.params.user_id,
-        comment = req.body.comment,
-        bookmark_cnt = req.body.bookmark_cnt,
-        book_condition_id = req.body.book_condition_id,
-        name = req.body.name,
-        genre_id = req.body.genre_id,
-        first_image = req.body.first_image,
-        second_image = req.body.second_image,
-        third_image = req.body.third_image,
-        fourth_image = req.body.fourth_image,
-        author = req.body.author,
-        translator = req.body.translator,
-        publisher = req.body.publisher,
-        pub_date = req.body.pub_date,
-        isbn = req.body.isbn,
-        isbn13 = req.body.isbn13,
-        book_image_path = req.body.book_image_path,
-        list_price = req.body.list_price;
 
-
-    // 필수 파라미터에 값 없을 경우
-    if (comment == null || bookmark_cnt == null || book_condition_id == null || genre_id == null || first_image == null) {
-        console.log(comment);
-        console.log(bookmark_cnt);
-        console.log(book_condition_id);
-        console.log(genre_id);
-        console.log(first_image);
-
-        // 결과값
-        jsonData = getJsonData(0, "파라미터 값이 없습니다.", null);
-    } else {
-
-
-    }
-    // 카테고리 id
-    var category_id;
-    var book_id;
-
-
-    // 1. 카테고리 정보 가져오기
-    function getCategory() {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query('SELECT category_id FROM genre WHERE genre_id = ?', [genre_id], function (err, rows, fields) {
-            category_id = rows[0].category_id;
-
-            if (category_id == null)
-                jsonData = getJsonData(0, "장르 id가 잘못 되었습니다.", null);
-
-            connection.end();
-        });
-    }
-
-
-    /*
-     // 직접 입력일 경우
-     if ( isbn == null && isbn13 == null ){
-     createBook();
-     }else{
-
-
-
-     // isbn13으로 검색
-     var connection = mysql.createConnection(dbConfig.url);
-     connection.query('UPDATE * FROM book WHERE isbn13 = ?', [isbn13], function (err, rows, fields) {
-
-     if (err) {
-     console.log('에러 : ' + err);
-     connection.end();
-     }
-     console.log('음? '+ connection);
-
-
-     if ( rows.length ){
-     console.log('isbn 13 있음');
-     // isbn13 있으면 등록 카운트 +1
-
-     connection.query('UPDATE book SET reg_count = reg_count + 1 WHERE book_id = ?', [rows[0].book_id], function (err, result) {
-     if (err) connection.end();
-     console.log('changed ' + result.changedRows + ' rows');
-     connection.end();
-     });
-     }else{
-     // isbn10 없으면 검색
-
-     connection.query('SELECT * FROM book WHERE isbn = ?', [isbn], function (err, rows, fields) {
-
-     if (err) connection.end();
-
-     if ( rows.length ){
-     // isbn10 있으면 등록 카운트 +1
-
-     connection.query('UPDATE book SET reg_count = reg_count + 1 WHERE book_id = ?', [rows[0].book_id], function (err, result) {
-     if (err) connection.end();
-     console.log('changed ' + result.changedRows + ' rows');
-
-     console.log('isbn 검색 결과 없음');
-     // 책 저장
-     connection.end();
-     });
-     }else{
-     createBook();
-     }
-     });
-     }
-     });
-     }
-
-     */
-
-
-    // 직접 등록 또는 처음 등록 되는 책일 경우 book테이블 저장
-    function createBook() {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query('INSERT INTO book SET ?', {
-            title: name,
-            author: author,
-            translator: translator,
-            publisher: publisher,
-            pub_date: pub_date,
-            isbn: isbn,
-            isbn13: isbn13,
-            book_image_path: book_image_path,
-            list_price: list_price,
-            genre_id: genre_id
-        }, function (err, result) {
-            if (err) {
-                connection.end();
-                jsonData = getJsonData(0, err.message, null);
-                res.json(jsonData);
-            }
-            //console.log(result.insertId);
-            connection.end();
-
-            jsonData = getJsonData(1, 'success', null);
-            res.json(jsonData);
-        });
-    }
-
-
-    // isbn 10 검색
-    function getISBN10() {
-        var connection = mysql.createConnection(dbConfig.url);
-        var query = 'SELECT * FROM book WHERE isbn = ?';
-        connection.query(query, [isbn], function (err, rows, fields) {
-            if (err) {
-                connection.end();
-                jsonData = getJsonData(0, err.message, null);
-                res.json(jsonData);
-
-                return null;
-            }
-            connection.end();
-
-            // isbn 있으면
-            if (rows.length) {
-
-                return true;
-            } else {
-
-                return false;
-            }
-        });
-    }
-
-    // isbn 13 검색
-    function getISBN13() {
-        var connection = mysql.createConnection(dbConfig.url);
-        var query = 'SELECT * FROM book WHERE isbn13 = ?';
-        connection.query(query, [isbn13], function (err, rows, fields) {
-            if (err) {
-                connection.end();
-                jsonData = getJsonData(0, err.message, null);
-                res.json(jsonData);
-
-                return null;
-            }
-            console.log('====================');
-            console.log(rows[0]);
-            connection.end();
-            // isbn 있으면
-            if (rows.length) {
-
-                return true;
-            } else {
-
-                return false;
-            }
-        });
-    };
-
-
-    // reg_count +1
-    function addRegCount() {
-        var connection = mysql.createConnection(dbConfig.url);
-        connection.query('UPDATE book SET reg_count = reg_count + 1 WHERE book_id = ?', [rows[0].book_id], function (err, result) {
-            if (err) {
-                connection.end();
-                jsonData = getJsonData(0, err.message, null);
-                res.json(jsonData);
-            }
-
-            connection.end();
-
-            jsonData = getJsonData(1, 'success', null);
-            res.json(jsonData);
-        });
-    }
-
-    // isbn10 검색 : 있으면 reg_count + 1 or 없으면 책 등록
-    function searchISBN10() {
-        var result = getISBN10();
-        if (result) {
-            console.log('10에서 +1');
-            addRegCount();
-        } else {
-            console.log('책 등록');
-            createBook();
+    req.form.on('progress', function(bytesReceived, bytesExpected) {
+        console.log(((bytesReceived / bytesExpected)*100) + "% uploaded");
+    });
+    req.form.on('end', function() {
+        // 필수 파라미터에 값 없을 경우
+        if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.genre_id == null || req.body.name == null || req.body.is_certificate == null) {
+            return res.json(getJsonData(0, "파라미터 값이 없습니다.", null));
         }
-    };
 
-    // isbn13 검색 : 있으면 reg_count + 1 or 없으면 isbn 10 검색
-    function searchISBN13() {
-        var result = getISBN13();
-        if (result) {
-            console.log('13 있음');
-            addRegCount();
-        }
-        else{
-            console.log('10 검색');
-            searchISBN10();
-        }
-    }
+        //////// 이미지 파일 아닐 경우 처리 필요 ////////
+        async.waterfall([
+            function(callback) {
+                var files = _.map(req.files, function(file) {
+                    return file;
+                });
+                callback(null, files);
+            },
+            function(files, callback) {
+                req.uploadFiles = [];
 
-    // isbn13 값이 없을 경우 isbn 10 검색 or 있으면 isbn 13 검색
-    if ( !isbn13 ){
-        console.log('13 값 없음');
 
-        searchISBN10();
-    }else{
-        console.log('13 값 있음');
-        searchISBN13();
+                async.each(files, function(file, cb) {
+                    if (file.size) {
+                        var baseImageDir = __dirname + '/../images/original/';
+                        var destPath = path.normalize(baseImageDir + "o_" + path.basename(file.path));
+                        fstools.move(file.path, destPath, function(err) {
+                            if (err) {
+                                cb(err);
+                            } else {
+
+                                console.log('Original file(', file.name, ') moved!!!');
+                                var largePath = __dirname + "/../images/large/" + "l_" + path.normalize(path.basename(file.path));
+                                var thumbPath = __dirname + "/../images/thumbs/" + "t_" + path.normalize(path.basename(file.path));
+
+                                // 가로 720px 리사이즈
+                                im.resize({
+                                    srcPath: destPath,
+                                    dstPath: largePath,
+                                    width:   720
+                                }, function(err, stdout, stderr){
+                                    if (err) cb(err);
+
+                                    // 가로 200px 리사이즈
+                                    im.resize({
+                                        srcPath: largePath,
+                                        dstPath: thumbPath,
+                                        width:   200
+                                    }, function(err, stdout, stderr){
+                                        if (err) cb(err);
+
+                                        // 경로 저장
+                                        req.uploadFiles.push({
+                                            originalPath : destPath,
+                                            largePath : largePath,
+                                            thumbPath : thumbPath
+                                        })
+
+                                        cb();
+                                    });
+                                });
+                            }
+                        });
+                    } else {
+                        fstools.remove(file.path, function(err) {
+                            if (err) {
+                                cb(err);
+                            } else {
+                                console.log('Zero file removed!!!');
+
+                                cb();
+                            }
+                        });
+                    }
+
+                }, function(err, result) {
+                    if (err) {
+                        res.json({
+                            error : err.message
+                        });
+                    } else {
+
+                        // 게시물 생성
+                        sendQuery();
+                    }
+                });
+            }
+        ]);
+    });
+
+    function sendQuery() {
+        connectionPool.getConnection(function(err, connection) {
+            if (err) {
+                return res.json(getJsonData(0, 'DB 오류', null));
+            }
+            connection.beginTransaction(function (err) {
+                if (err) {
+                    connection.release();
+                    return res.json(getJsonData(0, err.message, null));
+                } else {
+
+                    // 1. isbn, isbn13 검색
+                    var query = "SELECT book_id FROM book WHERE isbn = ? or isbn13 = ?";
+                    var data = [req.body.isbn, req.body.isbn13];
+                    connection.query(query, data, function (err, rows, fields) {
+                        if (err) {
+                            connection.rollback(function () {
+                                connection.release();
+                                return res.json(getJsonData(0, err.message, null));
+                            });
+                        }
+
+                        // 2. 책이 이미 있으면 reg_count +1
+                        if (rows.length) {
+                            // 1. book_id 참조 책 reg_count +1
+                            query = "UPDATE book SET reg_count = reg_count + 1 WHERE book_id = ?";
+                            data = [rows[0].book_id];
+                            connection.query(query, data, function (err, result) {
+                                if (err) {
+                                    connection.rollback(function () {
+                                        connection.release();
+                                        return res.json(getJsonData(0, err.message, null));
+                                    });
+                                }
+                                createPost(rows[0].book_id);
+                            });
+                        } else {
+                            // 1. 책 등록(name, genre_id, author, translator, publisher, pub_date, isbn, isbn13, book_image_path, list_price)
+                            query = "INSERT INTO book SET ?";
+                            data = {
+                                title: req.body.name,
+                                author: req.body.author || null,
+                                translator: req.body.translator || null,
+                                publisher: req.body.publisher || null,
+                                pub_date: req.body.pub_date || null,
+                                isbn: req.body.isbn || null,
+                                isbn13: req.body.isbn13 || null,
+                                book_image_path: req.body.book_image_path || null,
+                                list_price: req.body.list_price || null,
+                                genre_id: req.body.genre_id
+                            };
+                            connection.query(query, data, function (err, result) {
+                                if (err) {
+
+                                    connection.rollback(function () {
+                                        connection.release();
+                                        return res.json(getJsonData(0, err.message, null));
+                                    });
+
+                                }
+
+                                createPost(result.insertId);
+                            });
+                        }
+
+                        // 3. book_id 참조 게시물 등록(category_id, user_id, book_id, first_image, second_image, third_image, fourth_image)
+                        function createPost(book_id) {
+                            query =
+                                "INSERT INTO post (comment, bookmark_cnt, user_id, book_id, category_id, book_condition_id, is_certificate) " +
+                                "SELECT ?, ?, ?, ?, category_id, ?, ? " +
+                                "FROM genre " +
+                                "WHERE genre_id = ?;";
+                            data = [req.body.comment, req.body.bookmark_cnt, req.params.user_id, book_id, req.body.book_condition_id, req.body.is_certificate, req.body.genre_id];
+                            connection.query(query, data, function (err, result) {
+                                if (err) {
+                                    connection.rollback(function () {
+                                        connection.release();
+                                        return res.json(getJsonData(0, err.message, null));
+                                    });
+
+                                }
+
+                                uploadImage(result.insertId);
+                            });
+                        }
+                        // 4. post_id 참조 사진 등록(썸네일 이미지 제작, 파일 패스 DB 등록)
+                        function uploadImage(post_id) {
+                            query = 'INSERT INTO post_image(original_image_path, large_image_path, thumbnail_path, mime, post_id) VALUES(?, ?, ?, ?, ?)';
+                            var photos = req.uploadFiles;
+                            async.each(
+                                photos,
+                                function (photo, callback) {
+                                    var mimeType = mime.lookup(photo.originalPath);
+                                    data = [path.basename(photo.originalPath), path.basename(photo.largePath), path.basename(photo.thumbPath), mimeType, post_id];
+                                    connection.query(query, data, function (err, result) {
+                                        if (err) {
+                                            callback(err);
+                                        } else {
+                                            callback();
+                                        }
+                                    });
+                                },
+                                function (err) {
+                                    if (err) {
+                                        connection.rollback(function () {
+                                            connection.release();
+                                            res.json({
+                                                error: err.message
+                                            });
+                                        });
+                                    } else {
+                                        connection.commit(function (err) {
+                                            if (err) {
+                                                connection.rollback(function () {
+                                                    connection.release();
+                                                    res.json({
+                                                        error: err.message
+                                                    });
+                                                });
+                                            } else {
+                                                connection.release();
+                                                res.json(getJsonData(1, 'success', null));
+                                            }
+                                        });
+                                    }
+                                }
+                            );
+                        }
+                    });
+                }
+            });
+        });
     }
 };
 
@@ -280,27 +261,45 @@ exports.updatePost = function(req,res){
         bookmark_cnt = req.body.bookmark_cnt,
         book_condition_id = req.body.book_condition_id;
 
+
     // 파라미터 체크
     if ( !user_id || !post_id || !comment || !bookmark_cnt || !book_condition_id ){
         return res.json(getJsonData(0, '값이 없습니다.', null));
     }
 
+    // 책갈피 최대 개수 제한
+    if ( bookmark_cnt > 2 || bookmark_cnt < 0 ){
+        return res.json(getJsonData(0, '책갈피는 최소 0개, 최대 2개입니다.', null));
+    }
+
     //******************* 본인 세션 검사 필요 *******************//
     // 세션의 user_id와 게시물의 user_id가 일치할 경우 실행
 
-    // 쿼리 요청
-    var connection = mysql.createConnection(dbConfig.url);
-    var query = "UPDATE post SET comment = ?, bookmark_cnt = ?, book_condition_id = ? WHERE post_id = ?";
-    var data = [comment, bookmark_cnt, book_condition_id, post_id];
-    connection.query(query, data, function (err, result) {
-        if (err) {
-            connection.end();
-            return res.json(getJsonData(0, err.message, null));
-        }
+    // 쿼리 함수
+    function sendQuery(query, data) {
+        connectionPool.getConnection(function(err, connection) {
+            if (err) {
+                res.json(getJsonData(0, 'DB 오류', null));
+            }
+            connection.query(query, data, function (err, result) {
+                if (err) {
+                    connection.release();
+                    return res.json(getJsonData(0, err.message, null));
+                }
 
-        connection.end();
-        res.json(getJsonData(1, 'success', null));
-    });
+                console.log(result);
+                if ( !result.affectedRows ) return res.json(getJsonData(0, "수정할 게시물이 없습니다.", null));
+
+                connection.release();
+                res.json(getJsonData(1, 'success', null));
+            });
+        });
+    };
+
+    // 쿼리 요청
+    var query = "UPDATE post SET comment = ?, bookmark_cnt = ?, book_condition_id = ? WHERE post_id = ? and user_id = ?";
+    var data = [comment, bookmark_cnt, book_condition_id, post_id, user_id];
+    sendQuery(query,data);
 
 };
 
@@ -310,26 +309,39 @@ exports.destroyPost = function(req,res){
         post_id = req.body.post_id;
 
     // 파라미터 체크
-    if ( !user_id || !post_id ){
-        return res.json(getJsonData(0, '값이 없습니다.', null));
+    if ( !post_id ){
+        return res.json(getJsonData(0, 'post_id 값이 없습니다.', null));
     }
 
     //******************* 본인 세션 검사 필요 *******************//
     // 세션의 user_id와 게시물의 user_id가 일치할 경우 실행
 
 
+    // 쿼리 함수
+    function sendQuery(query, data) {
+        connectionPool.getConnection(function(err, connection) {
+            if (err) {
+                res.json(getJsonData(0, 'DB 오류', null));
+            }
+            connection.query(query, data, function (err, result) {
+                if (err) {
+                    connection.release();
+                    return res.json(getJsonData(0, err.message, null));
+                }
+
+                console.log(result);
+                if ( !result.affectedRows ) return res.json(getJsonData(0, "삭제할 게시물이 없습니다.", null));
+
+                connection.release();
+                res.json(getJsonData(1, 'success', null));
+            });
+        });
+    };
+
     // 쿼리 요청
-    var connection = mysql.createConnection(dbConfig.url);
-    var query = "DELETE FROM post WHERE post_id = ?";
-    var data = [post_id];
-    connection.query(query, data, function (err, result) {
-        if (err) {
-            connection.end();
-            return res.json(getJsonData(0, err.message, null));
-        }
-        connection.end();
-        res.json(getJsonData(1, 'success', null));
-    });
+    var query = "UPDATE post SET current_status = 1 WHERE post_id = ? and user_id = ?;";
+    var data = [post_id, user_id];
+    sendQuery(query,data);
 };
 
 
@@ -554,8 +566,8 @@ exports.searchPosts = function(req,res){
         where = where + "p.category_id = " + category_id + " and ";
     }
 
+    // 검색 키워드
     where = where + "(b.title LIKE '%" + keyword + "%' or b.author LIKE '%" + keyword + "%') ";
-
 
     var data = [start, end];
     var query =
@@ -570,5 +582,31 @@ exports.searchPosts = function(req,res){
     sendQuery(query, data);
 }
 exports.reportPost = function(req,res){
+    var user_id = req.params.user_id;
+    var post_id = req.body.post_id;
+    var cause = req.body.cause;
 
+    if ( !cause ) return res.json(getJsonData(0, '신고사유를 입력해야 됩니다.', null));
+
+    // 쿼리 함수
+    function sendQuery(query, data) {
+        connectionPool.getConnection(function(err, connection) {
+            if (err) {
+                res.json(getJsonData(0, 'DB 오류', null));
+            }
+            connection.query(query, data, function (err, rows, fields) {
+                if (err) {
+                    connection.release();
+                    return res.json(getJsonData(0, err.message, null));
+                }
+
+                connection.release();
+                res.json(getJsonData(1, 'success', null));
+            });
+        });
+    };
+
+    var data = {user_id:user_id, post_id:post_id, cause:cause};
+    var query = "INSERT INTO post_report SET ?";
+    sendQuery(query, data);
 }

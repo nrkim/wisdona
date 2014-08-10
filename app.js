@@ -26,11 +26,13 @@ app.set('view engine', 'jade');
 app.use(express.favicon());
 app.use(express.logger('short'));
 app.use(express.cookieParser());
-app.use(express.bodyParser());
+app.use(express.compress());
+app.use(express.bodyParser({
+    "uploadDir": __dirname + "/tmp",
+    "keepExtensions": true,
+    "defer": true
+}));
 app.use(express.methodOverride());
-
-
-
 
 app.use(express.session({
     secret: 'tacademymobileserverexpert',
@@ -43,8 +45,10 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
 
+
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
+
 
 if ('development' === app.get('env')) {
     app.use(express.errorHandler());
