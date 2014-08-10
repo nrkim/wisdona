@@ -87,28 +87,22 @@ exports.sendRequestPost = function(req,res){
                     message.createMessage(req,res);
 
                 });
-
             });
         });
     });
 };
 
 exports.acceptPost = function(req,res){
-    var data={
-        "code": 1,
-        "message": "success",
-        "result" : null
-    };
-    res.json(data);
+
+    // 요청자/기부자 판별
+    // 1. 게시물 + trade
+
+
+
 };
 
 exports.cancelPost = function(req,res){
 
-    var data={
-        "code": 1,
-        "message": "success",
-        "result" : null
-    };
-    res.json(data);
+
 
 };
