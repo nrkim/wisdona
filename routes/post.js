@@ -103,9 +103,7 @@ exports.createPost = function(req,res) {
 
                 }, function(err, result) {
                     if (err) {
-                        res.json({
-                            error : err.message
-                        });
+                        return res.json(getJsonData(0, err.message, null));
                     } else {
 
                         // 게시물 생성
@@ -359,36 +357,83 @@ exports.getPostDetail = function(req,res){
 
 
     // 쿼리 요청
-    var connection = mysql.createConnection(dbConfig.url);
-    var query = "SELECT * FROM post WHERE post_id = ?";
+    var query =
+        "SELECT u.user_id, u.nickname, u.image, u.like_total_cnt, u.sad_total_cnt, " +
+        "p.comment, p.bookmark_cnt, p.book_condition_id, " +
+        "GROUP_CONCAT(pi.large_image_path) large_image_paths, " +
+        "b.title, b.author, b.translator, b.publisher, b.pub_date, g.genre, " +
+        "t.trade_id, t.current_status, ru.user_id req_user_id, ru.nickname req_nickname, ru.image req_image " +
+        "FROM post p " +
+        "JOIN user u ON p.user_id = u.user_id " +
+        "JOIN post_image pi ON p.post_id = pi.post_id " +
+        "JOIN book b ON p.book_id = b.book_id " +
+        "JOIN genre g ON b.genre_id = g.genre_id " +
+        "LEFT JOIN (SELECT trade_id, current_status, post_id, req_user_id FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " +
+        "LEFT JOIN user ru ON t.req_user_id = ru.user_id " +
+        "WHERE p.post_id = ?;";
+    console.log(query);
     var data = [post_id];
-    connection.query(query, data, function (err, rows, fields) {
+    connectionPool.getConnection(function(err, connection) {
         if (err) {
-            connection.end();
-            return res.json(getJsonData(0, err.message, null));
+            res.json(getJsonData(0, 'DB 오류', null));
         }
-
-        // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
-        // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
-
-
-        var result = {
-            user : {
-
-            },
-            post : {
-
-            },
-            trade : {
-
+        connection.query(query, data, function (err, rows, fields) {
+            if (err) {
+                connection.release();
+                return res.json(getJsonData(0, err.message, null));
             }
 
-        }
+            // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
+            // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
 
 
-        connection.end();
-        res.json(getJsonData(1, 'success', null));
+            var result = {
+                user : {
+                    user_id : rows[0].user_id,
+                    nick_name : rows[0].nick_name,
+                    profile_image_url : rows[0].image,
+                    like_cnt : rows[0].like_total_cnt,
+                    sad_cnt : rows[0].sad_total_cnt
+                },
+                post : {
+                    comment : rows[0].comment,
+                    book_mark_count : rows[0].bookmark_cnt,
+                    book_image_url : rows[0].large_image_paths,
+                    book_condition : rows[0].book_condition_id,
+                    is_certificate : rows[0].is_certificate,
+                    create_date : rows[0].create_date,
+                    book : {
+                        book_name : rows[0].title,
+                        author : rows[0].author,
+                        publisher : rows[0].translator,
+                        publication_date : rows[0].pub_date,
+                        genre : rows[0].genre
+                    }
+                }
+            };
+
+            var trade;
+            if ( !rows[0].trade_id ) {
+                trade = null;
+            }else{
+                trade = {
+                    trade_id : rows[0].trade_id,
+                    current_status : rows[0].current_status,
+                    beneficiary : {
+                        user_id : rows[0].req_user_id,
+                        nick_name : rows[0].req_nickname,
+                        profile_image_url : rows[0].req_image
+                    }
+                }
+            }
+
+            result.trade = trade;
+
+            connection.release();
+            res.json(getJsonData(1, 'success', result));
+        });
     });
+
 };
 
 exports.getPostList = function(req,res){
