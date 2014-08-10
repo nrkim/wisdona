@@ -126,27 +126,38 @@ module.exports = function(passport) {
             process.nextTick(function() {
                 connectionPool.getConnection(function(err, connection) {
                     if (err) {
+                        console.log(err);
                         return done(err);
                     }
+                    console.log("log1");
 
                     var selectSql = 'SELECT user_id, email, password FROM user WHERE email = ?';
+
                     connection.query(selectSql, [email], function(err, rows, fields) {
                         if (err) {
+                            console.log("log2");
                             connection.release();
                             return done(err);
                         }
+                        console.log('log3');
                         if (!rows.length) {
+                            console.log('log4');
                             connection.release();
                             return done(null, false, req.flash('loginMessage', 'No user found.'));
                         }
+                        console.log('log5');
 
                         var user = rows[0];
+                        console.log(user.password);
+                        console.log(password);
                         connection.release();
                         bcrypt.compare(password, user.password, function(err, result) {
                             if (!result){
+                                console.log('log6');
                                 return done(null, false, req.flash('loginMessage', 'Oops! wrong password.'));
                             }
 
+                            console.log('log7');
                             console.log('bcrypt.compare ====> ', user.password, '(', user,')');
                             return done(null, user);
                         });
