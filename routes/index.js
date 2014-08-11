@@ -1,8 +1,7 @@
 /**
  * Created by nrkim on 2014. 7. 29..
  */
-var routes = require('../routes')
-    ,account = require('../routes/account')
+var account = require('../routes/account')
     ,category = require('../routes/category')
     ,login = require('../routes/login')
     ,message = require('../routes/message')
@@ -11,10 +10,6 @@ var routes = require('../routes')
     ,trade = require('../routes/trade')
     ,user = require('../routes/user')
     ,other = require('../routes/other');
-
-exports.index = function(req,res){
-    res.render('index',{title: 'Express'});
-};
 
 var isLoggedIn = function (req, res, next) {
 
@@ -63,7 +58,7 @@ module.exports = function(app,passport) {
     app.post('/users/:user_id/reviews/create', review.createUserReview);
 
     // 게시물
-    app.post('/users/:user_id/posts/create', post.createPost);
+    app.post('/users/:user_id/posts/create', post.createPost, post.uploadImages);
     app.post('/users/:user_id/posts/update', post.updatePost);
     app.post('/users/:user_id/posts/destroy', post.destroyPost);
     app.get('/posts/:post_id/show', post.getPostDetail);
@@ -87,5 +82,7 @@ module.exports = function(app,passport) {
     app.get('/rules/privacy',other.getPrivacy);
     app.get('/news', other.getNewsList);
     app.get('/faq', other.getFaqList);
+
+    // GCM
 
 }

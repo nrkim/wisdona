@@ -6,7 +6,8 @@ var express = require('express')
     , flash = require('connect-flash')
     , mysql = require('mysql')
     , util = require('util')
-    , dbConfig = require('./config/database');
+    , dbConfig = require('./config/database')
+    , gcmConfig = require('./config/gcm');
 
 var MySQLStore = require('connect-mysql')(express);
 global.connectionPool = mysql.createPool(dbConfig);
@@ -27,11 +28,10 @@ app.use(express.favicon());
 app.use(express.logger('short'));
 app.use(express.cookieParser());
 app.use(express.compress());
-app.use(express.bodyParser({
-    "uploadDir": __dirname + "/tmp",
-    "keepExtensions": true,
-    "defer": true
-}));
+
+app.use(express.json());
+app.use(express.urlencoded());
+
 app.use(express.methodOverride());
 
 app.use(express.session({
