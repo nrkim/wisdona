@@ -42,7 +42,7 @@ app.use(express.session({
     }
 }));
 app.use(passport.initialize());
-app.use(passport.session());
+app.use(passport.session({pauseStream:  true}));
 app.use(flash());
 
 

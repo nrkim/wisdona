@@ -20,6 +20,8 @@ var _ = require('underscore'),
     path = require('path'),
     mime = require('mime');
 
+var formidable = require('formidable');
+
 var baseImageDir = __dirname + '/../images/';
 
 // 서버가 죽지 않기 위해 해야 할 일은 ?
@@ -111,44 +113,48 @@ exports.getAccountSettings = function(req,res){
 };
 
 
-function uploadFile(req,res,next){
+exports.uploadImage = function (req,res,next){
 
-    console.log('!!!');
-    console.log(next);
+    var form = new formidable.IncomingForm();
+    form.uploadDir = path.normalize(__dirname + '/../tmp/');
+    form.keepExtensions = true;
 
-    req.form.on('progress', function(receivedBytes, expectedBytes) {
-        console.log(((receivedBytes / expectedBytes) * 100).toFixed(1), '% received');
-    });
+    form.parse(req, function(err, fields, files) {
+        req.body=fields;
 
-    req.form.on('end', function() {
+        console.log(files);
+
         async.waterfall([
             function(callback) {
-                console.log('dd');
-                if (req.files){
-                    var files = _.map(req.files, function(file) {
-                        return file;
+                if (files){
+                    console.log(files);
+                    var file = _.map(files, function(f) {
+                        return f;
                     });
                     console.log('ddd');
-                    callback(null, files);
+                    callback(null, file);
                 } else{
-                    next(req,res);
+                    console.log('req.');
+                    next();
                 }
             },
-            function(files, callback) {
-                req.uploadFiles = [];
-                async.each(files, function(file, callback) {
-                    if (file.size) {
-                        var destPath = path.normalize(baseImageDir + path.basename(file.path));
-                        fstools.move(file.path, destPath, function(err) {
+            function(file, callback) {
+                req.uploadFile;
+                async.each(file, function(f, callback) {
+                    if (f.size) {
+                        console.log(destPath);
+                        var destPath = path.normalize(baseImageDir + path.basename(f.path));
+                        fstools.move(f.path, destPath, function(err) {
                             if (err) {
                                 callback(err);
                             } else {
-                                console.log('Original file(', file.name, ') moved!!!');
-                                req.uploadFiles.push(destPath);
+                                console.log('Original file(', f.name, ') moved!!!');
+                                console.log(destPath);
+                                req.uploadFile = destPath;
                             }
                         });
                     } else {
-                        fstools.remove(file.path, function(err) {
+                        fstools.remove(f.path, function(err) {
                             if (err) {
                                 callback(err);
                             } else {
@@ -161,7 +167,7 @@ function uploadFile(req,res,next){
                     if (err) {
                         res.json({error : err.message});
                     } else {
-                        next(req,res);
+                        next();
                     }
                 });
             }
@@ -173,32 +179,28 @@ function uploadFile(req,res,next){
 // /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
 
-    // passport 적용
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+        var user_id = req.params.user_id;
+        //var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-    uploadFile(req,res,
-        function(req,res){
-            var updated = {};
+        console.log('user_id is ',user_id);
+        var updated = {};
 
-            updated.nickname = req.body.nick_name    || res.json(trans_json('닉네임을 입력하지 않았습니다.',0));
-            updated.image = req.uploadFiles[0]       || null;
-            updated.self_intro = req.body.self_intro || null;
-            updated.name = req.body.name             || null;
-            updated.phone = req.body.phone           || null;
-            updated.address = req.body.address       || null;
-            updated.push_settings = req.body.push_settings || null;
 
-            query =
-                'UPDATE user SET ? WHERE user_id = ? ';
+        updated.nickname = req.body.nick_name    || null
+        updated.image = req.uploadFile           || null;
+        updated.self_intro = req.body.self_intro || null;
+        updated.name = req.body.name             || null;
+        updated.phone = req.body.phone           || null;
+        updated.address = req.body.address       || null;
+        updated.push_settings = req.body.push_settings || null;
 
-            var json = template_post(
-                res,
-                query,
-                [updated,user_id]
-            );
-            console.log(json);
-            res.json(json);
-        }
-    );
+        console.log(updated);
+        query =
+            'UPDATE user SET ? WHERE user_id = ? ';
 
+        template_post(
+          res,
+         query,
+         [updated,user_id]
+         );
 };

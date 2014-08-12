@@ -36,7 +36,7 @@ module.exports = function(app,passport) {
     app.post('/users/create', passport.authenticate('local-signup'),account.createUser);
     app.post('/users/destroy', account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', account.getAccountSettings);
-    app.post('/users/:user_id/account-settings/update', account.updateAccountSettings);
+    app.post('/users/:user_id/account-settings/update', account.uploadImage, account.updateAccountSettings);
 
     // 사용자
     app.get('/users/:user_id/posts/list', user.getUserPostList);

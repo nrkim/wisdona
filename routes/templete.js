@@ -5,6 +5,7 @@
 var json = require('./json');
 var trans_json = json.trans_json;
 var async = require("async");
+var _= require('underscore');
 
 // 커넥션 관련 탬플릿
 
@@ -52,31 +53,28 @@ exports.template_get = function(res,query,params,get_json,callback){
         });
 };
 //req,res,query,params,callback){
-exports.template_post = function(res,query,params,callback){
-    try {
-        console.log('template_post');
+exports.template_post = function(res,query,params){
+    console.log('template_post');
         connectionPool.getConnection(function (err, connection) {
             if (err) {
                 res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
             }
             console.log('template_post');
-
             connection.query(query, params, function (err, rows, fields) {
                 if (err) {
-                    console.log(err);
+                    console.log('connectinon query err: ',err);
                     connection.release();
                     res.json(trans_json(err.code + " sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
                 }
                 else{
+                    console.log('connection success');
                     connection.commit();
                     connection.release();
+                    console.log('connection released');
                     res.json(trans_json("success", 1));
                 }
             });
         });
-    } catch (err){
-        callback(err);
-    }
 };
 
 //req,res,user_id,get_query,update_query){
