@@ -3,6 +3,7 @@
  */
 var LocalStrategy = require('passport-local').Strategy
     , bcrypt = require('bcrypt-nodejs')
+    , _ = require('underscore')
     , async = require('async');
 
 //passport 커스터마이징
@@ -21,14 +22,20 @@ module.exports = function(passport) {
             if (err) {
                 return done(err);
             }
-
             console.log("deserializeUser : ",id);
-            var selectSql = 'SELECT user_id, email, password nickname FROM user WHERE user_id = ?';
+            var selectSql = 'SELECT user_id, email, password, nickname FROM user WHERE user_id = ?';
             connection.query(selectSql, [id], function(err, rows, fields) {
-                var user = rows[0];
-                connection.release();
-                console.log('passport.deserializeUser ====> ', user);
-                return done(null, user);
+                if(err){
+                    console.log('db error!!');
+                    connection.release();
+                    return done(null,false,{'deserializeUser' : 'deserialize에 실패 했습니다.'});
+                }
+                else{
+                    var user = rows[0];
+                    connection.release();
+                    console.log('passport.deserializeUser ====> ', user);
+                    return done(null, user);
+                }
             });
         });
     });
@@ -38,7 +45,7 @@ module.exports = function(passport) {
             passwordField: 'password',
             passReqToCallback: true
         },
-        function(req, email, password, done) {
+        function(req, email, password,done) {
             console.log("nickname is :",req.body.nickname);
             console.log("password is : ",password);
             console.log('email is',email);
@@ -51,22 +58,35 @@ module.exports = function(passport) {
                         return done(err);
                     }
 
-                    var selectSql = 'SELECT user_id FROM user WHERE email = ?';
-                    console.log("log!!");
-                    connection.query(selectSql, [email], function(err, rows, fields) {
-                        console.log("log2!!");
+                    var selectSql = 'SELECT user_id, nickname FROM user WHERE email = ? or nickname = ?';
+                    connection.query(selectSql, [email,req.body.nickname], function(err, rows, fields) {
                         if (err) {
-                            console.log("log3!!");
+                            console.log(err.code);
                             connection.release();
                             return done(err);
                         }
                         if (rows.length) {
-                            console.log("log4!!");
-                            connection.release();
-                            return done(null, false, req.flash('signupMessage', 'That email is already taken.'));
-                        } else {
-                            console.log(rows);
-                            console.log("log5!!");
+                            console.log('length is not zero')
+                            var dup_nickname =_.some(rows,function(item){return item.nickname = req.body.nickname;});
+                            var dup_email = _.some(rows,function(item){return item.email = email;});
+                            console.log('nickname dup :',dup_nickname, 'email dup :',dup_email);
+                            if (dup_nickname){
+                                if (dup_email){
+                                    console.log('email,nickname dup is executed');
+                                    connection.release();
+                                    return done(null,false,{'signupMessage' : '닉네임과 이메일이 중복됩니다.'});
+                                }
+                                else{
+                                    connection.release();
+                                    return done(null,false,{'signupMessage' : '닉네임이 중복됩니다.'});
+                                }
+                            }
+                            else {
+                                connection.release();
+                                return done(null, false, {'signupMessage' : '이메일이 중복됩니다.'});
+                            }
+                        }
+                        else{
                             async.waterfall([
                                     function generateSalt(callback) {
                                         var rounds = 10;
@@ -134,7 +154,6 @@ module.exports = function(passport) {
                     console.log("log1");
 
                     var selectSql = 'SELECT user_id, email, password FROM user WHERE email = ?';
-
                     connection.query(selectSql, [email], function(err, rows, fields) {
                         if (err) {
                             console.log("log2");
@@ -145,7 +164,7 @@ module.exports = function(passport) {
                         if (!rows.length) {
                             console.log('log4');
                             connection.release();
-                            return done(null, false, req.flash('loginMessage', 'No user found.'));
+                            return done(null, false, {'loginMessage' : '존재하지 않는 사용자 입니다.'});
                         }
                         console.log('log5');
 
@@ -156,7 +175,7 @@ module.exports = function(passport) {
                         bcrypt.compare(password, user.password, function(err, result) {
                             if (!result){
                                 console.log('log6');
-                                return done(null, false, req.flash('loginMessage', 'Oops! wrong password.'));
+                                return done(null, false, {'loginMessage' : '비밀번호가 틀렸습니다.'});
                             }
 
                             console.log('log7');

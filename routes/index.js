@@ -25,7 +25,32 @@ var isLoggedIn = function (req, res, next) {
 module.exports = function(app,passport) {
 
     // 로그인
-    app.post('/login', express.bodyParser(), passport.authenticate('local-login'),login.login);
+    app.post('/login', express.bodyParser(), function(req, res, next) {
+        passport.authenticate('local-login', function(err, user, info) {
+            if (user === false) {
+                res.json(trans_json(info.loginMessage,0));
+            } else {
+                res.json(trans_json("success",1));
+            }
+        })(req, res, next);
+    });
+    //app.post('/auth/facebook/token',
+    //    express.bodyParser(), function(req, res, next) {
+    //        passport.authenticate('facebook-token', function(err, user, info) {
+    //            if (user === false) {
+    //                res.json(trans_json(info.loginMessage,0));
+    //            } else {
+    //                res.json(trans_json("success",1));
+    //            }
+    //        })(req, res, next);
+    //    });
+
+    //app.post('/auth/facebook/token',
+    //    express.bodyParser(),
+    //    passport.authenticate('facebook-token', { scope: ['email'] }),
+    //    login
+    //);
+
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
     app.get('/request-activation-email/:user_id', login.requestActivationEmail);
     app.post('/request-send-email', login.requestSendEmail);
@@ -33,8 +58,16 @@ module.exports = function(app,passport) {
     app.post('/activation-email/:authkey', login.activationEmail);
 
     // 계정 생성,정보 관련
+    app.post('/users/create',express.bodyParser(),function(req, res, next) {
+        passport.authenticate('local-signup', function(err, user, info) {
+            if (user === false) {
+                res.json(trans_json(info.signupMessage,0));
+            } else {
+                res.json(trans_json("success",1));
+            }
+        })(req, res, next);
+    });
     app.get('/users/:user_id/profile/show',isLoggedIn, account.getUserInfo);
-    app.post('/users/create', isLoggedIn,passport.authenticate('local-signup'),account.createUser);
     app.post('/users/destroy',isLoggedIn, account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', account.getAccountSettings);
     app.post('/users/:user_id/account-settings/update', account.uploadImage, account.updateAccountSettings);

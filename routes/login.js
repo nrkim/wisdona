@@ -9,16 +9,6 @@ var trans_json = json.trans_json
     ,template_post = template.template_post;
 var formidable = require('formidable');
 
-exports.login = function(req,res){
-
-    if(req.session.passport.user){
-        res.json(trans_json('success',1));
-    }
-    else{
-        res.json(trans_json('로그인 실패',0));
-    }
-};
-
 exports.requestActivationEmail = function(req,res){
     var data = {
         "code": 1,

@@ -71,16 +71,6 @@ exports.getUserInfo = function(req,res){
     );
 };
 
-exports.createUser = function(req,res){
-    //curl로 테스트 해볼것
-    if(req.isAuthenticated()){
-        res.json(trans_json('success',1));
-    }
-    else{
-        res.json(trans_json('사용자 추가 실패',0));
-    }
-};
-
 exports.destroyUserAccount = function(req,res){
     //계정 삭제시 휴면 계정
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
