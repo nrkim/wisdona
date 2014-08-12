@@ -11,6 +11,7 @@ var message_window = json.message_window
     ,template = require('./templete')
     ,template_get = template.template_get
     ,template_post = template.template_post
+    ,template_transaction = template.template_transaction
     ,unread_msgs=json.unread_msgs
     ,unread_msg_lst= json.unread_msg_lst;
 
@@ -54,7 +55,7 @@ exports.getMessageGroupList = function(req,res){
 
     //sample 예제 to_user_id =5, 1, 10
     template_get(
-        req,res,
+        res,
         query,
         [user_id,start,end],
         message_list
@@ -73,7 +74,7 @@ exports.destroyMessageGroup = function(req,res){
         "WHERE trade_id = ?";
 
     template_post(
-        req,res,
+        res,
         query,
         [user_id,user_id,trade_id]
     );
@@ -103,7 +104,7 @@ exports.createMessage = function(req,res){
         "WHERE t.trade_id = ? ";
 
     template_post(
-        req,res,
+        res,
         query,
         [user_id,user_id,message,trade_id]
     );
@@ -138,7 +139,7 @@ exports.getMessageList = function(req,res){
     //sample 예제 trade_id =3, 0, 10
 
     template_get(
-      req,res,
+        res,
         query,
         [trade_id,start,end],
         message_window
@@ -160,25 +161,49 @@ exports.getUnreadMessgeList = function(req,res){
         "WHERE m.to_user_id = ? AND m.is_sended = FALSE";
 
     var update_query =
-        "UPDATE message SET is_sended = true WHERE m.to_user_id = ? AND is_sended = FALSE";
-
-    console.log('success???!!!');
-
-
-    //template_get(req,res,get_query,[user_id],unread_msg_lst);
+        "UPDATE message m SET is_sended = true WHERE m.to_user_id = ? AND is_sended = FALSE";
 
 
     // 테스트 케이스 trade_id =4, user_id = 5
-    async.series([
-        template_get(req,res,get_query,[user_id],unread_msg_lst),
-        template_post(req,res,update_query,[user_id])
-    ],function(err,results){
-        if (err){
-            return console.log(err);
-            //rollback;
-        }
-    });     // transaction 처리
 
+    connectionPool.getConnection(function(err,connection) {
+        template_transaction(
+            req,
+            res,
+            get_query,
+            update_query,
+            [user_id],
+            [user_id],
+            connection,
+            [
+                function (callback) {
+                    connection.query(get_query, [user_id], function (err, rows, info) {
+                        if (err) {
+                            console.log("err : ", err);
+                            callback(err);
+                        }
+                        if (rows.length == 0) {
+                            console.log('length : ', rows.length);
+                            return res.json(trans_json("읽지 않은 메시지가 없습니다", 1));
+                        } else {
+                            console.log("callback!!!");
+                            callback(null, user_id);
+                        }
+                    });
+                },
+                function (user_id, callback) {
+                    connection.query(update_query, [user_id], function (err, rows, info) {
+                        if (err) {
+                            console.log(err);
+                            callback(err);
+                        }
+                        console.log('err no !!');
+                        callback(null);
+                    });
+
+                }]
+        );
+    });
 };
 
 exports.confirmMessage = function(req,res){
@@ -190,8 +215,9 @@ exports.confirmMessage = function(req,res){
         "SET m.is_read = true " +
         "WHERE m.trade_id = ? AND to_user_id = ? ";
 
+
     template_post(
-        req,res,
+        res,
         query,
         [trade_id,user_id]
     );

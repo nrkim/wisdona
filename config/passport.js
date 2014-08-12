@@ -87,7 +87,9 @@ module.exports = function(passport) {
                                 ],
                                 function(err, user) {
                                     if (err) {
-                                        console.log("log6!!");
+                                        console.log("error occured");
+                                        console.log(err.code);
+                                        console.log(err);
                                         connection.release();
                                         return done(err);
                                     }

@@ -13,60 +13,62 @@ var json = require('./json')
     ,template_post = template.template_post;
 
 exports.getGenreList = function(req,res) {
-    tempate_get(req,res,
-        "select genre_id, genre from genre"
-        ,null,genre_list);
+    tempate_get(
+        res,
+        "SELECT genre_id, genre FROM genre",
+        genre_list
+    );
 };
 
 
 exports.getBookConditionList = function(req,res) {
-    tempate_get(req,res,
-        "select * from book_condition"
-        ,null,book_state);
+    tempate_get(
+        res,
+        "SELECT * FROM book_condition",
+        book_state
+    );
 };
 
 exports.getQnaList = function(req,res){
     var user_id = req.params.user_id || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var question = req.body.question || res.json(trans_json("질문을 입력하지 않았습니다.",0));
 
-    template_post(req,res,
-        "insert into qna(question,create_date,user_id) values(?,now(),?) ",
+    template_post(
+        res,
+        "INSERT INTO qna(question,create_date,user_id) VALUES(?,NOW(),?) ",
         [question,user_id]
     );
+
 };
 
 exports.getServiceTerms = function(req,res){
     tempate_get(
-        req,res,
-        "select content from service_board where service_board_id =1",
-        null,
+        res,
+        "SELECT content FROM service_board WHERE service_board_id =1",
         policy
     );
 };
 
 exports.getPrivacy = function(req,res) {
     tempate_get(
-        req,res,
-        "select content from service_board where service_board_id =2",
-        null,
+        res,
+        "SELECT content FROM service_board WHERE service_board_id =2",
         policy
     );
 }
 
 exports.getNewsList = function(req,res){
     tempate_get(
-        req,res,
+        res,
         "SELECT title, content FROM news",
-        null,
         news_list
-    )
+    );
 };
 
 exports.getFaqList = function(req,res){
     tempate_get(
-        req,res,
+        res,
         "SELECT question, answer FROM faq",
-        null,
         faq_list
-    )
+    );
 };

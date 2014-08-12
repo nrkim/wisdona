@@ -85,9 +85,9 @@ exports.updatePassword = function(req,res){
                 var query = "update user set password = ? where user_id = ?"
 
                 template_post(
-                    req,res,
+                    res,
                     query,
-                    [new_password,user_id]
+                    [new_password, user_id]
                 );
             });
             connection.release();

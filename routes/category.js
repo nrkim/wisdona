@@ -9,7 +9,9 @@ var template = require('./templete')
 
 
 exports.getCategoryList = function(req,res){
-    template_get(req,res,
-        "select category_id, category from category"
-        ,null,category_list);
+    template_get(
+        res,
+        "select category_id, category from category",
+        category_list
+    );
 };

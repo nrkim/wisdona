@@ -4,59 +4,55 @@
 
 var json = require('./json');
 var trans_json = json.trans_json;
+var async = require("async");
 
 // 커넥션 관련 탬플릿
 
 
-// 서버가 죽지 않기 위한 에러 핸들링
-//
-
-
-exports.template_get = function(req,res,query,params,get_list,callback){
-    try {
-
+//req,res,query,params,get_json,callback
+exports.template_get = function(res,query,params,get_json,callback){
         connectionPool.getConnection(function (err, connection) {
             if (err) {
                 res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
+            } else {
+                connection.query(query, params, function (err, rows, fields) {
+                    if (err) {
+                        connection.release();
+                        res.json({ error: err });      // 에러 처리
+                    }
+
+                    //데이터 결과가 없을 떄 에러인 경우도 있고 에러가 아닌 경우도 있음 / 두가지경우가 있기 때문에 flag parameter 필요
+                    //for문을 forEach함수로 바꿈
+
+                    if (rows.length == 0) {
+                        console.log('length is 0');
+                        connection.release();
+                        res.json({ error: "No data found!!!" });      // 에러 처리
+                    }
+                    else {
+                        async.map(rows,
+                            function(item, callback) {
+                                callback(null, get_json(item));
+                            },
+                            function(err, results) {
+                                if (err) {
+                                    connection.release();
+                                    res.json({ error : err });
+                                } else {
+                                    connection.release();
+                                    res.json(trans_json("success", 1, results));
+                                }
+                            }
+                        );
+                    }
+
+
+                });
             }
-
-            connection.query(query, params, function (err, rows, fields) {
-                if (err) {
-                    connection.release();
-                    throw err;      // 에러 처리
-                }
-
-                console.log('template_get');
-
-
-                //데이터 결과가 없을 떄 에러인 경우도 있고 에러가 아닌 경우도 있음 / 두가지경우가 있기 때문에 flag parameter 필요
-                //for문을 forEach함수로 바꿈
-
-                if(rows.length == 0) {
-                    console.log('length is 0');
-                    throw new Error('ROWS_NULL');
-                }
-                else{
-                    console.log('foreach is executed');
-
-                    rows.forEach(function (row, i, arr) {
-                        arr[i] = get_list(arr, i);
-                        //return arr;
-                    });
-
-                    connection.release();
-                    res.json(trans_json("success", 1, rows));
-                }
-            });
         });
-    } catch(err){
-        console.log('error section :err');
-        console.log(callback);
-        callback(err);
-    }
 };
-
-exports.template_post = function(req,res,query,params,callback){
+//req,res,query,params,callback){
+exports.template_post = function(res,query,params,callback){
     try {
         console.log('template_post');
         connectionPool.getConnection(function (err, connection) {
@@ -81,4 +77,33 @@ exports.template_post = function(req,res,query,params,callback){
     } catch (err){
         callback(err);
     }
+};
+
+//req,res,user_id,get_query,update_query){
+exports.template_transaction = function(){
+    p.connection.beginTransaction(function (err) {
+        if (err) {
+            connection.release();
+            return res.json(trans_json("트렌젝션 연결에 실패했습니다.",0));
+        }
+
+        async.waterfall(p.func_list, function (err) {
+            if (err) {
+                p.connection.rollback(function () {
+                p.connection.release();
+                return p.res.json(trans_json("롤백 작업에 실패했습니다.",0));
+                });
+            }
+            p.connection.commit(function (err) {
+                if (err) {
+                    p.connection.rollback(function () {
+                        p.connection.release();
+                        return p.res.json(trans_json("작업이 취소하였습니다."),0);
+                    });
+                }
+                p.connection.release();
+                p.res.json(trans_json("success",1));
+            });
+        });
+    });
 };

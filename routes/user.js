@@ -37,10 +37,13 @@ exports.getUserPostList = function(req,res){
         "bookmark_cnt FROM post p JOIN book b ON p.book_id = b.book_id " +
         "WHERE p.user_id = ? LIMIT ?, ?"
 
-    template_get(
-        req,res,query,
-        [user_id,start,end],post_list
-    );
+    template_get({
+        req : req,
+        res : res,
+        query : query,
+        params : [user_id,start,end],
+        get_json : post_list
+    });
 
 };
 
@@ -72,12 +75,14 @@ exports.getReviewList = function(req,res){
         "JOIN trade t ON p.post_id = t.post_id " +
         "JOIN review r ON r.trade_id = t.trade_id " +
         "WHERE u.user_id = ? LIMIT ?, ? ";
-    template_get(
-      req,res,
-      query,
-      [user_id,start,end],
-      review
-    );
+
+    template_get({
+        req : req,
+        res : res,
+        query : query,
+        params : [user_id,start,end],
+        get_json : review
+    });
 };
 
 exports.getRequestPostList = function(req,res){
@@ -104,9 +109,8 @@ exports.getRequestPostList = function(req,res){
         "JOIN book b ON p.book_id = b.book_id JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id " +
         "WHERE t.req_user_id = ? LIMIT ?, ?";
 
-
     template_get(
-        req,res,
+        res,
         query,
         [user_id,start,end],
         post_list

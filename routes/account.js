@@ -5,6 +5,7 @@
 //json 객체 생성관련 함수 불러오기
 
 var json = require('./json');
+var async = require('async');
 var trans_json = json.trans_json;
 var user_info = json.user_info;
 var user_detail = json.user_detail
@@ -12,12 +13,25 @@ var user_detail = json.user_detail
     ,template_get = template.template_get
     ,template_post = template.template_post
     ,logout = require('./login').logout;
+var _ = require('underscore'),
+    async = require('async'),
+    fstools = require('fs-tools'),
+    fs = require('fs'),
+    path = require('path'),
+    mime = require('mime');
+
+var baseImageDir = __dirname + '/../images/';
 
 // 서버가 죽지 않기 위해 해야 할 일은 ?
+///users/:user_id/profile/show
 exports.getUserInfo = function(req,res){
 
-    //1. req.session.passport.user에서 session이 없으면 서버가 죽음 isAuthenticate를 사용할것
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    //1. req.session.passport.user에서 session이 없으면 session.passport에서 서버가 죽음 isAuthenticate를 사용할것
+    if(!req.isAuthenticated())
+        res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    var user_id = req.session.passport.user;
+
+    //var user_id = req.params.user_id || res.json(trans_json("실패했습니다",0));
 
     //타입 체크
     if(typeof(user_id) != "number") trans_json('사용자 아이디가 숫자 타입이 아닙니다.',0);
@@ -36,6 +50,8 @@ exports.getUserInfo = function(req,res){
             "WHERE u.user_id = ? " +
             "GROUP BY u.user_id";
 
+    // query중 null이 나온 경우 -> user_id가 아예없는 경우
+
     // 테스트 케이스
     // 2 : 요청자: 10 게시자: 4  post: 16
     // 3 : 요청자: 15 게시자: 30 post: 17
@@ -45,19 +61,16 @@ exports.getUserInfo = function(req,res){
     // 사용자 아이디 30은 8개의 않읽은 메시지 있음
 
     template_get(
-        req,res,
+        res,
         query,
         [user_id],
-        user_info,
-        function(err){
-            console.log(err);
-            trans_json("데이터를 전송하지 못하였습니다.",0);
-        });
+        user_info
+    );
 };
 
 exports.createUser = function(req,res){
     //curl로 테스트 해볼것
-    if(req.user){
+    if(req.isAuthenticated()){
         res.json(trans_json('success',1));
     }
     else{
@@ -71,7 +84,7 @@ exports.destroyUserAccount = function(req,res){
     var query = 'UPDATE user SET sleep_mode = 1 WHERE user_id = ?';
 
     template_post(
-        req,res,
+        res,
         query,
         [user_id],
         logout
@@ -89,40 +102,103 @@ exports.getAccountSettings = function(req,res){
         "WHERE user_id = ?";
 
     template_get(
-      req,res,
-      query,
-      [user_id],
-      user_detail
+        res,
+        query,
+        [user_id],
+        user_detail
     );
 
 };
 
-exports.updateAccountSettings = function(req,res){
 
+function uploadFile(req,res,next){
+
+    console.log('!!!');
+    console.log(next);
+
+    req.form.on('progress', function(receivedBytes, expectedBytes) {
+        console.log(((receivedBytes / expectedBytes) * 100).toFixed(1), '% received');
+    });
+
+    req.form.on('end', function() {
+        async.waterfall([
+            function(callback) {
+                console.log('dd');
+                if (req.files){
+                    var files = _.map(req.files, function(file) {
+                        return file;
+                    });
+                    console.log('ddd');
+                    callback(null, files);
+                } else{
+                    next(req,res);
+                }
+            },
+            function(files, callback) {
+                req.uploadFiles = [];
+                async.each(files, function(file, callback) {
+                    if (file.size) {
+                        var destPath = path.normalize(baseImageDir + path.basename(file.path));
+                        fstools.move(file.path, destPath, function(err) {
+                            if (err) {
+                                callback(err);
+                            } else {
+                                console.log('Original file(', file.name, ') moved!!!');
+                                req.uploadFiles.push(destPath);
+                            }
+                        });
+                    } else {
+                        fstools.remove(file.path, function(err) {
+                            if (err) {
+                                callback(err);
+                            } else {
+                                console.log('Zero file removed!!!');
+                            }
+                        });
+                    }
+                    callback();
+                }, function(err, result) {
+                    if (err) {
+                        res.json({error : err.message});
+                    } else {
+                        next(req,res);
+                    }
+                });
+            }
+        ]);
+    });
+
+};
+
+// /users/:user_id/account-settings/update
+exports.updateAccountSettings = function(req,res){
 
     // passport 적용
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-    //var user_id = JSON.parse(req.params.user_id)  || trans_json("아이디를 입력하지 않았습니다.",0);
-    var updated = {};
+    uploadFile(req,res,
+        function(req,res){
+            var updated = {};
 
-    if (req.body.nick_name)     updated.nick_name = req.body.nick_name;
+            updated.nickname = req.body.nick_name    || res.json(trans_json('닉네임을 입력하지 않았습니다.',0));
+            updated.image = req.uploadFiles[0]       || null;
+            updated.self_intro = req.body.self_intro || null;
+            updated.name = req.body.name             || null;
+            updated.phone = req.body.phone           || null;
+            updated.address = req.body.address       || null;
+            updated.push_settings = req.body.push_settings || null;
 
-    // profile image --> req.files 로 처리 -> 파일 업로드 구현 할것
-    if (req.body.profile_image) updated.profile_image = req.body.profile_image;
-    if (req.body.self_intro)    updated.self_intro = req.body.self_intro;
-    if (req.body.full_name)     updated.name = req.body.full_name;
-    if (req.body.phone)         updated.phone = req.body.phone;
-    if (req.body.address)       updated.address = req.body.address;
-    if (req.body.push_settings) updated.push_settings = req.body.push_settings;
+            query =
+                'UPDATE user SET ? WHERE user_id = ? ';
 
-    query =
-        'UPDATE user SET ? WHERE user_id = ? ';
-
-
-    template_post(
-        req,res,
-        query,
-        [updated,user_id]
+            var json = template_post(
+                res,
+                query,
+                [updated,user_id]
+            );
+            console.log(json);
+            res.json(json);
+        }
     );
+
 };
