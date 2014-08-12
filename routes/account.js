@@ -21,8 +21,8 @@ var _ = require('underscore'),
     mime = require('mime');
 
 
-console('crontab !!');
-console('test2');
+console.log('crontab !!');
+console.log('test2');
 
 
 var formidable = require('formidable');
