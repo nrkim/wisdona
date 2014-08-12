@@ -22,6 +22,7 @@ var _ = require('underscore'),
 
 
 console('crontab !!');
+console('test2');
 
 
 var formidable = require('formidable');
