@@ -11,6 +11,7 @@ var json = require('./json')
     ,genre_list = json.genre_list
     ,tempate_get = template.template_get
     ,template_post = template.template_post;
+var formidable = require('formidable');
 
 exports.getGenreList = function(req,res) {
     tempate_get(
@@ -30,15 +31,20 @@ exports.getBookConditionList = function(req,res) {
 };
 
 exports.getQnaList = function(req,res){
-    var user_id = req.params.user_id || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
-    var question = req.body.question || res.json(trans_json("질문을 입력하지 않았습니다.",0));
+    var form = new formidable.IncomingForm();
 
-    template_post(
-        res,
-        "INSERT INTO qna(question,create_date,user_id) VALUES(?,NOW(),?) ",
-        [question,user_id]
-    );
+    form.parse(req, function(err, fields) {
+        req.body = fields;
 
+        var user_id = req.params.user_id || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.", 0));
+        var question = req.body.question || res.json(trans_json("질문을 입력하지 않았습니다.", 0));
+
+        template_post(
+            res,
+            "INSERT INTO qna(question,create_date,user_id) VALUES(?,NOW(),?) ",
+            [question, user_id]
+        );
+    });
 };
 
 exports.getServiceTerms = function(req,res){

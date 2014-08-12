@@ -1,6 +1,7 @@
 /**
  * Created by nrkim on 2014. 7. 29..
  */
+var express = require('express');
 var account = require('../routes/account')
     ,category = require('../routes/category')
     ,login = require('../routes/login')
@@ -23,7 +24,7 @@ var isLoggedIn = function (req, res, next) {
 module.exports = function(app,passport) {
 
     // 로그인
-    app.post('/login', passport.authenticate('local-login'),login.login);
+    app.post('/login', express.bodyParser(), passport.authenticate('local-login'),login.login);
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
     app.get('/request-activation-email/:user_id', login.requestActivationEmail);
     app.post('/request-send-email', login.requestSendEmail);

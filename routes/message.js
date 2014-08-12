@@ -14,6 +14,7 @@ var message_window = json.message_window
     ,template_transaction = template.template_transaction
     ,unread_msgs=json.unread_msgs
     ,unread_msg_lst= json.unread_msg_lst;
+var formidable = require('formidable');
 
 // db 셋팅
 var dbConfig = require('../config/database');
@@ -65,19 +66,24 @@ exports.getMessageGroupList = function(req,res){
 
 exports.destroyMessageGroup = function(req,res){
 
-    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
-    var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
+    var form = new formidable.IncomingForm();
 
-    var query = "UPDATE trade t JOIN post p ON p.post_id = t.post_id " +
-        "SET be_show_group = (CASE WHEN req_user_id = ? THEN false ELSE true END), " +
-        "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
-        "WHERE trade_id = ?";
+    form.parse(req, function(err, fields, files) {
+        req.body = fields;
+        var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+        var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
 
-    template_post(
-        res,
-        query,
-        [user_id,user_id,trade_id]
-    );
+        var query = "UPDATE trade t JOIN post p ON p.post_id = t.post_id " +
+            "SET be_show_group = (CASE WHEN req_user_id = ? THEN false ELSE true END), " +
+            "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
+            "WHERE trade_id = ?";
+
+        template_post(
+            res,
+            query,
+            [user_id,user_id,trade_id]
+        );
+    });
 };
 
 
@@ -85,33 +91,39 @@ exports.createMessage = function(req,res){
 
 
     //var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    var form = new formidable.IncomingForm();
 
-    var user_id = JSON.parse(req.params.user_id)      || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
-    var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
-    var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
+    form.parse(req, function(err, fields) {
+        req.body = fields;
+        var user_id = JSON.parse(req.params.user_id)      || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
+        var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+        var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
 
 
-    if (typeof(user_id) != "number" || typeof(trade_id) != "number" ||
-        typeof(message) != "string" ) {
-        res.json(trans_json("올바른 타입을 사용해 주세요.",0));
-    }
+        if (typeof(user_id) != "number" || typeof(trade_id) != "number" ||
+            typeof(message) != "string" ) {
+            res.json(trans_json("올바른 타입을 사용해 주세요.",0));
+        }
 
-    var query =
-        "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
-        "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
-        "FROM trade t " +
-        "JOIN post p ON t.post_id = p.post_id " +
-        "WHERE t.trade_id = ? ";
+        var query =
+            "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
+            "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
+            "FROM trade t " +
+            "JOIN post p ON t.post_id = p.post_id " +
+            "WHERE t.trade_id = ? ";
 
-    template_post(
-        res,
-        query,
-        [user_id,user_id,message,trade_id]
-    );
+        template_post(
+            res,
+            query,
+            [user_id,user_id,message,trade_id]
+        );
+    });
 
 };
 
 exports.getMessageList = function(req,res){
+
+
     console.log("??");
     //parameter로 받은 사용자 아이디
     var user_id = JSON.parse(req.params.user_id)   || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
@@ -151,8 +163,7 @@ exports.getUnreadMessgeList = function(req,res){
 
 
     console.log('hello hello');
-    var user_id = JSON.parse(req.params.user_id)   || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
-    //var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     var get_query =

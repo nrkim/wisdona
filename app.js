@@ -38,7 +38,7 @@ app.use(express.session({
     secret: 'tacademymobileserverexpert',
     store: new MySQLStore(options),
     cookie: {
-        maxAge: 60000
+        maxAge: 2160000
     }
 }));
 app.use(passport.initialize());

@@ -139,7 +139,6 @@ exports.uploadImage = function (req,res,next){
                 }
             },
             function(file, callback) {
-                req.uploadFile;
                 async.each(file, function(f, callback) {
                     if (f.size) {
                         console.log(destPath);
@@ -151,6 +150,7 @@ exports.uploadImage = function (req,res,next){
                                 console.log('Original file(', f.name, ') moved!!!');
                                 console.log(destPath);
                                 req.uploadFile = destPath;
+                                console.log("upload file : ",req.uploadFile);
                             }
                         });
                     } else {
@@ -179,6 +179,7 @@ exports.uploadImage = function (req,res,next){
 // /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
 
+
         var user_id = req.params.user_id;
         //var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
@@ -186,7 +187,7 @@ exports.updateAccountSettings = function(req,res){
         var updated = {};
 
 
-        updated.nickname = req.body.nick_name    || null
+        updated.nickname = req.body.nick_name    || null;
         updated.image = req.uploadFile           || null;
         updated.self_intro = req.body.self_intro || null;
         updated.name = req.body.name             || null;
