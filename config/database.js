@@ -9,7 +9,7 @@ module.exports = {
     user: 'admin',
     password: 'zktldhvpdk',
     database: 'wisdonadb',
-    debug: false,
+    debug: true,
     charset: 'UTF8_GENERAL_CI',
     timezone: '+0900'
 };

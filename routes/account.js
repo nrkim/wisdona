@@ -21,10 +21,6 @@ var _ = require('underscore'),
     mime = require('mime');
 
 
-console.log('crontab !!');
-console.log('test2');
-
-
 var formidable = require('formidable');
 
 var baseImageDir = __dirname + '/../images/';
