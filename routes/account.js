@@ -146,6 +146,7 @@ exports.uploadImage = function (req,res,next){
                             } else {
                                 console.log('Original file(', f.name, ') moved!!!');
                                 req.uploadFile = destPath;
+                                callback();
                             }
                         });
                     } else {
@@ -158,7 +159,6 @@ exports.uploadImage = function (req,res,next){
                             }
                         });
                     }
-
                 }, function(err, result) {
                     if (err) {
                         res.json({error : err.message});

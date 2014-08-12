@@ -18,7 +18,7 @@ var isLoggedIn = function (req, res, next) {
         return next();
     }
 
-    return res.redirect('/');
+    res.redirect('/login');
 }
 
 module.exports = function(app,passport) {
@@ -28,47 +28,46 @@ module.exports = function(app,passport) {
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
     app.get('/request-activation-email/:user_id', login.requestActivationEmail);
     app.post('/request-send-email', login.requestSendEmail);
-    app.post('/logout', login.logout);
+    app.post('/logout',isloggedIn,login.logout);
     app.post('/activation-email/:authkey', login.activationEmail);
 
-
     // 계정 생성,정보 관련
-    app.get('/users/:user_id/profile/show', account.getUserInfo);
-    app.post('/users/create', passport.authenticate('local-signup'),account.createUser);
-    app.post('/users/destroy', account.destroyUserAccount);
+    app.get('/users/:user_id/profile/show',isloggedIn, account.getUserInfo);
+    app.post('/users/create', isloggedIn,passport.authenticate('local-signup'),account.createUser);
+    app.post('/users/destroy',isloggedIn, account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', account.getAccountSettings);
     app.post('/users/:user_id/account-settings/update', account.uploadImage, account.updateAccountSettings);
 
     // 사용자
     app.get('/users/:user_id/posts/list', user.getUserPostList);
     app.get('/users/:user_id/reviews/list', user.getReviewList);
-    app.get('/users/:user_id/req-posts/list', user.getRequestPostList);
+    app.get('/users/:user_id/req-posts/list',isloggedIn, user.getRequestPostList);
 
     // 대화
-    app.get('/users/:user_id/message-groups/list', message.getMessageGroupList);
-    app.post('/users/:user_id/message-groups/destroy', message.destroyMessageGroup);
-    app.post('/users/:user_id/message-groups/:trade_id/create', message.createMessage);
-    app.get('/users/:user_id/message-groups/:trade_id/list', message.getMessageList);
-    app.get('/users/:user_id/message-groups/:trade_id/unread/list',message.getUnreadMessgeList);
-    app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',message.confirmMessage);
+    app.get('/users/:user_id/message-groups/list',isloggedIn, message.getMessageGroupList);
+    app.post('/users/:user_id/message-groups/destroy',isloggedIn, message.destroyMessageGroup);
+    app.post('/users/:user_id/message-groups/:trade_id/create',isloggedIn, message.createMessage);
+    app.get('/users/:user_id/message-groups/:trade_id/list',isloggedIn, message.getMessageList);
+    app.get('/users/:user_id/message-groups/:trade_id/unread/list',isloggedIn,message.getUnreadMessgeList);
+    app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',isloggedIn,message.confirmMessage);
 
 
     // 평가
-    app.post('/users/:user_id/reviews/create', review.createUserReview);
+    app.post('/users/:user_id/reviews/create',isloggedIn, review.createUserReview);
 
     // 게시물
-    app.post('/users/:user_id/posts/create', post.createPost, post.uploadImages);
-    app.post('/users/:user_id/posts/update', post.updatePost);
-    app.post('/users/:user_id/posts/destroy', post.destroyPost);
+    app.post('/users/:user_id/posts/create',isloggedIn, post.createPost, post.uploadImages);
+    app.post('/users/:user_id/posts/update',isloggedIn, post.updatePost);
+    app.post('/users/:user_id/posts/destroy',isloggedIn, post.destroyPost);
     app.get('/posts/:post_id/show', post.getPostDetail);
     app.get('/posts/list', post.getPostList);
     app.get('/posts/search', post.searchPosts);
-    app.post('/users/:user_id/posts/report', post.reportPost);
+    app.post('/users/:user_id/posts/report',isloggedIn, post.reportPost);
 
     // 교환
-    app.post('/users/:user_id/posts/send-request', trade.sendRequestPost);
-    app.post('/users/:user_id/posts/accept', trade.acceptPost);
-    app.post('/users/:user_id/posts/cancel', trade.cancelPost);
+    app.post('/users/:user_id/posts/send-request',isloggedIn, trade.sendRequestPost);
+    app.post('/users/:user_id/posts/accept',isloggedIn, trade.acceptPost);
+    app.post('/users/:user_id/posts/cancel',isloggedIn, trade.cancelPost);
 
     // 카테고리
     app.get('/categories', category.getCategoryList);
@@ -76,7 +75,7 @@ module.exports = function(app,passport) {
     // 기타
     app.get('/genres',other.getGenreList);
     app.get('/book_conditions',other.getBookConditionList);
-    app.post('/users/:user_id/ask/create',other.getQnaList);
+    app.post('/users/:user_id/ask/create',isloggedIn,other.getQnaList);
     app.get('/rules/terms',other.getServiceTerms);
     app.get('/rules/privacy',other.getPrivacy);
     app.get('/news', other.getNewsList);
