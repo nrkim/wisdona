@@ -41,7 +41,7 @@ exports.createPost = function(req,res,next) {
         //////// 이미지 파일 아닐 경우 처리 필요 ////////
         async.waterfall([
             function(cb1) {
-
+                console.log(files);
                 var filesArr = _.map(files, function(file) {
                     return file;
                 });
@@ -280,11 +280,28 @@ exports.uploadImages = function (req, res) {
 
 // 포스트 수정
 exports.updatePost = function(req,res){
+
+
+
+    
     var user_id = req.params.user_id,
         post_id = req.body.post_id,
         comment = req.body.comment,
         bookmark_cnt = req.body.bookmark_cnt,
         book_condition_id = req.body.book_condition_id;
+
+
+    var form = new formidable.IncomingForm();
+    form.uploadDir = path.normalize(__dirname + '/../tmp/');
+    form.keepExtensions = true;
+
+    // 1. update
+
+
+    form.parse(req, function(err, fields, files) {
+
+    });
+
 
 
     // 파라미터 체크

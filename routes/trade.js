@@ -78,14 +78,16 @@ exports.sendRequestPost = function(req,res){
                         if (err) {
                             connection.rollback(function () {
                                 connection.release();
-                                return res.json(getJsonData(0, err.message, null));
+                                res.json(getJsonData(0, err.message, null));
                             });
                         }else{
                             connection.release();
                             // trade_id로 요청 메시지 보내기
-                            req.params.trade_id = trade_id;
-                            req.body.message = "배송지 정보는 아래와 같습니다.";
-                            message.createMessage(req,res);
+                            //req.params.trade_id = trade_id;
+                            //req.body.message = "배송지 정보는 아래와 같습니다.";
+                            //message.createMessage(req,res);
+
+                            res.json(getJsonData(1, "success", null));
                         }
                     });
                 }
@@ -230,7 +232,7 @@ exports.acceptPost = function(req,res){
                             connection.release();
 
                             // trade_id로 요청 메시지 보내기
-                            message.createMessage(req,res);
+                            //message.createMessage(req,res);
 
                         });
                     }
