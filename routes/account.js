@@ -122,35 +122,30 @@ exports.uploadImage = function (req,res,next){
     form.parse(req, function(err, fields, files) {
         req.body=fields;
 
-        console.log(files);
+        //console.log(files);
 
         async.waterfall([
             function(callback) {
                 if (files){
-                    console.log(files);
+                    //console.log(files);
                     var file = _.map(files, function(f) {
                         return f;
                     });
-                    console.log('ddd');
                     callback(null, file);
                 } else{
-                    console.log('req.');
                     next();
                 }
             },
             function(file, callback) {
                 async.each(file, function(f, callback) {
                     if (f.size) {
-                        console.log(destPath);
                         var destPath = path.normalize(baseImageDir + path.basename(f.path));
                         fstools.move(f.path, destPath, function(err) {
                             if (err) {
                                 callback(err);
                             } else {
                                 console.log('Original file(', f.name, ') moved!!!');
-                                console.log(destPath);
                                 req.uploadFile = destPath;
-                                console.log("upload file : ",req.uploadFile);
                             }
                         });
                     } else {
@@ -159,10 +154,11 @@ exports.uploadImage = function (req,res,next){
                                 callback(err);
                             } else {
                                 console.log('Zero file removed!!!');
+                                callback();
                             }
                         });
                     }
-                    callback();
+
                 }, function(err, result) {
                     if (err) {
                         res.json({error : err.message});
@@ -178,12 +174,9 @@ exports.uploadImage = function (req,res,next){
 
 // /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
-
-
         var user_id = req.params.user_id;
         //var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-        console.log('user_id is ',user_id);
         var updated = {};
 
 
@@ -195,7 +188,7 @@ exports.updateAccountSettings = function(req,res){
         updated.address = req.body.address       || null;
         updated.push_settings = req.body.push_settings || null;
 
-        console.log(updated);
+        //console.log(updated);
         query =
             'UPDATE user SET ? WHERE user_id = ? ';
 
