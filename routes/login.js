@@ -10,6 +10,11 @@ var trans_json = json.trans_json
 var formidable = require('formidable');
 
 exports.facebookLogin = function(req,res){
+	if (req.user) {
+		res.json(trans_json("success",1));
+	} else {
+		res.json(trans_json("페이스북 로그인에 실패하였습니다.",0));
+	}
 }
 
 

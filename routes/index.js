@@ -43,10 +43,10 @@ module.exports = function(app,passport) {
     
     app.post('/facebook-login',
         express.bodyParser(),
-        passport.authenticate('facebook-token', { scope: ['email'] }),
-        login.facebookLogin
-    );
-
+        passport.authenticate('facebook-token',{ scope: ['email'] }),
+        login.facebookLogin);
+    
+    
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
     app.get('/request-activation-email/:user_id', login.requestActivationEmail);
     app.post('/request-send-email', login.requestSendEmail);
