@@ -9,7 +9,7 @@ module.exports = function(passport) {
 
     passport.serializeUser(function(user, done) {
         console.log('passport.serializeUser ====> ', user);
-        done(null, user.id);
+        done(null, user.user_id);
     });
 
     passport.deserializeUser(function(id, done) {
@@ -17,11 +17,13 @@ module.exports = function(passport) {
             if (err) {
                 return done(err);
             }
-            var selectSql = 'SELECT user_id, facebook_token, email, ' +
+            var selectSql = 'SELECT user_id, facebook_id, facebook_token, email, ' +
                 'image FROM user WHERE user_id = ?';
+
             connection.query(selectSql, [id], function(err, rows, fields) {
                 var user = {};
                 user.id = rows[0].user_id;
+                user.facebookId = rows[0].facebook_id;
                 user.facebookToken = rows[0].facebook_token;
                 user.facebookEmail = rows[0].email;
                 user.facebookName = rows[0].image;
@@ -45,8 +47,8 @@ module.exports = function(passport) {
                     }
 
                     var facebookPhoto = "https://graph.facebook.com/v2.1/me/picture?access_token=" + accessToken;
-                    var selectSql = 'SELECT id, facebook_id, facebook_username, facebook_token, facebook_email, ' +
-                        'facebook_name, facebook_photo FROM users WHERE facebook_id = ?';
+                    var selectSql = 'SELECT user_id, facebook_token, email, ' +
+                        'image FROM user WHERE facebook_id = ?';
                     connection.query(selectSql, [profile.id], function(err, rows, fields) {
                         if (err) {
                             connection.release();

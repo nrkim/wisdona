@@ -30,11 +30,12 @@ module.exports = function(app,passport) {
     app.post('/login', express.bodyParser(), function(req, res, next) {
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
+                console.log('login!!!');
                 res.json(trans_json(info.loginMessage,0));
             } else {
             	req.logIn(user, function(err) {
             	      if (err) { res.json(trans_json("falil",0)); }
-            	      else{ res.json(trans_json("success",1));}
+            	      else{ res.json(trans_json("success",1,create_user(user.user_id)));}
             	});
             }
         })(req, res, next);
