@@ -30,9 +30,12 @@ var baseImageDir = __dirname + '/../images/';
 exports.getUserInfo = function(req,res){
 
     //1. req.session.passport.user에서 session이 없으면 session.passport에서 서버가 죽음 isAuthenticate를 사용할것
+    console.log('get user info is !!');
     if(!req.isAuthenticated())
         res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
     var user_id = req.session.passport.user;
+
+    console.log(user_id);
 
     //var user_id = req.params.user_id || res.json(trans_json("실패했습니다",0));
 
@@ -110,57 +113,31 @@ exports.uploadImage = function (req,res,next){
     form.uploadDir = path.normalize(__dirname + '/../tmp/');
     form.keepExtensions = true;
 
-    form.parse(req, function(err, fields, files) {
+    form.parse(req, function(err, fields, file) {
         req.body=fields;
 
-        //console.log(files);
-
-        async.waterfall([
-            function(callback) {
-                if (files){
-                    //console.log(files);
-                    var file = _.map(files, function(f) {
-                        return f;
-                    });
-                    callback(null, file);
-                } else{
+        if (file.size) {
+            var destPath = path.normalize(baseImageDir + path.basename(file.path));
+            fstools.move(f.path, destPath, function(err) {
+                if (err) {
+                    res.json(trans_json(err.message,0));
+                } else {
+                    console.log('Original file(', file.name, ') moved!!!');
+                    req.uploadFile = destPath;
                     next();
                 }
-            },
-            function(file, callback) {
-                async.each(file, function(f, callback) {
-                    if (f.size) {
-                        var destPath = path.normalize(baseImageDir + path.basename(f.path));
-                        fstools.move(f.path, destPath, function(err) {
-                            if (err) {
-                                callback(err);
-                            } else {
-                                console.log('Original file(', f.name, ') moved!!!');
-                                req.uploadFile = destPath;
-                                callback();
-                            }
-                        });
-                    } else {
-                        fstools.remove(f.path, function(err) {
-                            if (err) {
-                                callback(err);
-                            } else {
-                                console.log('Zero file removed!!!');
-                                callback();
-                            }
-                        });
-                    }
-                }, function(err, result) {
-                    if (err) {
-                        res.json({error : err.message});
-                    } else {
-                        next();
-                    }
-                });
-            }
-        ]);
+            });
+        } else {
+            fstools.remove(file.path, function(err) {
+                if (err) {
+                    res.json(trans_json(err.message,0));
+                } else {
+                    console.log('Zero file removed!!!');
+                    next();
+                }
+            });
+        }
     });
-
 };
 
 // /users/:user_id/account-settings/update
@@ -169,7 +146,6 @@ exports.updateAccountSettings = function(req,res){
         //var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
         var updated = {};
-
 
         updated.nickname = req.body.nick_name    || null;
         updated.image = req.uploadFile           || null;
@@ -184,8 +160,8 @@ exports.updateAccountSettings = function(req,res){
             'UPDATE user SET ? WHERE user_id = ? ';
 
         template_post(
-          res,
-         query,
-         [updated,user_id]
+            res,
+            query,
+            [updated,user_id]
          );
 };
