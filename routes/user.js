@@ -116,4 +116,3 @@ exports.getRequestPostList = function(req,res){
         post_list
     );
 };
-

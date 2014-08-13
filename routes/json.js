@@ -143,3 +143,7 @@ exports.unread_msg_lst = function(item){
         }
     };
 };
+
+exports.create_user = function(item){
+    return { user_id : item }
+}

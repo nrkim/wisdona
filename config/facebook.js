@@ -21,13 +21,11 @@ module.exports = function(passport) {
                 'image FROM user WHERE user_id = ?';
             connection.query(selectSql, [id], function(err, rows, fields) {
                 var user = {};
-                user.id = rows[0].id;
-                user.facebookId = rows[0].facebook_id;
-                user.facebookUsername = rows[0].facebook_username;
+                user.id = rows[0].user_id;
                 user.facebookToken = rows[0].facebook_token;
-                user.facebookEmail = rows[0].facebook_email;
-                user.facebookName = rows[0].facebook_name;
-                user.facebookPhoto = rows[0].facebook_photo;
+                user.facebookEmail = rows[0].email;
+                user.facebookName = rows[0].image;
+                user.facebookPhoto = rows[0].photo;
                 connection.release();
                 console.log('passport.deserializeUser ====> ', user);
                 return done(null, user);

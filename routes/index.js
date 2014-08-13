@@ -11,11 +11,13 @@ var account = require('../routes/account')
     ,trade = require('../routes/trade')
     ,user = require('../routes/user')
     ,other = require('../routes/other')
-    ,trans_json = require('../routes/json').trans_json;
+    ,trans_json = require('../routes/json').trans_json
+    ,create_user = require('../routes/json').create_user;
 
 var isLoggedIn = function (req, res, next) {
 
     if (req.isAuthenticated()) {
+        console.log('athentication 되있습니다.')
         return next();
     }
 
@@ -56,11 +58,11 @@ module.exports = function(app,passport) {
             if (user === false) {
                 res.json(trans_json(info.signupMessage,0));
             } else {
-                res.json(trans_json("success",1));
+                res.json(trans_json("success",1,create_user(user.user_id)));
             }
         })(req, res, next);
     });
-    app.get('/users/:user_id/profile/show',isLoggedIn, account.getUserInfo);
+    app.get('/users/:user_id/profile/show', account.getUserInfo);
     app.post('/users/destroy',isLoggedIn, account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', account.getAccountSettings);
     app.post('/users/:user_id/account-settings/update', account.uploadImage, account.updateAccountSettings);
