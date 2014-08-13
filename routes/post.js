@@ -157,7 +157,7 @@ function saveImage(image, callback) {
 }
 
 // post_image에 이미지 파일명 변경
-function updateImageQuery(post_image_id, filePath, callback){
+function updateImageQuery(connection, post_image_id, filePath, callback){
 
     var mimeType = mime.lookup(filePath.originalPath);
     var updateSet = {
@@ -168,55 +168,23 @@ function updateImageQuery(post_image_id, filePath, callback){
     };
 
 
-    query = "UPDATE post_image SET ? WHERE post_image_id = ?";
-    data = [updateSet, post_image_id];
+    var query = "UPDATE post_image SET ? WHERE post_image_id = ?";
+    var data = [updateSet, post_image_id];
 
-//    getConnection(function (connection) {
-//        connection.query(query, data, function (err, result) {
-//            if (err) {
-//                connection.rollback(function () {
-//                    connection.release();
-//                    callback(err);
-//                });
-//            }else{
-//                connection.commit(function (err) {
-//                    if (err) {
-//                        connection.rollback(function () {
-//                            connection.release();
-//                            callback(err);
-//                        });
-//                    }else{
-//                        console.log("post_image_id", post_image_id);
-//                        console.log(result);
-//                        connection.release();
-//                    }
-//                });
-//            }
-//
-//        })
-//    });
+    connection.query(query, data, function (err, result) {
+        if (err) {
+            callback(err);
+        }else{
+            console.log("업데이트 : ", post_image_id);
+            callback();
+        }
 
-    connectionPool.getConnection(function(err, connection) {
-        connection.query(query, data, function (err, result) {
-            if (err) {
-                connection.rollback(function () {
-                    connection.release();
-                    callback(err);
-                });
-            } else {
-                console.log("post_image_id", post_image_id);
-                //console.log(result);
-                connection.release();
-            }
-        });
     });
-
-
 }
 
 // post_image에 post_image_id들 삭제
 
-function insertImageQuery(post_id, filePath, callback) {
+function insertImageQuery(connection, post_id, filePath, callback) {
 
     var mimeType = mime.lookup(filePath.originalPath);
     query = 'INSERT INTO post_image(original_image_path, large_image_path, thumbnail_path, mime, post_id) VALUES(?, ?, ?, ?, ?)';
@@ -225,10 +193,27 @@ function insertImageQuery(post_id, filePath, callback) {
         if (err) {
             callback(err);
         } else {
+            console.log("쿼리 추가 : ", post_id);
             callback();
         }
     });
 
+}
+
+
+// post_image에 로우 삭제
+function deleteImageQuery(connection, post_image_id, callback) {
+
+    var query = 'DELETE FROM post_image WHERE post_image_id = ?';
+    var data = [post_image_id];
+    connection.query(query, data, function (err, result) {
+        if (err) {
+            callback(err);
+        } else {
+            console.log("쿼리 삭제 : ", post_image_id);
+            callback();
+        }
+    });
 }
 
 
@@ -402,11 +387,10 @@ exports.uploadImages = function (req, res) {
 
 // 포스트 수정
 exports.updatePost = function(req,res){
-    console.log("들어옴");
+
     var form = new formidable.IncomingForm();
     form.uploadDir = path.normalize(__dirname + '/../tmp/');
     form.keepExtensions = true;
-
 
 
     form.parse(req, function(err, fields, files) {
@@ -419,7 +403,7 @@ exports.updatePost = function(req,res){
             book_condition_id = req.body.book_condition_id,
             delete_list = req.body.delete_list;
 
-        delete_list = [0,0,1,0];
+        //delete_list = [];
 
 
 
@@ -433,187 +417,163 @@ exports.updatePost = function(req,res){
             return res.json(getJsonData(0, '책갈피는 최소 0개, 최대 2개입니다.', null));
         }
 
-        console.log( files);
-
         // 0. post_id로 post_image들 가져오기 SELECT
         // 1. files {1,2,3,4} 이미지 있는지 없는지 파악
         // 1-1  있다 : 기존 이미지 삭제 -> 신규 이미지 업로드 -> post_image 로우 UPDATE
         // 1-2  없다 : 신규 이미지 업로드 -> post_image 로우 INSERT
         // 2. delete_list 참고해서 기존 이미지 삭제 -> post_image에 해당 이미지들 DELETE
 
-
-        // 파일이 있다
-        if ( files.length || delete_list.length ){
-            // 변경 또는 추가 진행
-            // 삭제 이미지 있으면 진행
-
-            getConnection(function (connection) {
-                async.waterfall([
-                    function (callback) {
-                        // 1. isbn, isbn13 검색
+        getConnection(function (connection) {
+            async.waterfall([
+                function (callback) {
+                    console.log( files, delete_list.length);
+                    if ( files  ){
+                        console.log("잉?");
                         var query = "SELECT * FROM post_image WHERE post_id = ?";
                         var data = [post_id];
                         connection.query(query, data, function (err, rows, fields) {
                             if (err) {
                                 callback(err);
                             }else{
+                                console.log(rows);
                                 callback(null, rows);
                             }
                         });
-                    },
-                    function (rows, callback) {
-                        // 이미지 있으면 실행
-                        // 없으면 다음 구문 넘김
-                        if ( files ){
-                            // files의 이미지 번호가 db에 있으면 변경 없으면 추가
+                    }else{
+                        console.log("파일, 삭제 리스트 다 없음");
+                        callback();
+                    }
 
-                            var imageArr = _.map(files, function (image, num) {
-                                // 이미 있는 경우 삭제(서버) -> 업로드(서버) -> 쿼리(업데이트)
-                                image.num = num;
-                                if ( num <= rows.length ){
-                                    // 기존 이미지 삭제
-                                    deleteImage(rows[num-1], function (err) {
-                                        if(err){
-                                            callback(err);
-                                        }
-                                    });
-                                }
-                                return image;
-                            });
+                },
+                function (rows, callback) {
+                    // 이미지 있으면 실행
+                    // 없으면 다음 구문 넘김
 
-                            async.each(imageArr, function (image, callback) {
-                                //console.log(image);
-                                saveImage(image, function (err, uploadFile) {
-                                    if (err){
+                    if ( files ){
+                        // files의 이미지 번호가 db에 있으면 변경 없으면 추가
+
+                        var imageArr = _.map(files, function (image, num) {
+                            // 이미 있는 경우 삭제(서버) -> 업로드(서버) -> 쿼리(업데이트)
+                            image.num = num;
+                            if ( num <= rows.length ){
+                                // 기존 이미지 삭제
+                                deleteImage(rows[num-1], function (err) {
+                                    if(err){
                                         callback(err);
-                                    }else{
-                                        // 기존 이미지 변경은 query UPDATE
-                                        if ( image.num <= rows.length ){
-                                            updateImageQuery(rows[image.num-1].post_image_id, uploadFile, function (err) {
-                                                if (err){
-                                                    callback(err);
-                                                }else{
-                                                    callback();
-                                                }
-
-                                            });
-                                        }else{
-                                            // 신규 이미지는 query INSERT
-                                            insertImageQuery(post_id, uploadFile, function (err) {
-                                                if (err){
-                                                    callback(err);
-                                                }else{
-                                                    callback();
-                                                }
-                                            })
-                                        }
                                     }
                                 });
-                            }, function (err) {
-                                if (err){
-                                    callback(err);
-                                }else{
-                                    callback(rows);
-                                }
-                            })
-                        }else{
-                            callback(rows);
-                        }
-                    },
-                    function (rows, callback) {
-                        if ( delete_list ){
-
-                        }else{
-
-                        }
-
-                    },
-                    function (rows, callback) {
-
-
-                    },
-                    function (rows, callback) {
-
-
-                    },
-                    function (rows, callback) {
-
-
-                    }], function (err) {
-                    if (err) {
-                        connection.rollback(function () {
-                            connection.release();
-                            res.json(getJsonData(0, err.message, null));
-                        });
-                    }else{
-                        connection.commit(function (err) {
-                            if (err) {
-                                connection.rollback(function () {
-                                    connection.release();
-                                    return res.json(getJsonData(0, err.message, null));
-                                });
-                            }else{
-                                connection.release();
-                                res.json(getJsonData(1, 'success', null));
-
                             }
+                            return image;
                         });
+
+                        async.each(imageArr, function (image, cb) {
+                            //console.log(image);
+                            saveImage(image, function (err, uploadFile) {
+                                if (err){
+                                    cb(err);
+                                }else{
+                                    console.log("이미지 업데이트 쿼리 실행!!!");
+                                    // 기존 이미지 변경은 query UPDATE
+                                    if ( image.num <= rows.length ){
+                                        updateImageQuery(connection, rows[image.num-1].post_image_id, uploadFile, function (err) {
+                                            if (err){
+                                                cb(err);
+                                            }else{
+                                                console.log("음?");
+                                                cb();
+                                            }
+                                        });
+                                    }else{
+                                        // 신규 이미지는 query INSERT
+                                        insertImageQuery(connection, post_id, uploadFile, function (err) {
+                                            if (err){
+                                                cb(err);
+                                            }else{
+                                                cb();
+                                            }
+                                        })
+                                    }
+                                }
+                            });
+                        }, function (err) {
+                            if (err){
+                                callback(err);
+                            }else{
+                                console.log("여긴");
+                                callback(null, rows);
+                            }
+                        })
+                    }else{
+                        callback(null, rows);
                     }
-                });
+                },
+                function (rows, callback) {
+                    if ( delete_list.length ){
+                        async.each(delete_list, function (num, cb) {
+                            deleteImage(rows[num], function (err) {
+                                if(err){
+                                    cb(err);
+                                }else{
+                                    deleteImageQuery(connection, rows[num].post_image_id, function (err) {
+                                        if ( err){
+                                            cb(err);
+                                        }else{
+                                            cb();
+                                        }
+                                    })
+                                }
+                            });
+                        }, function (err) {
+                            if (err){
+                                callback(err);
+                            }else{
+                                callback();
+                            }
+                        })
+                    }else{
+                        callback();
+                    }
+
+                },
+                function (callback) {
+                    var query = "UPDATE post SET ? WHERE post_id = ? and user_id = ?;";
+                    var contents = {comment: comment, bookmark_cnt: bookmark_cnt, book_condition_id: book_condition_id };
+                    var data = [contents, post_id, user_id];
+
+                    connection.query(query, data, function (err, result) {
+
+                        if (err) {
+                            callback(err);
+                        }else{
+                            if ( !result.affectedRows ) {
+                                callback(new Error("post_id 또는 user_id가 잘못 되었습니다."));
+                            }else{
+                                callback();
+                            }
+                        }
+                    });
+                }], function (err) {
+                if (err) {
+                    connection.release();
+                    res.json(getJsonData(0, err.message, null));
+                }else{
+
+                    connection.commit(function (err) {
+                        if (err) {
+                            connection.rollback(function () {
+                                connection.release();
+                                res.json(getJsonData(0, err.message, null));
+                            });
+                        }else{
+                            connection.release();
+                            res.json(getJsonData(1, 'success', null));
+
+                        }
+                    });
+                }
             });
-        }else{
-            // 삭제 이미지 있으면 진행
-
-
-
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        /*
-         // 쿼리 함수
-         function sendQuery(query, data) {
-         connectionPool.getConnection(function(err, connection) {
-         if (err) {
-         res.json(getJsonData(0, 'DB 오류', null));
-         }
-         connection.query(query, data, function (err, result) {
-         if (err) {
-         connection.release();
-         return res.json(getJsonData(0, err.message, null));
-         }
-
-         console.log(result);
-         if ( !result.affectedRows ) return res.json(getJsonData(0, "수정할 게시물이 없습니다.", null));
-
-         connection.release();
-         res.json(getJsonData(1, 'success', null));
-         });
-         });
-         };
-
-         // 쿼리 요청
-         var query = "UPDATE post SET comment = ?, bookmark_cnt = ?, book_condition_id = ? WHERE post_id = ? and user_id = ?";
-         var data = [comment, bookmark_cnt, book_condition_id, post_id, user_id];
-         sendQuery(query,data);
-         */
-
+        });
     });
-
-
-
-
 };
 
 // 게시물 삭제
