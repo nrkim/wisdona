@@ -18,16 +18,15 @@ module.exports = function(passport) {
                 return done(err);
             }
             var selectSql = 'SELECT user_id, facebook_id, facebook_token, email, ' +
-                'image FROM user WHERE user_id = ?';
+                'image, facebook_photo FROM user WHERE user_id = ?';
 
             connection.query(selectSql, [id], function(err, rows, fields) {
                 var user = {};
-                user.id = rows[0].user_id;
+                user.user_id = rows[0].user_id;
                 user.facebookId = rows[0].facebook_id;
                 user.facebookToken = rows[0].facebook_token;
                 user.facebookEmail = rows[0].email;
-                user.facebookName = rows[0].image;
-                user.facebookPhoto = rows[0].photo;
+                user.facebookPhoto = rows[0].facebook_photo;
                 connection.release();
                 console.log('passport.deserializeUser ====> ', user);
                 return done(null, user);
@@ -47,7 +46,7 @@ module.exports = function(passport) {
                     }
 
                     var facebookPhoto = "https://graph.facebook.com/v2.1/me/picture?access_token=" + accessToken;
-                    var selectSql = 'SELECT user_id, facebook_token, email, ' +
+                    var selectSql = 'SELECT user_id, facebook_id, facebook_token, email, ' +
                         'image FROM user WHERE facebook_id = ?';
                     connection.query(selectSql, [profile.id], function(err, rows, fields) {
                         if (err) {
@@ -56,15 +55,13 @@ module.exports = function(passport) {
                         }
                         if (rows.length) {
                             var user = {};
-                            user.id = rows[0].id;
+                            user.user_id = rows[0].user_id;
                             user.facebookId = rows[0].facebook_id;
-                            user.facebookUsername = rows[0].facebook_username;
                             user.facebookToken = rows[0].facebook_token;
-                            user.facebookEmail = rows[0].facebook_email;
-                            user.facebookName = rows[0].facebook_name;
-                            user.facebookPhoto = rows[0].facebook_photo;
+                            user.facebookEmail = rows[0].email;
+                            user.facebookPhoto = rows[0].image;
                             if (accessToken !== user.facebookToken) {
-                                var updateSql = 'UPDATE users SET facebook_token = ?, facebook_photo = ? WHERE facebook_id = ?';
+                                var updateSql = 'UPDATE user SET facebook_token = ?, image = ? WHERE facebook_id = ?';
                                 connection.query(updateSql, [accessToken, facebookPhoto, profile.id], function(err, result) {
                                     if (err) {
                                         connection.release();
