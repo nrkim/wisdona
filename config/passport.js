@@ -58,7 +58,7 @@ module.exports = function(passport) {
                         return done(err);
                     }
 
-                    var selectSql = 'SELECT user_id, nickname FROM user WHERE email = ? or nickname = ?';
+                    var selectSql = 'SELECT user_id, email, nickname  FROM user WHERE email = ? or nickname = ?';
                     connection.query(selectSql, [email,req.body.nickname], function(err, rows, fields) {
                         if (err) {
                             console.log(err.code);
@@ -66,22 +66,27 @@ module.exports = function(passport) {
                             return done(err);
                         }
                         if (rows.length) {
-                            console.log('length is not zero')
-                            var dup_nickname =_.some(rows,function(item){return item.nickname = req.body.nickname;});
-                            var dup_email = _.some(rows,function(item){return item.email = email;});
-                            console.log('nickname dup :',dup_nickname, 'email dup :',dup_email);
+                            //console.log('length is not zero');
+                            //console.log('email', email,' rows.email', rows[0].email);
+                            //console.log('nickname',req.body.nickname,' rows.nickname', rows[0].nickname);
+                            
+                            var dup_nickname =_.some(rows,function(item){return item.nickname === req.body.nickname;});
+                            var dup_email = _.some(rows,function(item){return item.email === email;});
+                            //console.log('nickname dup :',dup_nickname, 'email dup :',dup_email);
                             if (dup_nickname){
                                 if (dup_email){
-                                    console.log('email,nickname dup is executed');
+                                    //console.log('email,nickname dup is executed');
                                     connection.release();
                                     return done(null,false,{'signupMessage' : '닉네임과 이메일이 중복됩니다.'});
                                 }
                                 else{
+                                	//console.log('닉네임이 중복');
                                     connection.release();
                                     return done(null,false,{'signupMessage' : '닉네임이 중복됩니다.'});
                                 }
                             }
                             else {
+                            	//console.log('이메일 중복');
                                 connection.release();
                                 return done(null, false, {'signupMessage' : '이메일이 중복됩니다.'});
                             }

@@ -17,8 +17,8 @@ module.exports = function(passport) {
             if (err) {
                 return done(err);
             }
-            var selectSql = 'SELECT id, facebook_id, facebook_username, facebook_token, facebook_email, ' +
-                'facebook_name, facebook_photo FROM users WHERE id = ?';
+            var selectSql = 'SELECT user_id, facebook_token, email, ' +
+                'image FROM user WHERE user_id = ?';
             connection.query(selectSql, [id], function(err, rows, fields) {
                 var user = {};
                 user.id = rows[0].id;

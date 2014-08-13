@@ -37,22 +37,12 @@ module.exports = function(app,passport) {
             }
         })(req, res, next);
     });
-    //app.post('/auth/facebook/token',
-    //    express.bodyParser(), function(req, res, next) {
-    //        passport.authenticate('facebook-token', function(err, user, info) {
-    //            if (user === false) {
-    //                res.json(trans_json(info.loginMessage,0));
-    //            } else {
-    //                res.json(trans_json("success",1));
-    //            }
-    //        })(req, res, next);
-    //    });
-
-    //app.post('/auth/facebook/token',
-    //    express.bodyParser(),
-    //    passport.authenticate('facebook-token', { scope: ['email'] }),
-    //    login
-    //);
+    
+    app.post('/facebook-login',
+        express.bodyParser(),
+        passport.authenticate('facebook-token', { scope: ['email'] }),
+        login.facebookLogin
+    );
 
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
     app.get('/request-activation-email/:user_id', login.requestActivationEmail);

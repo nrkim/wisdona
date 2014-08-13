@@ -9,6 +9,10 @@ var trans_json = json.trans_json
     ,template_post = template.template_post;
 var formidable = require('formidable');
 
+exports.facebookLogin = function(req,res){
+}
+
+
 exports.requestActivationEmail = function(req,res){
     var data = {
         "code": 1,
