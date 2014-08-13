@@ -30,7 +30,10 @@ module.exports = function(app,passport) {
             if (user === false) {
                 res.json(trans_json(info.loginMessage,0));
             } else {
-                res.json(trans_json("success",1));
+            	req.logIn(user, function(err) {
+            	      if (err) { res.json(trans_json("falil",0)); }
+            	      else{ res.json(trans_json("success",1));}
+            	});
             }
         })(req, res, next);
     });
