@@ -46,7 +46,7 @@ module.exports = function(app,passport) {
         express.bodyParser(),
         passport.authenticate('facebook-token',{ scope: ['email'] }),
         login.facebookLogin);
-    
+    app.post('/facebook-logout', login.facebookLogout);
     
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
     app.get('/request-activation-email/:user_id', login.requestActivationEmail);

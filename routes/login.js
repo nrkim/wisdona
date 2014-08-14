@@ -10,6 +10,7 @@ var trans_json = json.trans_json
 var formidable = require('formidable');
 var create_password = template.create_password;
 var async = require('async');
+var request = require('request');
 
 
 exports.facebookLogin = function(req,res){
@@ -18,6 +19,28 @@ exports.facebookLogin = function(req,res){
 	} else {
 		res.json(trans_json("페이스북 로그인에 실패하였습니다.",0));
 	}
+}
+
+exports.facebookLogout = function(req,res){
+    request(
+        {
+            url: "https://graph.facebook.com/v2.1/me/permissions?access_token=" + req.user.facebookToken,
+            method: 'DELETE'
+        },
+        function(err, response, body) {
+            if (err) {
+                console.log(err);
+                res.redirect('/profile');
+            } else {
+                console.log("response.statusCode: ", response.statusCode);
+                console.log("body: ", body);
+                req.logout();
+                console.log("req.user: ", req.user);
+                res.json(trans_json('로그아웃 하였습니다.',0));
+            }
+
+        }
+    );
 }
 
 

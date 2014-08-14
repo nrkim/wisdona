@@ -19,6 +19,7 @@
         "nodemailer" : "1.1.1",
         "nodemailer-smtp-pool" : "0.1.7",
         "winston" : "0.7.3",
-        "cuid" : "1.2.4"
+        "cuid" : "1.2.4",
+        "request": "2.40.0"
     }
 }
