@@ -105,3 +105,14 @@ exports.template_transaction = function(){
         });
     });
 };
+
+
+// 패스워드 확인
+exports.create_password = function (){
+
+}
+
+
+/*
+
+ */

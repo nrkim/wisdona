@@ -115,7 +115,8 @@ module.exports = function(passport) {
 
                                     console.log(typeof(user.nickname));
 
-                                    var insertSql = 'INSERT INTO user(email,password,nickname,bookmark_total_cnt,like_total_cnt,sad_total_cnt,sleep_mode,create_date)'+
+                                    var insertSql = 'INSERT INTO user(email,password,nickname,bookmark_total_cnt,' +
+                                        'like_total_cnt,sad_total_cnt,sleep_mode,create_date)'+
                                         'VALUES(?,?,?,0,0,0,0,now())';
 
                                     connection.query(insertSql, [user.email, user.password, req.body.nickname], function(err, result) {

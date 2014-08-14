@@ -1,0 +1,20 @@
+/**
+ * Created by nrkim on 2014. 8. 14..
+ */
+var winston = require('winston');
+
+var logger = new winston.Logger({
+    transports: [
+        new winston.transports.Console({
+            level : 'error'			//error level 로하면 info 안보임
+        }),
+        new winston.transports.DailyRotateFile({
+            level : 'debug',
+            filename : 'app-debug-log',
+            datePattern : '.yyyy-MM-ddTHH-mm.log',
+            maxsize : 1024
+        })
+    ]
+});
+
+module.exports = logger;

@@ -2,7 +2,7 @@
  * Created by nrkim on 2014. 7. 29..
  */
 
-var template = require('./templete')
+var template = require('./template')
     ,template_get = template.template_get
     ,json = require('./json')
     ,category_list = json.category_list;

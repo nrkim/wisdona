@@ -2,7 +2,7 @@
  * Created by nrkim on 2014. 8. 6..
  */
 var json = require('./json')
-    ,template = require('./templete')
+    ,template = require('./template')
     ,trans_json = json.trans_json
     ,news_list = json.news_list
     ,faq_list = json.faq_list

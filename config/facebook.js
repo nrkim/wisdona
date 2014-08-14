@@ -6,8 +6,6 @@ var FacebookTokenStrategy = require('passport-facebook-token').Strategy
     , configAuth = require('./auth');
 
 module.exports = function(passport) {
-	
-	console.log('why .... ㅜㅜㅜ');
 
     passport.serializeUser(function(user, done) {
         console.log('passport.serializeUser ====> ', user);

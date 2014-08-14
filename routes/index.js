@@ -12,7 +12,8 @@ var account = require('../routes/account')
     ,user = require('../routes/user')
     ,other = require('../routes/other')
     ,trans_json = require('../routes/json').trans_json
-    ,create_user = require('../routes/json').create_user;
+    ,create_user = require('../routes/json').create_user
+    ,send_email = require('../routes/send_email');
 
 var isLoggedIn = function (req, res, next) {
 
@@ -49,7 +50,7 @@ module.exports = function(app,passport) {
     
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
     app.get('/request-activation-email/:user_id', login.requestActivationEmail);
-    app.post('/request-send-email', login.requestSendEmail);
+    app.post('/request-send-email', send_email.requestSendEmail);
     app.post('/logout',isLoggedIn,login.logout);
     app.post('/activation-email/:authkey', login.activationEmail);
 
