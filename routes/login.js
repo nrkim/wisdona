@@ -8,6 +8,9 @@ var trans_json = json.trans_json
     ,template_get = template.template_get
     ,template_post = template.template_post;
 var formidable = require('formidable');
+var create_password = template.create_password;
+var async = require('async');
+
 
 exports.facebookLogin = function(req,res){
 	if (req.user) {
@@ -76,6 +79,8 @@ exports.updatePassword = function(req,res){
         console.log(old_password);
         console.log(new_password);
 
+        console.log('update console');
+
         connectionPool.getConnection(function(err, connection) {
             if (err) {
                 res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
@@ -94,13 +99,43 @@ exports.updatePassword = function(req,res){
                     if (!result){
                         return res.json(trans_json('현재 비밀번호가 틀렸습니다. 다시입력해 주십시오',0));
                     }
-                    var query = "update user set password = ? where user_id = ?"
+                    else{
 
-                    template_post(
-                        res,
-                        query,
-                        [new_password, user_id]
-                    );
+                        async.waterfall([
+                                function generateSalt(callback) {
+                                    var rounds = 10;
+                                    bcrypt.genSalt(rounds, function(err, salt) {
+                                        console.log('bcrypt.genSalt ====> ', salt, '(', salt.toString().length,')');
+                                        callback(null, salt);
+                                    });
+                                },
+                                function hashPassword(salt, callback) {
+                                    bcrypt.hash(new_password, salt, null, function(err, hashPass) {
+                                        console.log('bcrypt.hash ====> ', hashPass, '(', hashPass.length,')');
+                                        callback(null, hashPass);
+                                    });
+                                }
+                            ],
+                            function(err, hashPass) {
+                                if (err) {
+                                    console.log("error occured");
+                                    console.log(err.code);
+                                    console.log(err);
+                                    connection.release();
+                                    return res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
+                                }
+                                else{
+                                    var query = "update user set password = ? where user_id = ?"
+                                    template_post(
+                                        res,
+                                        query,
+                                        [hashPass, user_id]
+                                    );
+                                }
+                            });
+
+
+                    }
                 });
                 connection.release();
 

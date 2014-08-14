@@ -6,14 +6,17 @@ var json = require('./json');
 var trans_json = json.trans_json;
 var async = require("async");
 var _= require('underscore');
+var bcrypt = require('bcrypt-nodejs');
+var async = require('async');
 
 // 커넥션 관련 탬플릿
 
-
+//에러 핸들링 구문 추가
 //req,res,query,params,get_json,callback
 exports.template_get = function(res,query,params,get_json,callback){
         connectionPool.getConnection(function (err, connection) {
             if (err) {
+
                 res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
             } else {
                 connection.query(query, params, function (err, rows, fields) {
@@ -52,8 +55,9 @@ exports.template_get = function(res,query,params,get_json,callback){
             }
         });
 };
+
 //req,res,query,params,callback){
-exports.template_post = function(res,query,params){
+exports.template_post = function(res,query,params,error_handle,callback){
     console.log('template_post');
         connectionPool.getConnection(function (err, connection) {
             if (err) {
@@ -68,6 +72,7 @@ exports.template_post = function(res,query,params){
                 }
                 else{
                     console.log('connection success');
+                    //if(callback) callback();
                     connection.commit();
                     connection.release();
                     console.log('connection released');
@@ -107,12 +112,34 @@ exports.template_transaction = function(){
 };
 
 
-// 패스워드 확인
-exports.create_password = function (){
-
+// 해쉬 패스워드 생성
+exports.create_password = function (password,operation){
+    async.waterfall([
+            function generateSalt(callback) {
+                var rounds = 10;
+                bcrypt.genSalt(rounds, function(err, salt) {
+                    console.log('bcrypt.genSalt ====> ', salt, '(', salt.toString().length,')');
+                    callback(null, salt);
+                });
+            },
+            function hashPassword(salt, callback) {
+                bcrypt.hash(password, salt, null, function(err, hashPass) {
+                    console.log('bcrypt.hash ====> ', hashPass, '(', hashPass.length,')');
+                    callback(null, hashPass);
+                });
+            }
+        ],
+        function(err, hashPass) {
+            if (err) {
+                console.log("error occured");
+                console.log(err.code);
+                console.log(err);
+                connection.release();
+                return res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
+            }
+            else{
+                console.log('password is',hashPass);
+                return hashPass;
+            }
+        });
 }
-
-
-/*
-
- */
