@@ -162,13 +162,16 @@ exports.getMessageList = function(req,res){
     );
 };
 
-
+//api : /users/:user_id/message-groups/:trade_id/unread/list
 exports.getUnreadMessgeList = function(req,res){
 
 
     console.log('hello hello');
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
-    var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    var user_id = req.session.passport.user;
+    var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+
+    console.log('user_id is : ',user_id);
+    console.log('trade id is :: ',trade_id);
 
     var get_query =
         "SELECT trade_id, message, m.create_date, from_user_id, nickname, image " +
@@ -181,6 +184,40 @@ exports.getUnreadMessgeList = function(req,res){
 
     // 테스트 케이스 trade_id =4, user_id = 5
 
+    connectionPool.getConnection(function(err,connection) {
+        template_transaction(
+            connection,
+            [{ query : get_query,params : [user_id]},
+             { query : update_query, params : [user_id]}],
+            [
+                function (callback) {
+                    connection.query(sql[0].query, sql[0].params, function (err, rows, info) {
+                        if (err) callback(err);
+                        if (rows.length == 0)
+                            return res.json(trans_json("읽지 않은 메시지가 없습니다", 1));
+                        else callback(null, user_id);
+                    });
+                },
+                function (callback) {
+                    connection.query(sql[1].query, sql[1].params, function (err, rows, info) {
+                        if (err) callback(err);
+                        callback(null);
+                    });
+                }
+            ], function(err,rows,msg){
+                if(err) {
+                    connection.release();
+                    res.json(trans_json(msg,0));
+                }
+                else {
+                    connection.realease();
+                    res.json(trans_json(msg,1));
+                }
+            }
+        );
+    });
+
+/*
     connectionPool.getConnection(function(err,connection) {
         template_transaction(
             req,
@@ -218,7 +255,7 @@ exports.getUnreadMessgeList = function(req,res){
 
                 }]
         );
-    });
+    });*/
 };
 
 exports.confirmMessage = function(req,res){

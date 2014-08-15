@@ -9,7 +9,8 @@ var nodemailer = require('nodemailer')
     ,template = require('../routes/template')
     , bcrypt = require('bcrypt-nodejs')
     , async = require('async')
-    ,tmplate_post = template.template_get
+    ,tmplate_post = template.template_post
+    ,template_item = template.template_item
     ,trans_json = require('../routes/json').trans_json;
 var formidable = require('formidable');
 

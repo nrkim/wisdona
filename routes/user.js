@@ -96,7 +96,7 @@ exports.getRequestPostList = function(req,res){
 
     //타입 체크
     if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
-    if (typeof user_id != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
+    if (typeof page    != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
     if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
 
     var query =

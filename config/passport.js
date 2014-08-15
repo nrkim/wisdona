@@ -53,16 +53,19 @@ module.exports = function(passport) {
         },
         function (req, email, password, done) {
 
+/*
+            process.nextTick(function(){
+
+            });
+*/
+
             process.nextTick(function () {
                 connectionPool.getConnection(function (err, connection) {
-                    if (err) {
-                        return done(err);
-                    }
+                    if (err) return done(err);
 
                     var selectSql = 'SELECT user_id, email, nickname  FROM user WHERE email = ? or nickname = ?';
                     connection.query(selectSql, [email, req.body.nickname], function (err, rows, fields) {
                         if (err) {
-                            console.log(err.code);
                             connection.release();
                             return done(err);
                         }
@@ -77,7 +80,6 @@ module.exports = function(passport) {
                                     return done(err);
                                 }
                                 else {
-                                    //connection object 넘겨 주는 게 맞는가??
                                     var user = {};
                                     user.email = email;
                                     user.password = hashPass;
@@ -86,20 +88,19 @@ module.exports = function(passport) {
                                         'like_total_cnt,sad_total_cnt,sleep_mode,create_date)' +
                                         'VALUES(?,?,?,0,0,0,0,now())';
 
-                                    template_user(
+                                    template_item(
                                         insertSql,
                                         [user.email, user.password, req.body.nickname],
                                         function (err, rows, info) {
-                                            console.log(info);
-                                            if (err) {
-                                                connection.release();
-                                                return done(err);
+                                            if (err) return done(err);
+                                            else {
+                                                user.user_id = rows.insertId;
+                                                return done(null, user);
                                             }
-                                            user.user_id = rows.insertId;
-                                            connection.release();
-                                            return done(null, user);
                                         }
                                     );
+
+
                                 }
                             });
                         }

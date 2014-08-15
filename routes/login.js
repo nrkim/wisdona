@@ -7,7 +7,7 @@ var trans_json = json.trans_json
     ,template = require('./template')
     ,template_get = template.template_get
     ,template_post = template.template_post
-    ,template_user = template.template_user;
+    ,template_item = template.template_item;
 var formidable = require('formidable');
 var create_password = template.create_password;
 var async = require('async');
@@ -30,13 +30,9 @@ exports.facebookLogout = function(req,res){
         },
         function(err, response, body) {
             if (err) {
-                console.log(err);
                 res.redirect('/profile');
             } else {
-                console.log("response.statusCode: ", response.statusCode);
-                console.log("body: ", body);
                 req.logout();
-                console.log("req.user: ", req.user);
                 res.json(trans_json('로그아웃 하였습니다.',0));
             }
 
@@ -87,8 +83,7 @@ exports.activationEmail = function(req,res){
 
 exports.updatePassword = function(req,res){
 
-    require('../routes/login').activationEmail(req,res);
-
+    console.log('update password!!!');
     var form = new formidable.IncomingForm();
 
     form.parse(req, function(err, fields) {
@@ -100,98 +95,53 @@ exports.updatePassword = function(req,res){
         var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.", 0));
         var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.", 0));
 
+        //타입검사
+        if (typeof user_id       != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
+        if (typeof old_password  != "string") res.json('현재 비밀번호 타입은 문자여야 합니다.',0);
+        if (typeof new_passoword != "string") res.json('새로운 비밀번호 타입은 숫자여야 합니다',0);
 
-        console.log(old_password);
-        console.log(new_password);
-
-        console.log('update console');
-        //underscore은
-        // async 사용코드로 바꾸기
-
-        //async.waterfall()
-
-/*        template_user(
-            req, res,
-            res, query, params,
-            function (err, rows, info) {
-                if (err) {
-                    res.json(trans_json(err.code + "에러입니다. ", 0));
-                }
-                else {
-                    if (!rows) {
-                        res.json(trans_json("존재하지 않는 사용자입니다.", 0));
-                    }
-                    bcrypt.compare(old_password, rows[0].password, function (err, result) {
-                        if (!result) {
-                            return res.json(trans_json('현재 비밀번호가 틀렸습니다. 다시입력해 주십시오', 0));
-                        }
-                        else {
-                            create_password(new_password,
-                                function (err, hashPass) {
-                                    if (err) {
-                                        connection.release();
-                                        logger.error(err);
-                                        res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
-                                    }
-                                    else {
-                                        var update_query = "update user set password = ? where user_id = ?"
-                                        template_post(
-                                            res,
-                                            update_query,
-                                            [hashPass, user_id]
-                                        );
-                                    }
-                                });
-                        }
-                    });
-                    connection.release();
-                }
-            }
-        );
-    }
-*/
-
-        connectionPool.getConnection(function(err, connection) {
-            if (err) {
-                res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
-            }
-
-            var query = "SELECT password FROM user WHERE user_id = ?"
-            connection.query(query,[user_id], function(err, rows, fields) {
-                if(err){
-                    connection.release();
-                    res.json(trans_json(err.code+" sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
-                }
-                if (!rows){
-                    res.json(trans_json("존재하지 않는 사용자입니다.",0));
-                }
-                bcrypt.compare(old_password,rows[0].password, function(err, result) {
-                    if (!result){
-                        return res.json(trans_json('현재 비밀번호가 틀렸습니다. 다시입력해 주십시오',0));
-                    }
-                    else{
-                        create_password(new_password,
-                        function(err,hashPass){
-                            if (err){
-                                connection.release();
-                                logger.error(err);
-                                res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
-                            }
-                            else{
-                                var update_query = "update user set password = ? where user_id = ?"
-                                template_post(
-                                    res,
-                                    update_query,
-                                    [hashPass, user_id]
-                                );
-                            }
+        async.waterfall([
+            function (callback) {
+                var query = "SELECT password FROM user WHERE user_id = ?";
+                template_item(
+                    query,
+                    [user_id],
+                    function (err, rows, msg) {
+                        if (err) callback(err);    //res.json(trans_json(msg,0));
+                        if (rows.length == 0) callback("존재하지 않는 사용자 입니다.");
+                        bcrypt.compare(old_password, rows[0].password, function (err, result) {
+                            callback(null, result);
                         });
                     }
-                });
-                connection.release();
-            });
+                )
+            },
+            function (result, callback) {
+                if (!result)
+                    callback('현재 비밀번호가 틀렸습니다. 다시입력해 주십시오');
+                else {
+                    create_password(new_password,
+                        function (err, hashPass) {
+                            if (err) callback('암호화된 비밀번호 생성에 실패하였습니다.');
+                            else callback(null, hashPass);
+                        }
+                    );
+                }
+            },
+            function (hashPass, callback) {
+                var update_query = "UPDATE user SET password = ? WHERE user_id = ?"
+                template_item(
+                    update_query,
+                    [hashPass, user_id],
+                    function (err, rows, msg) {
+                        if (err) callback(err);
+                        else callback();
+                    }
+                );
+            }
+        ], function (err) {
+            if (err) res.json(trans_json(err, 0));
+            else res.json(trans_json('success', 1));
         });
     });
-
 
 };

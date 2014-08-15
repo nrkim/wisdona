@@ -21,17 +21,13 @@ var _ = require('underscore')
     ,path = require('path')
     mime = require('mime');
 
-
 var formidable = require('formidable');
 
-var baseImageDir = __dirname + '/../images/';
 
-// 서버가 죽지 않기 위해 해야 할 일은 ?
-///users/:user_id/profile/show
+// api: /users/:user_id/profile/show
 exports.getUserInfo = function(req,res){
 
     var user_id = req.session.passport.user;
-
 
     //타입 체크
     if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
@@ -51,13 +47,6 @@ exports.getUserInfo = function(req,res){
             "GROUP BY u.user_id";
 
     // note : query중 null이 나온 경우 -> user_id가 아예없는 경우
-    // 테스트 케이스
-    // 2 : 요청자: 10 게시자: 4  post: 16
-    // 3 : 요청자: 15 게시자: 30 post: 17
-    // 4 : 요청자: 20 게시자: 6  post: 18
-    // 7 : 요청자: 30 게시자: 3  post: 15
-    // 8 : 요청자: 30 게시자: 7  post: 19
-    // 사용자 아이디 30은 8개의 않읽은 메시지 있음
 
     template_list(
         query,
@@ -65,33 +54,40 @@ exports.getUserInfo = function(req,res){
         user_info,
         function(err,result,msg){
             if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json('success',1,result[0]));
-            else res.json(trans_json(msg,0));   // 일치하는 결과가 없을 때는 에러
+            if(result) res.json(trans_json('success',1,result[0])); //반드시 하나의 결과만 나와야 함
+            else res.json(trans_json(msg,0));                       // 일치하는 결과가 없을 때는 에러 처리
         }
     );
 };
 
+// api :
 exports.destroyUserAccount = function(req,res){
+
     //계정 삭제시 휴면 계정
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+
+    // 타입 검사
+    if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
+
+    //쿼리
     var query = 'UPDATE user SET sleep_mode = 1 WHERE user_id = ?';
 
-
+    // 휴면 계정 설정 후 로그아웃
     template_item(
         query,
         [user_id],
         function(err,rows,msg){
             if (err) res.json(trans_json(msg,0));
-            else logout(req,res);
+            else logout(req,res);       // 사용자 계정 휴면 전환 후 로그아웃
         }
     );
 };
 
-//페이스북 계정 정보
+// api :
 exports.getAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
-
+    // 페이스북 계정 정보
     // date time 안되는 이유 찾아보기
     var query =
         "SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings, " +
@@ -106,6 +102,7 @@ exports.getAccountSettings = function(req,res){
         function(err,result,msg){
             if(err) res.json(trans_json(msg,0));
             if(result) {
+                // push_settings 배열 만들기
                 result[0].push_settings =
                     _.map(result[0].push_settings.split(','),
                         function(str){ return Number(str); });
@@ -117,7 +114,7 @@ exports.getAccountSettings = function(req,res){
 
 };
 
-
+// api :
 exports.uploadImage = function (req,res,next){
 
     var form = new formidable.IncomingForm();
@@ -128,6 +125,7 @@ exports.uploadImage = function (req,res,next){
         req.body=fields;
 
         if (file.size) {
+            var baseImageDir = __dirname + '/../images/';
             var destPath = path.normalize(baseImageDir + path.basename(file.path));
             fstools.move(file.path, destPath, function(err) {
                 if (err) {
@@ -151,31 +149,31 @@ exports.uploadImage = function (req,res,next){
     });
 };
 
-// /users/:user_id/account-settings/update
+// api : /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
-        var user_id = req.params.user_id;
-        //var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-        var updated = {};
+    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-        updated.nickname = req.body.nick_name           || null;
-        updated.image = req.uploadFile                  || null;
-        updated.self_intro = req.body.self_intro        || null;
-        updated.name = req.body.name                    || null;
-        updated.phone = req.body.phone                  || null;
-        updated.address = req.body.address              || null;
-        updated.push_settings = req.body.push_settings  || null;
+    var updated = {};
 
-        //console.log(updated);
-        query =
-            'UPDATE user SET ? WHERE user_id = ? ';
+    updated.nickname = req.body.nick_name           || null;
+    updated.image = req.uploadFile                  || null;
+    updated.self_intro = req.body.self_intro        || null;
+    updated.name = req.body.name                    || null;
+    updated.phone = req.body.phone                  || null;
+    updated.address = req.body.address              || null;
+    updated.push_settings = req.body.push_settings  || null;
 
-        template_item(
-            query,
-            [updated,user_id],
-            function(err,rows,msg){
-                if (err) res.json(trans_json(msg,0));
-                else res.json(trans_json(msg,1));
-            }
-         );
+    //console.log(updated);
+    query =
+        'UPDATE user SET ? WHERE user_id = ? ';
+
+    template_item(
+        query,
+        [updated,user_id],
+        function(err,rows,msg){
+            if (err) res.json(trans_json(msg,0));
+            else res.json(trans_json(msg,1));
+        }
+    );
 };
