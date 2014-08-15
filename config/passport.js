@@ -68,7 +68,7 @@ module.exports = function(passport) {
                         }
                         if (rows.length) {
                             connection.release();
-                            return done(null, false,duplication_check(rows, email, req.body.nickname));
+                            return done(null, false,duplication_check(rows,req.body.nickname, email));
                         }
                         else {
                             create_password(password, function (err, hashPass) {

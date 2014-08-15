@@ -147,13 +147,13 @@ exports.updateAccountSettings = function(req,res){
 
         var updated = {};
 
-        updated.nickname = req.body.nick_name    || null;
-        updated.image = req.uploadFile           || null;
-        updated.self_intro = req.body.self_intro || null;
-        updated.name = req.body.name             || null;
-        updated.phone = req.body.phone           || null;
-        updated.address = req.body.address       || null;
-        updated.push_settings = req.body.push_settings || null;
+        updated.nickname = req.body.nick_name           || null;
+        updated.image = req.uploadFile                  || null;
+        updated.self_intro = req.body.self_intro        || null;
+        updated.name = req.body.name                    || null;
+        updated.phone = req.body.phone                  || null;
+        updated.address = req.body.address              || null;
+        updated.push_settings = req.body.push_settings  || null;
 
         //console.log(updated);
         query =

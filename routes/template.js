@@ -13,17 +13,23 @@ var async = require('async');
 
 //에러 핸들링 구문 추가
 //req,res,query,params,get_json,callback
-exports.template_get = function(res,query,params,get_json,callback){
+exports.template_get = function(res,query,params,get_json){
+        console.log('template get!!!');
+        console.log(query);
+    console.log(params);
         connectionPool.getConnection(function (err, connection) {
             if (err) {
-
+                console.log('template.get err..');
                 res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
             } else {
                 connection.query(query, params, function (err, rows, fields) {
                     if (err) {
+                        console.log(err.message);
                         connection.release();
-                        res.json({ error: err });      // 에러 처리
+                        res.json(trans_json("",0));      // 에러 처리
                     }
+
+                    console.log('log!!');
 
                     //데이터 결과가 없을 떄 에러인 경우도 있고 에러가 아닌 경우도 있음 / 두가지경우가 있기 때문에 flag parameter 필요
                     //for문을 forEach함수로 바꿈
@@ -31,7 +37,7 @@ exports.template_get = function(res,query,params,get_json,callback){
                     if (rows.length == 0) {
                         console.log('length is 0');
                         connection.release();
-                        res.json({ error: "No data found!!!" });      // 에러 처리
+                        res.json(trans_json("No data found!!!",0));      // 에러 처리
                     }
                     else {
                         async.map(rows,
@@ -164,21 +170,31 @@ exports.create_password = function (password,result){
 }
 
 
-exports.duplication_check = function (rows,email,nickname){
+exports.duplication_check = function (rows,nickname,email){
 
-    var dup_nickname =_.some(rows,function(item){return item.nickname === nickname;});
-    var dup_email    = _.some(rows,function(item){return item.email === email;});
+    if (email) {
+        var dup_nickname = _.some(rows, function (item) {return item.nickname === nickname;});
+        var dup_email = _.some(rows, function (item) {return item.email === email;});
 
-    if (dup_nickname){
-        if (dup_email){
-            return {'signupMessage' : '닉네임과 이메일이 중복됩니다.'};
+        if (dup_nickname) {
+            if (dup_email) {
+                return {'signupMessage': '닉네임과 이메일이 중복됩니다.'};
+            }
+            else {
+                return {'signupMessage': '닉네임이 중복됩니다.'};
+            }
+        }
+        else {
+            return {'signupMessage': '이메일이 중복됩니다.'};
+        }
+    } else{
+        var dup_nickname = _.some(rows, function (item) {return item.nickname === nickname;});
+        if(dup_nickname){
+            return {'signupMessage': '닉네임이 중복됩니다.'};
         }
         else{
-            return {'signupMessage' : '닉네임이 중복됩니다.'};
+            return {'signupMessage': 'success'}
         }
-    }
-    else {
-        return {'signupMessage' : '이메일이 중복됩니다.'};
     }
 }
 //return res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));

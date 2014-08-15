@@ -50,22 +50,27 @@ exports.getUserPostList = function(req,res){
 exports.getReviewList = function(req,res){
 
     //parameter로 받은 사용자 아이디
-    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    var user_id = req.session.passport.user_id;
+    //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    console.log(req.params.user_id);
 
     // query string 처리
     var page = JSON.parse(req.query.page) || 0;
     var count = JSON.parse(req.query.count) || 10;
 
+    console.log('query string 처리,', page,count);
+
     // 페이징 관련 계산
     var start = page*count;
-    var end = start+count;
     var reviews = [];
 
+    console.log('페이지 카운트')
     //타입 체크
     if (typeof user_id != "number" || typeof page != "number" || typeof count != "number"){
         res.json(trans_json("타입을 확인해 주세요",0));
     }
 
+    console.log('카운트 처리 끝남')
     // 쿼리
     var query =
         "SELECT u.user_id, nickname, image, title, comments, book_image_path, p.post_id " +
@@ -76,13 +81,13 @@ exports.getReviewList = function(req,res){
         "JOIN review r ON r.trade_id = t.trade_id " +
         "WHERE u.user_id = ? LIMIT ?, ? ";
 
-    template_get({
-        req : req,
-        res : res,
-        query : query,
-        params : [user_id,start,end],
-        get_json : review
-    });
+    template_get(
+        res,
+        query,
+        [user_id,start,count],
+        review
+    );
+    
 };
 
 exports.getRequestPostList = function(req,res){

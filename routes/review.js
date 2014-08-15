@@ -21,7 +21,7 @@ exports.createUserReview = function(req,res){
 
     form.parse(req, function(err, fields) {
         req.body = fields;
-        var user_id  = JSON.parse(req.params.user_id)  || trans_json("아이디를 입력하지 않았습니다.",0);
+        var user_id  = req.session.passport.user_id  || trans_json("아이디를 입력하지 않았습니다.",0);
 
         var trade_id = req.body.trade_id || trans_json("아이디를 입력하지 않았습니다.",0);
         var comments = req.body.comment  || trans_json("아이디를 입력하지 않았습니다.",0);
