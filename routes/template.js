@@ -42,15 +42,28 @@ exports.template_get = function(res,query,params,get_json){
                     else {
                         async.map(rows,
                             function(item, callback) {
-                                callback(null, get_json(item));
+                                console.log('item', item);
+                                callback(null, item);
                             },
                             function(err, results) {
                                 if (err) {
                                     connection.release();
                                     res.json({ error : err });
                                 } else {
+                                    var item = results[0];
+
                                     connection.release();
-                                    res.json(trans_json("success", 1, results));
+                                    res.json(trans_json("success", 1, get_json(item)));
+
+
+                                    ////////////////////////////////////////////////
+                                    // 수정자 : 오남
+                                    // 수정 내용 : async.map에서 callback(null, get_json(item));으로 넘길 경우
+                                    // [item] <- 처럼 배열 형태로 넘어가서 es.json(trans_json("success", 1, results);를
+                                    // 출력 할 경우 json -> result : [{}]; 왼쪽처럼 배열로 묶여서 처리됨
+                                    // 그래서 results로 넘어온값의 0번째 값으로 접근하도록 수정
+                                    // ps. 일단 상협이 작업해야되서 수정해놨으니깐 보고 변경 해~~
+                                    ////////////////////////////////////////////////
                                 }
                             }
                         );
