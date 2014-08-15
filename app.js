@@ -16,7 +16,31 @@ var options = {
     pool: connectionPool
 };
 
+function handleDisconnect() {
+    connectionPool = mysql.createPool(dbConfig); // Recreate the connection, since
+                                                    // the old one cannot be reused.
+
+    connectionPool.getConnection(function (err) {      // The server is either down
+        if (err) {                                     // or restarting (takes a while sometimes).
+            console.log('error when connecting to db:', err);
+            setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
+        }                                     // to avoid a hot loop, and to allow our node script to
+    });                                     // process asynchronous requests in the meantime.
+    // If you're also serving http, display a 503 error.
+    connectionPool.on('error', function (err) {
+        console.log('db error', err);
+        if (err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
+            handleDisconnect();                         // lost due to either server restart, or a
+        } else {                                      // connnection idle timeout (the wait_timeout
+            throw err;                                 // server variable configures this)
+        }
+    });
+}
+
+handleDisconnect();
+
 require('./config/passport')(passport);
+require('./config/facebook')(passport);
 
 var app = express();
 
@@ -57,12 +81,7 @@ if ('development' === app.get('env')) {
 //require('./routes')(app, passport);
 
 require('./routes')(app, passport);
-require('./config/facebook')(passport);
 
 http.createServer(app).listen(app.get('port'), function(){
     console.log('Express server listening on port ' + app.get('port'));
 });
-
-
-// connection pool 만들기
-// 다쓰면 반납 시키기

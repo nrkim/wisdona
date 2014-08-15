@@ -5,7 +5,7 @@ var json = require("./json");
 var trans_json = json.trans_json;
 var review = json.review;
 var post_list = json.post_list
-    ,template = require('./templete')
+    ,template = require('./template')
     ,template_get = template.template_get
     ,template_post = template.template_post;
 

@@ -9,7 +9,7 @@ var async = require('async');
 var trans_json = json.trans_json;
 var user_info = json.user_info;
 var user_detail = json.user_detail
-    ,template = require('./templete')
+    ,template = require('./template')
     ,template_get = template.template_get
     ,template_post = template.template_post
     ,logout = require('./login').logout;
@@ -118,7 +118,7 @@ exports.uploadImage = function (req,res,next){
 
         if (file.size) {
             var destPath = path.normalize(baseImageDir + path.basename(file.path));
-            fstools.move(f.path, destPath, function(err) {
+            fstools.move(file.path, destPath, function(err) {
                 if (err) {
                     res.json(trans_json(err.message,0));
                 } else {
