@@ -41,7 +41,7 @@ module.exports = function(app,passport) {
             }
         })(req, res, next);
     });
-    
+
     app.post('/facebook-login',
         express.bodyParser(),
         passport.authenticate('facebook-token',{ scope: ['email'] }),
