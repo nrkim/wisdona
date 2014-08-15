@@ -54,6 +54,7 @@ exports.template_get = function(res,query,params,get_json,callback){
                 });
             }
         });
+
 };
 
 //req,res,query,params,callback){
@@ -80,6 +81,29 @@ exports.template_post = function(res,query,params,error_handle,callback){
                 }
             });
         });
+};
+
+exports.template_user = function(query,params,result){
+    console.log('template_post');
+    connectionPool.getConnection(function (err, connection) {
+        if (err) {
+            result(err);
+        }
+        connection.query(query, params, function (err, rows, info) {
+            if (err) {
+                connection.release();
+                result(err);
+            }
+            else{
+                console.log('query is : ',query);
+                console.log('param is: ',params);
+                console.log('info is!!',info);
+                connection.commit();
+                connection.release();
+                result(null,rows,info);
+            }
+        });
+    });
 };
 
 //req,res,user_id,get_query,update_query){
@@ -113,7 +137,7 @@ exports.template_transaction = function(){
 
 
 // 해쉬 패스워드 생성
-exports.create_password = function (password,operation){
+exports.create_password = function (password,result){
     async.waterfall([
             function generateSalt(callback) {
                 var rounds = 10;
@@ -131,15 +155,30 @@ exports.create_password = function (password,operation){
         ],
         function(err, hashPass) {
             if (err) {
-                console.log("error occured");
-                console.log(err.code);
-                console.log(err);
-                connection.release();
-                return res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
+                result(err);
             }
             else{
-                console.log('password is',hashPass);
-                return hashPass;
+                result(null,hashPass);
             }
         });
 }
+
+
+exports.duplication_check = function (rows,email,nickname){
+
+    var dup_nickname =_.some(rows,function(item){return item.nickname === nickname;});
+    var dup_email    = _.some(rows,function(item){return item.email === email;});
+
+    if (dup_nickname){
+        if (dup_email){
+            return {'signupMessage' : '닉네임과 이메일이 중복됩니다.'};
+        }
+        else{
+            return {'signupMessage' : '닉네임이 중복됩니다.'};
+        }
+    }
+    else {
+        return {'signupMessage' : '이메일이 중복됩니다.'};
+    }
+}
+//return res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));

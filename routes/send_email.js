@@ -4,7 +4,7 @@
 var nodemailer = require('nodemailer')
 	,smtpPool = require('nodemailer-smtp-pool')
 	,cuid = require('cuid')
-	,authConfig = require('../config/smtp')
+	,authConfig = require('../config/smtp_auth')
     ,logger = require('../config/logger')
     ,template = require('../routes/template')
     , bcrypt = require('bcrypt-nodejs')

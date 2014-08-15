@@ -3,7 +3,7 @@
  */
 var FacebookTokenStrategy = require('passport-facebook-token').Strategy
     , async = require('async')
-    , configAuth = require('./auth');
+    , configAuth = require('./facebook_auth');
 
 module.exports = function(passport) {
 
@@ -102,5 +102,4 @@ module.exports = function(passport) {
                 });
             });
         }));
-
 };
