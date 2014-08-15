@@ -6,7 +6,7 @@ var LocalStrategy = require('passport-local').Strategy
     , _ = require('underscore')
     , async = require('async')
     ,template = require('../routes/template')
-    ,template_user = template.template_user
+    ,template_item = template.template_item
     ,create_password = template.create_password
     ,duplication_check = template.duplication_check;
 
@@ -122,10 +122,10 @@ module.exports = function(passport) {
                         return done(err);
                     }
                     var selectSql = 'SELECT user_id, email, password FROM user WHERE email = ?';
-                    template_user(
+                    template_item(
                         selectSql,
                         [email],
-                        function(err,rows,info){
+                        function(err,rows,msg){
                             if (err) {
                                 console.log("log2");
                                 connection.release();

@@ -9,24 +9,35 @@ var json = require('./json')
     ,policy = json.policy
     ,book_state = json.book_state
     ,genre_list = json.genre_list
-    ,tempate_get = template.template_get
-    ,template_post = template.template_post;
+    ,template_item = template.template_item
+    ,template_list = template.template_list;
 var formidable = require('formidable');
 
 exports.getGenreList = function(req,res) {
-    tempate_get(
-        res,
+
+    template_item(
         "SELECT genre_id, genre FROM genre",
-        genre_list
+        null,
+        genre_list,
+        function(err,rows,msg){
+            if(err) res.json(trans_json(msg,0));
+            else res.json(trans_json(msg,1));
+        }
     );
 };
 
 
 exports.getBookConditionList = function(req,res) {
-    tempate_get(
-        res,
+
+    template_list(
         "SELECT * FROM book_condition",
-        book_state
+        null,
+        book_state,
+        function(err,result,msg){
+            if(err) res.json(trans_json(msg,0));
+            if(result) res.json(trans_json(msg,1,result));
+            else res.json(trans_json(msg,1));
+        }
     );
 };
 
@@ -39,42 +50,65 @@ exports.getQnaList = function(req,res){
         var user_id = req.params.user_id || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.", 0));
         var question = req.body.question || res.json(trans_json("질문을 입력하지 않았습니다.", 0));
 
-        template_post(
-            res,
+        template_item(
             "INSERT INTO qna(question,create_date,user_id) VALUES(?,NOW(),?) ",
-            [question, user_id]
+            [question, user_id],
+            function(err,rows,msg){
+                if(err) res.json(trans_json(msg,0));
+                else res.json(trans_json(msg,1));
+            }
         );
     });
 };
 
 exports.getServiceTerms = function(req,res){
-    tempate_get(
-        res,
+    template_list(
         "SELECT content FROM service_board WHERE service_board_id =1",
-        policy
+        null,
+        policy,
+        function(err,result,msg){
+            if(err) res.json(trans_json(msg,0));
+            if(result) res.json(trans_json(msg,1,result));
+            else res.json(trans_json(msg,1));
+        }
     );
 };
 
 exports.getPrivacy = function(req,res) {
-    tempate_get(
-        res,
+    template_list(
         "SELECT content FROM service_board WHERE service_board_id =2",
-        policy
+        null,
+        policy,
+        function(err,result,msg){
+            if(err) res.json(trans_json(msg,0));
+            if(result) res.json(trans_json(msg,1,result));
+            else res.json(trans_json(msg,1));
+        }
     );
-}
+};
 
 exports.getNewsList = function(req,res){
-    tempate_get(
-        res,
+    template_list(
         "SELECT title, content FROM news",
-        news_list
+        null,
+        news_list,
+        function(err,result,msg){
+            if(err) res.json(trans_json(msg,0));
+            if(result) res.json(trans_json(msg,1,result));
+            else res.json(trans_json(msg,1));
+        }
     );
 };
 
 exports.getFaqList = function(req,res){
-    tempate_get(
-        res,
+    template_list(
         "SELECT question, answer FROM faq",
-        faq_list
+        null,
+        faq_list,
+        function(err,result,msg){
+            if(err) res.json(trans_json(msg,0));
+            if(result) res.json(trans_json(msg,1,result));
+            else res.json(trans_json(msg,1));
+        }
     );
 };

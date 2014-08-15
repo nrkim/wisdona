@@ -85,7 +85,8 @@ exports.user_detail = function(item){
         name              : item.name,
         phone             : item.phone,
         address           : item.address,
-        push_settings     : item.push_settings
+        push_settings     : item.push_settings,
+        sanction_date     : item.sanction_date
     };
 };
 

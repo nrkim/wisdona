@@ -14,67 +14,83 @@ var async = require('async');
 //에러 핸들링 구문 추가
 //req,res,query,params,get_json,callback
 exports.template_get = function(res,query,params,get_json){
-        console.log('template get!!!');
-        console.log(query);
-    console.log(params);
-        connectionPool.getConnection(function (err, connection) {
-            if (err) {
-                console.log('template.get err..');
-                res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
-            } else {
-                connection.query(query, params, function (err, rows, fields) {
-                    if (err) {
-                        console.log(err.message);
-                        connection.release();
-                        res.json(trans_json("",0));      // 에러 처리
-                    }
+    connectionPool.getConnection(function (err, connection) {
+        if (err) {
+            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
+        } else {
+            connection.query(query, params, function (err, rows, fields) {
+                if (err) {
+                    console.log(err.message);
+                    connection.release();
+                    res.json(trans_json("",0));      // 에러 처리
+                }
 
-                    console.log('log!!');
+                console.log('log!!');
 
-                    //데이터 결과가 없을 떄 에러인 경우도 있고 에러가 아닌 경우도 있음 / 두가지경우가 있기 때문에 flag parameter 필요
-                    //for문을 forEach함수로 바꿈
-
-                    if (rows.length == 0) {
-                        console.log('length is 0');
-                        connection.release();
-                        res.json(trans_json("No data found!!!",0));      // 에러 처리
-                    }
-                    else {
-                        async.map(rows,
-                            function(item, callback) {
-                                console.log('item', item);
-                                callback(null, item);
-                            },
-                            function(err, results) {
-                                if (err) {
-                                    connection.release();
-                                    res.json({ error : err });
-                                } else {
-                                    var item = results[0];
-
-                                    connection.release();
-                                    res.json(trans_json("success", 1, get_json(item)));
-
-
-                                    ////////////////////////////////////////////////
-                                    // 수정자 : 오남
-                                    // 수정 내용 : async.map에서 callback(null, get_json(item));으로 넘길 경우
-                                    // [item] <- 처럼 배열 형태로 넘어가서 es.json(trans_json("success", 1, results);를
-                                    // 출력 할 경우 json -> result : [{}]; 왼쪽처럼 배열로 묶여서 처리됨
-                                    // 그래서 results로 넘어온값의 0번째 값으로 접근하도록 수정
-                                    // ps. 일단 상협이 작업해야되서 수정해놨으니깐 보고 변경 해~~
-                                    ////////////////////////////////////////////////
-                                }
+                if (rows.length == 0) {
+                    console.log('length is 0');
+                    connection.release();
+                    res.json(trans_json("No data found!!!",0));      // 에러 처리
+                }
+                else {
+                    async.map(rows,
+                        function(item, callback) {
+                            callback(null, get_json(item));
+                        },
+                        function(err, results) {
+                            if (err) {
+                                connection.release();
+                                res.json({ error : err });
+                            } else {
+                                connection.release();
+                                res.json(trans_json("success", 1, results));
                             }
-                        );
-                    }
-
-
-                });
-            }
-        });
-
+                        }
+                    );
+                }
+            });
+        }
+    });
 };
+
+
+exports.template_list = function(query,params,get_json,verify){
+    connectionPool.getConnection(function (err, connection) {
+        if (err) {
+            verify(err,false,"데이터 베이스 연결 오류 입니다.");
+        } else {
+            connection.query(query, params, function (err, rows) {
+                if (err) {
+                    connection.release();
+                    verify(err,false,'sql 쿼리 오류입니다.');
+                }
+
+                console.log('rows is ',rows);
+                if (rows.length == 0) {
+                    connection.release();
+                    verify(null,false,"일치하는 결과가 없습니다.");
+                } else {
+                    async.map(rows,
+                        function(item, callback) {
+                            callback(null, get_json(item));
+                        },
+                        function(err, results) {
+                            console.log('result is ', results);
+                            if (err) {
+                                connection.release();
+                                verify(err,false, "리스트를 가져오지 못했습니다");
+                            } else {
+                                connection.release();
+                                verify(null,results,'success');
+                            }
+                        }
+                    );
+                }
+            });
+        }
+    });
+};
+
 
 //req,res,query,params,callback){
 exports.template_post = function(res,query,params,error_handle,callback){
@@ -102,24 +118,21 @@ exports.template_post = function(res,query,params,error_handle,callback){
         });
 };
 
-exports.template_user = function(query,params,result){
+exports.template_item = function(query,params,verify){
     console.log('template_post');
     connectionPool.getConnection(function (err, connection) {
         if (err) {
-            result(err);
+            verify(err,false,'데이터베이스 연결오류 입니다.');
         }
-        connection.query(query, params, function (err, rows, info) {
+        connection.query(query, params, function (err, rows) {
             if (err) {
                 connection.release();
-                result(err);
+                verify(err,false,'sql쿼리 오류입니다.');
             }
             else{
-                console.log('query is : ',query);
-                console.log('param is: ',params);
-                console.log('info is!!',info);
                 connection.commit();
                 connection.release();
-                result(null,rows,info);
+                verify(null,rows,'success');
             }
         });
     });

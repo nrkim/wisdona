@@ -2,22 +2,23 @@
  * Created by nrkim on 2014. 7. 29..
  */
 
-//json 객체 생성관련 함수 불러오기
+//json 객체 생성관련 함수
+var json = require('./json')
+    ,trans_json = json.trans_json
+    ,user_info = json.user_info
+    ,user_detail = json.user_detail
 
-var json = require('./json');
-var async = require('async');
-var trans_json = json.trans_json;
-var user_info = json.user_info;
-var user_detail = json.user_detail
-    ,template = require('./template')
-    ,template_get = template.template_get
-    ,template_post = template.template_post
+//db 커넥션 템플릿
+var template = require('./template')
+    ,template_item = template.template_item
+    ,template_list = template.template_list
     ,logout = require('./login').logout;
-var _ = require('underscore'),
-    async = require('async'),
-    fstools = require('fs-tools'),
-    fs = require('fs'),
-    path = require('path'),
+
+// 이미지 업로드 관련
+var _ = require('underscore')
+    ,fstools = require('fs-tools')
+    ,fs = require('fs')
+    ,path = require('path')
     mime = require('mime');
 
 
@@ -29,23 +30,11 @@ var baseImageDir = __dirname + '/../images/';
 ///users/:user_id/profile/show
 exports.getUserInfo = function(req,res){
 
-    //1. req.session.passport.user에서 session이 없으면 session.passport에서 서버가 죽음 isAuthenticate를 사용할것
-    console.log('get user info is !!');
+    var user_id = req.session.passport.user;
 
-    //////////////////////// 오남 수정 ///////////////////////////
-    //
-    //if(!req.isAuthenticated())
-    //    res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
-    var user_id = req.params.user_id;//req.session.passport.user;
-
-    // ps. 유저 정보 보기는 세션 필요 없고 params에 user_id 가져와서 사용해야 되는데 세션 정보 요청해서 에러 나서 수정!
-    //////////////////////// 오남 수정 ///////////////////////////
-    console.log(user_id);
-
-    //var user_id = req.params.user_id || res.json(trans_json("실패했습니다",0));
 
     //타입 체크
-    if(typeof(user_id) != "number") trans_json('사용자 아이디가 숫자 타입이 아닙니다.',0);
+    if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
 
 
     // 유저 정보를 얻는 쿼리
@@ -61,8 +50,7 @@ exports.getUserInfo = function(req,res){
             "WHERE u.user_id = ? " +
             "GROUP BY u.user_id";
 
-    // query중 null이 나온 경우 -> user_id가 아예없는 경우
-
+    // note : query중 null이 나온 경우 -> user_id가 아예없는 경우
     // 테스트 케이스
     // 2 : 요청자: 10 게시자: 4  post: 16
     // 3 : 요청자: 15 게시자: 30 post: 17
@@ -71,11 +59,15 @@ exports.getUserInfo = function(req,res){
     // 8 : 요청자: 30 게시자: 7  post: 19
     // 사용자 아이디 30은 8개의 않읽은 메시지 있음
 
-    template_get(
-        res,
+    template_list(
         query,
         [user_id],
-        user_info
+        user_info,
+        function(err,result,msg){
+            if(err) res.json(trans_json(msg,0));
+            if(result) res.json(trans_json('success',1,result[0]));
+            else res.json(trans_json(msg,0));   // 일치하는 결과가 없을 때는 에러
+        }
     );
 };
 
@@ -84,29 +76,43 @@ exports.destroyUserAccount = function(req,res){
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
     var query = 'UPDATE user SET sleep_mode = 1 WHERE user_id = ?';
 
-    template_post(
-        res,
+
+    template_item(
         query,
         [user_id],
-        logout
+        function(err,rows,msg){
+            if (err) res.json(trans_json(msg,0));
+            else logout(req,res);
+        }
     );
-
 };
 
 //페이스북 계정 정보
 exports.getAccountSettings = function(req,res){
+
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
+    // date time 안되는 이유 찾아보기
     var query =
-        "SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings " +
+        "SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings, " +
+        "DATE_FORMAT(convert_tz(sanction_date , \"UTC\", \"Asia/Seoul\"), \"%Y-%m-%d %H:%i:%s\" ) " +
         "FROM (SELECT * FROM user WHERE sleep_mode = 0) u " +
         "WHERE user_id = ?";
 
-    template_get(
-        res,
+    template_list(
         query,
         [user_id],
-        user_detail
+        user_detail,
+        function(err,result,msg){
+            if(err) res.json(trans_json(msg,0));
+            if(result) {
+                result[0].push_settings =
+                    _.map(result[0].push_settings.split(','),
+                        function(str){ return Number(str); });
+                res.json(trans_json('success', 1, result[0]));
+            }
+            else res.json(trans_json(msg,0));   // 일치하는 결과가 없을 때는 에러
+        }
     );
 
 };
@@ -164,9 +170,12 @@ exports.updateAccountSettings = function(req,res){
         query =
             'UPDATE user SET ? WHERE user_id = ? ';
 
-        template_post(
-            res,
+        template_item(
             query,
-            [updated,user_id]
+            [updated,user_id],
+            function(err,rows,msg){
+                if (err) res.json(trans_json(msg,0));
+                else res.json(trans_json(msg,1));
+            }
          );
 };

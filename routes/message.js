@@ -9,18 +9,12 @@ var trans_json = json.trans_json;
 var message_list = json.message_list;
 var message_window = json.message_window
     ,template = require('./template')
-    ,template_get = template.template_get
-    ,template_post = template.template_post
+    ,template_item = template.template_item
+    ,template_list = template.template_list
     ,template_transaction = template.template_transaction
     ,unread_msgs=json.unread_msgs
     ,unread_msg_lst= json.unread_msg_lst;
 var formidable = require('formidable');
-
-// db 셋팅
-var dbConfig = require('../config/database');
-var mysql = require('mysql');
-
-//async 셋팅 할 것인가 안 할 것인가??
 
 
 exports.getMessageGroupList = function(req,res){
@@ -34,8 +28,6 @@ exports.getMessageGroupList = function(req,res){
 
     // 페이징 관련 계산
     var start = page*count;
-    var end = start+count;
-
     //타입 체크
     if (typeof user_id != "number" || typeof page != "number" || typeof count != "number"){
         res.json(trans_json("타입을 확인해 주세요",0));
@@ -55,11 +47,15 @@ exports.getMessageGroupList = function(req,res){
             "GROUP BY t.trade_id LIMIT ?, ? ";
 
     //sample 예제 to_user_id =5, 1, 10
-    template_get(
-        res,
+    template_list(
         query,
-        [user_id,start,end],
-        message_list
+        [user_id,start,count],
+        message_list,
+        function(err,result,msg){
+            if(err) res.json(trans_json(msg,0));
+            if(result) res.json(trans_json(msg,1,result));
+            else res.json(trans_json(msg,1));
+        }
     );
 
 };
@@ -78,10 +74,13 @@ exports.destroyMessageGroup = function(req,res){
             "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
             "WHERE trade_id = ?";
 
-        template_post(
-            res,
+        template_item(
             query,
-            [user_id,user_id,trade_id]
+            [user_id,user_id,trade_id],
+            function(err,rows,msg){
+                if(err) res.json(trans_json(msg,0));
+                else res.json(trans_json(msg,1));
+            }
         );
     });
 };
@@ -90,20 +89,18 @@ exports.destroyMessageGroup = function(req,res){
 exports.createMessage = function(req,res){
 
 
-    //var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
     var form = new formidable.IncomingForm();
 
     form.parse(req, function(err, fields) {
         req.body = fields;
-        var user_id = JSON.parse(req.params.user_id)      || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
+        var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
         var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
         var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
 
-
-        if (typeof(user_id) != "number" || typeof(trade_id) != "number" ||
-            typeof(message) != "string" ) {
-            res.json(trans_json("올바른 타입을 사용해 주세요.",0));
-        }
+        //타입 검사
+        if (typeof user_id  != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
+        if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
+        if (typeof trade_id != "number") res.json('트레이드 아이디 타입은 숫자여야 합니다',0);
 
         var query =
             "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
@@ -112,11 +109,15 @@ exports.createMessage = function(req,res){
             "JOIN post p ON t.post_id = p.post_id " +
             "WHERE t.trade_id = ? ";
 
-        template_post(
-            res,
+        template_item(
             query,
-            [user_id,user_id,message,trade_id]
+            [user_id,user_id,message,trade_id],
+            function(err,rows,msg){
+                if(err) res.json(trans_json(msg,0));
+                else res.json(trans_json(msg,1));
+            }
         );
+
     });
 
 };
@@ -126,7 +127,7 @@ exports.getMessageList = function(req,res){
 
     console.log("??");
     //parameter로 받은 사용자 아이디
-    var user_id = JSON.parse(req.params.user_id)   || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
+    var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     // query string 처리
@@ -135,13 +136,11 @@ exports.getMessageList = function(req,res){
 
     // 페이징 관련 계산
     var start = page*count;
-    var end = start+count;
-    var messages = [];
 
     //타입 체크
-    if (typeof user_id != "number" || typeof page != "number" || typeof count != "number"){
-        res.json(trans_json("타입을 확인해 주세요",0));
-    }
+    if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
+    if (typeof user_id != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
+    if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
 
     //쿼리문
     var query =
@@ -150,11 +149,16 @@ exports.getMessageList = function(req,res){
         "JOIN user u ON m.from_user_id = u.user_id WHERE t.trade_id = ? LIMIT ?, ? ";
     //sample 예제 trade_id =3, 0, 10
 
-    template_get(
-        res,
+
+    template_list(
         query,
-        [trade_id,start,end],
-        message_window
+        [trade_id,start,count],
+        message_window,
+        function(err,result,msg){
+            if(err) res.json(trans_json(msg,0));
+            if(result) res.json(trans_json(msg,1,result));
+            else res.json(trans_json(msg,1));
+        }
     );
 };
 
@@ -219,17 +223,19 @@ exports.getUnreadMessgeList = function(req,res){
 
 exports.confirmMessage = function(req,res){
 
-    var user_id = JSON.parse(req.params.user_id)   || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
+    var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     var query = "UPDATE message m " +
         "SET m.is_read = true " +
         "WHERE m.trade_id = ? AND to_user_id = ? ";
 
-
-    template_post(
-        res,
+    template_item(
         query,
-        [trade_id,user_id]
+        [trade_id,user_id],
+        function(err,rows,msg){
+            if(err) res.json(trans_json(msg,0));
+            else res.json(trans_json(msg,1));
+        }
     );
 };
