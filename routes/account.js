@@ -31,10 +31,15 @@ exports.getUserInfo = function(req,res){
 
     //1. req.session.passport.user에서 session이 없으면 session.passport에서 서버가 죽음 isAuthenticate를 사용할것
     console.log('get user info is !!');
-    if(!req.isAuthenticated())
-        res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
-    var user_id = req.session.passport.user;
 
+    //////////////////////// 오남 수정 ///////////////////////////
+    //
+    //if(!req.isAuthenticated())
+    //    res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    var user_id = req.params.user_id;//req.session.passport.user;
+
+    // ps. 유저 정보 보기는 세션 필요 없고 params에 user_id 가져와서 사용해야 되는데 세션 정보 요청해서 에러 나서 수정!
+    //////////////////////// 오남 수정 ///////////////////////////
     console.log(user_id);
 
     //var user_id = req.params.user_id || res.json(trans_json("실패했습니다",0));
