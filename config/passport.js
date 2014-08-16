@@ -124,6 +124,8 @@ module.exports = function(passport) {
             passReqToCallback: true
         },
         function(req, email, password, done) {
+            console.log('email',email);
+            console.log('password',password);
             process.nextTick(function() {
                 connectionPool.getConnection(function(err, connection) {
                     if (err) {
