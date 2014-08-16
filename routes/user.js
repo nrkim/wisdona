@@ -31,25 +31,17 @@ exports.getUserPostList = function(req,res){
 
     var query =
         "SELECT post_id, book_image_path, title, author, translator, publisher, pub_date, " +
-        "( select count(post_id) total_count " +
-            "from post p join book b on " +
-            "p.book_id = b.book_id " +
-            "where user_id =? " +
-            ") total_count,bookmark_cnt FROM post p JOIN book b ON p.book_id = b.book_id " +
-            "WHERE p.user_id = ? LIMIT ?, ? ";
+        "bookmark_cnt FROM post p JOIN book b ON p.book_id = b.book_id " +
+        "WHERE p.user_id = ? LIMIT ?, ?";
 
     template_list(
         query,
-        [user_id,user_id,start,count],
+        [user_id,start,count],
         post_list,
-        function(err,result,msg,rows){
+        function(err,result,msg){
             console.log()
             if(err) res.json(trans_json(msg,0));
-            if(result) {
-
-                lst= trans_list('success', 1, result, rows[0].total_count);
-                res.json(lst);
-            }
+            if(result) res.json(trans_json('success',1,result));
             else res.json(trans_json(msg,1));
         }
     );
