@@ -23,7 +23,7 @@ var isLoggedIn = function (req, res, next) {
     }
 
     res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
-}
+};
 
 module.exports = function(app,passport) {
 
@@ -31,7 +31,7 @@ module.exports = function(app,passport) {
     app.post('/login', express.bodyParser(), function(req, res, next) {
         console.log('email function !!! ',req.body.email);
         console.log('password is :::', req.body.password);
-        
+
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
                 console.log('login!!!');
@@ -137,4 +137,4 @@ module.exports = function(app,passport) {
 
     // GCM
 
-}
+};

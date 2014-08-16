@@ -22,7 +22,6 @@ exports.template_list = function(query,params,get_json,verify){
                 }
                 console.log('template ㅜㅜ');
                 if (rows.length==0) {
-                    console.log('ㅜㅜ');
                     connection.release();
                     verify(null,false,"일치하는 결과가 없습니다.");
                 } else {

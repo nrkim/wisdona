@@ -9,11 +9,13 @@ var json = require("./json")
     ,trans_list = json.trans_list;
 
 
+// api : /users/:user_id/posts/list
 exports.getUserPostList = function(req,res){
     //parameter로 받은 사용자 아이디
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     console.log(user_id);
+
     // query string 처리
     var page = JSON.parse(req.query.page) || 0;
     var count = JSON.parse(req.query.count) || 10;
@@ -48,10 +50,13 @@ exports.getUserPostList = function(req,res){
 
 };
 
+// api : /users/:user_id/reviews/list
 exports.getReviewList = function(req,res){
 
     //세션으로 얻은 사용자 아이디
-    var user_id = req.session.passport.user || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    var user_id = JSON.parse(req.params.user_id);
+    // req.session.passport.user || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    console.log('user_id : ',user_id);
 
     // query string 처리
     var page = JSON.parse(req.query.page) || 0;
@@ -60,10 +65,14 @@ exports.getReviewList = function(req,res){
     // 페이징 관련 계산
     var start = page*count;
 
+    console.log('user_id, page, count',user_id, page, count);
+
     //타입 체크
     if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
     if (typeof user_id != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
     if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
+
+    console.log('err3');
 
     // 쿼리
     var query =
@@ -74,6 +83,7 @@ exports.getReviewList = function(req,res){
             "JOIN user u  ON r.from_user_id = u.user_id " +
             "WHERE r.to_user_id = ? LIMIT ?, ? ";
     // 테스트 쿼리 : user_id  = 4
+
 
     template_list(
         query,
@@ -87,6 +97,7 @@ exports.getReviewList = function(req,res){
     );
 };
 
+// api : /users/:user_id/req-posts/list
 exports.getRequestPostList = function(req,res){
     //parameter로 받은 사용자 아이디
 
