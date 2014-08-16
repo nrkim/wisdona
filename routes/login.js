@@ -9,10 +9,10 @@ var trans_json = json.trans_json
     ,template = require('./template')
     ,template_get = template.template_get
     ,template_post = template.template_post
-    ,template_item = template.template_item;
-
+    ,template_item = template.template_item
+    ,create_password = template.create_password;
 var formidable = require('formidable');
-var create_password = template.create_password;
+var create_hash = template.create_hash;
 var async = require('async');
 var request = require('request');
 
@@ -94,7 +94,54 @@ exports.updatePassword = function(req,res){
         req.body = fields;
 
         var user_id = req.session.passport.user || res.json(trans_json("로그아웃되었습니다. 다시 로그인 해주세요.", 0));
+        var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.",0));
+        var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));
 
+
+        console.log(old_password);
+        console.log(new_password);
+
+
+
+        connectionPool.getConnection(function(err, connection) {
+            if (err) {
+                res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
+            }
+
+            var query = "SELECT password FROM user WHERE user_id = ?"
+            connection.query(query,[user_id], function(err, rows, fields) {
+                if(err){
+                    connection.release();
+                    res.json(trans_json(err.code+" sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
+                }
+                if (!rows){
+                    res.json(trans_json("존재하지 않는 사용자입니다.",0));
+                }
+                bcrypt.compare(old_password,rows[0].password, function(err, result) {
+                    if (!result){
+                        return res.json(trans_json('현재 비밀번호가 틀렸습니다. 다시입력해 주십시오',0));
+                    }
+
+                    create_password(new_password,function(err,pass){
+                        if(err){ res.json(trans_json('비밀번호 생성에 실패했습니다.',0));}
+                        else {
+                            var query = "update user set password = ? where user_id = ?"
+                            template_post(
+                                res,
+                                query,
+                                [pass, user_id]
+                            );
+                        }
+                    });
+
+
+                });
+                connection.release();
+
+            });
+        });
+    });
+/*
         //비밀번호
         var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.", 0));
         var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.", 0));
@@ -104,48 +151,72 @@ exports.updatePassword = function(req,res){
         if (typeof old_password  != "string") res.json('현재 비밀번호 타입은 문자여야 합니다.',0);
         if (typeof new_passoword != "string") res.json('새로운 비밀번호 타입은 숫자여야 합니다',0);
 
+        console.log(user_id);
+        console.log('old_password',old_password);
+        console.log('new_password',new_password);
+
+
+
         async.waterfall([
-            function (callback) {
+            function (cb) {
+                console.log('console. log   ');
                 var query = "SELECT password FROM user WHERE user_id = ?";
                 template_item(
                     query,
                     [user_id],
                     function (err, rows, msg) {
-                        if (err) callback(err);    //res.json(trans_json(msg,0));
-                        if (rows.length == 0) callback("존재하지 않는 사용자 입니다.");
-                        bcrypt.compare(old_password, rows[0].password, function (err, result) {
-                            callback(null, result);
-                        });
+                        console.log('console.log(((');
+                        if (err) { console.log('console.err',err); cb("업데이트에 실패했습니다."); }    //res.json(trans_json(msg,0));
+                        else {
+                            if (rows.length == 0) {
+                                console.log('whadd');
+                                cb("존재하지 않는 사용자 입니다.");
+                            }
+                            else {
+                                bcrypt.compare(old_password, rows[0].password, function (err, result) {
+                                    console.log('sdf');
+                                    console.log(result);
+                                    cb(null, result);
+                                });
+                            }
+                        }
                     }
                 )
             },
-            function (result, callback) {
-                if (!result)
-                    callback('현재 비밀번호가 틀렸습니다. 다시입력해 주십시오');
+            function (result, cb) {
+                if (!result) {
+                    console.log('result err');
+                    cb('현재 비밀번호가 틀렸습니다. 다시입력해 주십시오');
+                }
                 else {
+                    console.log('create password')
                     create_password(new_password,
                         function (err, hashPass) {
-                            if (err) callback('암호화된 비밀번호 생성에 실패하였습니다.');
-                            else callback(null, hashPass);
+                            if (err) { console.log('암호 생성 실패'); cb('암호화된 비밀번호 생성에 실패하였습니다.'); }
+                            else {  console.log(hashPass); cb(null, hashPass);}
                         }
                     );
                 }
             },
-            function (hashPass, callback) {
+            function (hashPass, cb) {
+                console.log('hashPass', hashPass);
                 var update_query = "UPDATE user SET password = ? WHERE user_id = ?"
                 template_item(
                     update_query,
                     [hashPass, user_id],
                     function (err, rows, msg) {
-                        if (err) callback(err);
-                        else callback();
+                        console.log('update is success');
+                        if (err) {console.log('.....'); cb(err);}
+                        else {console.log('err....'); cb(null,rows);}
                     }
                 );
             }
-        ], function (err) {
-            if (err) res.json(trans_json(err, 0));
-            else res.json(trans_json('success', 1));
+        ], function (err,result) {
+            console.log('err section');
+            if (err) {console.log(err); res.json(trans_json(err, 0))}
+            else {console.log('not err...'); res.json(trans_json("success", 1)) };
         });
     });
 
+*/
 };

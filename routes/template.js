@@ -50,14 +50,17 @@ exports.template_item = function(query,params,verify){
     console.log('template_post');
     connectionPool.getConnection(function (err, connection) {
         if (err) {
+            console.log('데이터베이스 연결 오류');
             verify(err,false,'데이터베이스 연결오류 입니다.');
         }
         connection.query(query, params, function (err, rows) {
             if (err) {
+                console.log('query');
                 connection.release();
                 verify(err,false,'sql쿼리 오류입니다.');
             }
             else{
+                console.log('벼됵');
                 connection.commit();
                 connection.release();
                 verify(null,rows,'success');
@@ -91,6 +94,76 @@ exports.template_transaction = function(connection, sql, funcs ){
                 }
                 verify(err,'success');
             });
+        });
+    });
+};
+
+exports.template_get = function(res,query,params,get_json,callback){
+    console.log('template get!!!');
+    connectionPool.getConnection(function (err, connection) {
+        if (err) {
+            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
+        } else {
+            connection.query(query, params, function (err, rows, fields) {
+                if (err) {
+                    connection.release();
+                    res.json(trans_json("",0));      // 에러 처리
+                }
+
+                //데이터 결과가 없을 떄 에러인 경우도 있고 에러가 아닌 경우도 있음 / 두가지경우가 있기 때문에 flag parameter 필요
+                //for문을 forEach함수로 바꿈
+
+                if (rows.length == 0) {
+                    console.log('length is 0');
+                    connection.release();
+                    res.json(trans_json("No data found!!!",0));      // 에러 처리
+                }
+                else {
+                    async.map(rows,
+                        function(item, callback) {
+                            callback(null, get_json(item));
+                        },
+                        function(err, results) {
+                            if (err) {
+                                connection.release();
+                                res.json({ error : err });
+                            } else {
+                                connection.release();
+                                res.json(trans_json("success", 1, results));
+                            }
+                        }
+                    );
+                }
+
+
+            });
+        }
+    });
+
+};
+
+//req,res,query,params,callback){
+exports.template_post = function(res,query,params,error_handle,callback){
+    console.log('template_post');
+    connectionPool.getConnection(function (err, connection) {
+        if (err) {
+            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
+        }
+        console.log('template_post');
+        connection.query(query, params, function (err, rows, fields) {
+            if (err) {
+                console.log('connectinon query err: ',err);
+                connection.release();
+                res.json(trans_json(err.code + " sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
+            }
+            else{
+                console.log('connection success');
+                //if(callback) callback();
+                connection.commit();
+                connection.release();
+                console.log('connection released');
+                res.json(trans_json("success", 1));
+            }
         });
     });
 };
@@ -133,20 +206,30 @@ exports.create_password = function (password,verify){
     async.waterfall([
             function generateSalt(callback) {
                 var rounds = 10;
+                console.log('salt function');
                 bcrypt.genSalt(rounds, function(err, salt) {
-                    callback(null, salt);
+                    if (err) {
+                        console.log('genSalt');
+                        callback("salt 를 생성하지 못했습니다.");
+                    }
+                    else {
+                        console.log('salt를 생성했습니다.');
+                        callback(null, salt);
+                    }
                 });
             },
             function hashPassword(salt, callback) {
+                console.log('hash Pass!!!');
                 bcrypt.hash(password, salt, null,
                     function(err, hashPass) {
-                    callback(null, hashPass);
+                        if(err) {callback('해시 패스워드를 생성하지 못했습니다.');}
+                    else {console.log('callback!!!!'); callback(null, hashPass);}
                 });
             }
         ],
         function(err, hashPass) {
-            if (err) verify(err);
-            else verify(null,hashPass);
+            if (err) {console.log( 'verify err!!!'); verify(err);}
+            else {console.log('verify err!!!'); verify(null,hashPass);}
         });
 };
 
@@ -170,3 +253,32 @@ exports.duplication_check = function (rows,nickname,email){
         else return {'signupMessage': 'success'}
     }
 };
+
+exports.create_hash = function (password,operation){
+    async.waterfall([
+            function generateSalt(callback) {
+                var rounds = 10;
+                bcrypt.genSalt(rounds, function(err, salt) {
+                    console.log('bcrypt.genSalt ====> ', salt, '(', salt.toString().length,')');
+                    callback(null, salt);
+                });
+            },
+            function hashPassword(salt, callback) {
+                bcrypt.hash(password, salt, null, function(err, hashPass) {
+                    console.log('bcrypt.hash ====> ', hashPass, '(', hashPass.length,')');
+                    callback(null, hashPass);
+                });
+            }
+        ],
+        function(err, hashPass) {
+            if (err) {
+                result(err);
+                connection.release();
+                return res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
+            }
+            else{
+                console.log('password is',hashPass);
+                return hashPass;
+            }
+        });
+}
