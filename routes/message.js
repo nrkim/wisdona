@@ -21,8 +21,9 @@ var formidable = require('formidable');
 exports.getMessageGroupList = function(req,res){
 
     //parameter로 받은 사용자 아이디
-    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
-
+    var user_id = req.session.passport.user;
+    //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    console.log('user_id : ',user_id);
     // query string 처리
     var page = JSON.parse(req.query.page) || 0;
     var count = JSON.parse(req.query.count) || 10;
