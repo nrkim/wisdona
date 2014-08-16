@@ -117,6 +117,8 @@ exports.getRequestPostList = function(req,res){
     if (typeof page    != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
     if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
 
+    console.log('user_id, page, count',user_id, page,count);
+
     var query =
         "SELECT t.post_id, book_image_path, title, author, translator, publisher, " +
         "pub_date, bookmark_cnt, p.current_status FROM trade t JOIN post p ON t.post_id = p.post_id " +
@@ -128,9 +130,9 @@ exports.getRequestPostList = function(req,res){
         [user_id,start,count],
         post_list,
         function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json('success',1));
-            else res.json(trans_json("요청한 결과가 없습니다.",1));
+            if(err) {res.json(trans_json(msg,0));}
+            if(result) {res.json(trans_json('success',1,result));}
+            else {res.json(trans_json("요청한 결과가 없습니다.",1));}
         }
     );
 };
