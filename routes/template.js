@@ -20,8 +20,6 @@ exports.template_list = function(query,params,get_json,verify){
                     connection.release();
                     verify(err,false,'sql 쿼리 오류입니다.');
                 }
-
-                console.log('rows is ',rows);
                 if (rows.length == 0) {
                     connection.release();
                     verify(null,false,"일치하는 결과가 없습니다.");
@@ -31,7 +29,6 @@ exports.template_list = function(query,params,get_json,verify){
                             callback(null, get_json(item));
                         },
                         function(err, results) {
-                            console.log('result is ', results);
                             if (err) {
                                 connection.release();
                                 verify(err,false, "리스트를 가져오지 못했습니다");

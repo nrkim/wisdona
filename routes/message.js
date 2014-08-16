@@ -183,6 +183,31 @@ exports.getUnreadMessgeList = function(req,res){
 
 
     // 테스트 케이스 trade_id =4, user_id = 5
+    // 트렌젝션 할 필요 없음
+
+    async.waterfall([
+       function(callback){
+           template_list(
+               get_qeury,
+               [user_id],
+               function(err,result,msg){
+                   if (err) callback(msg);
+                   if (result) callback(null, result);
+                   else callback (msg);
+               }
+           );
+       },
+       function(callback){
+           template_item(
+               update_query
+           )
+
+       }
+
+    ], function(err,result){
+
+       }
+    )
 
     connectionPool.getConnection(function(err,connection) {
         template_transaction(

@@ -7,6 +7,13 @@ exports.trans_json = function(message,code,result){
     return { code : code || 0, message : message || '메세지', result : result || null};
 };
 
+exports.trans_list = function(message,code,result){
+
+    console.log('trans list is !!');
+    return { code : code || 0, message : message || '메세지', list : result || null};
+};
+
+
 exports.user_info = function(item){
     return {
         nick_name          : item.nickname,

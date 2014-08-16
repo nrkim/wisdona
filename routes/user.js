@@ -5,13 +5,15 @@ var json = require("./json")
     ,trans_json = json.trans_json
     ,review = json.review
     ,post_list = json.post_list
-    ,template_list = require('./template').template_list;
+    ,template_list = require('./template').template_list
+    ,trans_list = json.trans_list;
 
 
 exports.getUserPostList = function(req,res){
     //parameter로 받은 사용자 아이디
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
+    console.log(user_id);
     // query string 처리
     var page = JSON.parse(req.query.page) || 0;
     var count = JSON.parse(req.query.count) || 10;
@@ -25,6 +27,8 @@ exports.getUserPostList = function(req,res){
         res.json(trans_json("타입을 확인해 주세요",0));
     }
 
+    console.log('trans_list!!');
+
     var query =
         "SELECT post_id, book_image_path, title, author, translator, publisher, pub_date, " +
         "bookmark_cnt FROM post p JOIN book b ON p.book_id = b.book_id " +
@@ -35,8 +39,9 @@ exports.getUserPostList = function(req,res){
         [user_id,start,count],
         post_list,
         function(err,result,msg){
+            console.log()
             if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json('success',1));
+            if(result) res.json(trans_list('success',1,result));
             else res.json(trans_json(msg,1));
         }
     );
