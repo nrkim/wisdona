@@ -98,8 +98,8 @@ exports.updatePassword = function(req,res){
         var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));
 
 
-        console.log(old_password);
-        console.log(new_password);
+        console.log("old password is : ",old_password);
+        console.log("new password is : ",new_password);
 
 
 
