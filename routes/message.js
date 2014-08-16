@@ -77,6 +77,9 @@ exports.destroyMessageGroup = function(req,res){
         //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
         var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
 
+        console.log('trade id is ',trade_id);
+        console.log('user_id is ',user_id);
+
         var query = "UPDATE trade t JOIN post p ON p.post_id = t.post_id " +
             "SET be_show_group = (CASE WHEN req_user_id = ? THEN false ELSE true END), " +
             "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
@@ -86,8 +89,8 @@ exports.destroyMessageGroup = function(req,res){
             query,
             [user_id,user_id,trade_id],
             function(err,rows,msg){
-                if(err) res.json(trans_json(msg,0));
-                else res.json(trans_json(msg,1));
+                if(err) {res.json(trans_json(msg,0))};
+                else {res.json(trans_json(msg,1))};
             }
         );
     });
