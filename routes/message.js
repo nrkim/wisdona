@@ -73,6 +73,8 @@ exports.destroyMessageGroup = function(req,res){
 
     form.parse(req, function(err, fields, files) {
         req.body = fields;
+
+        console.log('fields');
         var user_id = req.session.passport.user;
         //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
         var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
@@ -96,7 +98,7 @@ exports.destroyMessageGroup = function(req,res){
     });
 };
 
-
+// api :
 exports.createMessage = function(req,res){
 
 
@@ -104,14 +106,23 @@ exports.createMessage = function(req,res){
 
     form.parse(req, function(err, fields) {
         req.body = fields;
+
+        console.log(fields);
+
         var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
         var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
         var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
+
+
+        console.log('trade id is ',trade_id);
+        console.log('user_id is ',user_id);
+        console.log('message is : ',message);
 
         //타입 검사
         if (typeof user_id  != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
         if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
         if (typeof trade_id != "number") res.json('트레이드 아이디 타입은 숫자여야 합니다',0);
+
 
         var query =
             "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
@@ -124,8 +135,8 @@ exports.createMessage = function(req,res){
             query,
             [user_id,user_id,message,trade_id],
             function(err,rows,msg){
-                if(err) res.json(trans_json(msg,0));
-                else res.json(trans_json(msg,1));
+                if(err) {res.json(trans_json(msg,0));}
+                else {res.json(trans_json(msg,1));}
             }
         );
 
