@@ -90,8 +90,11 @@ exports.getReviewList = function(req,res){
 
 exports.getRequestPostList = function(req,res){
     //parameter로 받은 사용자 아이디
+
+
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
+    console.log('user id : ',user_id);
     // query string 처리
     var page = JSON.parse(req.query.page) || 0;
     var count = JSON.parse(req.query.count) || 10;
@@ -106,8 +109,8 @@ exports.getRequestPostList = function(req,res){
 
     var query =
         "SELECT t.post_id, book_image_path, title, author, translator, publisher, " +
-        "pub_date, bookmark_cnt, condition_name FROM trade t JOIN post p ON t.post_id = p.post_id " +
-        "JOIN book b ON p.book_id = b.book_id JOIN book_condition bc ON p.book_condition_id = bc.book_condition_id " +
+        "pub_date, bookmark_cnt, p.current_status FROM trade t JOIN post p ON t.post_id = p.post_id " +
+        "JOIN book b ON p.book_id = b.book_id " +
         "WHERE t.req_user_id = ? LIMIT ?, ?";
 
     template_list(
@@ -117,7 +120,7 @@ exports.getRequestPostList = function(req,res){
         function(err,result,msg){
             if(err) res.json(trans_json(msg,0));
             if(result) res.json(trans_json('success',1));
-            else res.json(trans_json(msg,1));
+            else res.json(trans_json("요청한 결과가 없습니다.",1));
         }
     );
 };

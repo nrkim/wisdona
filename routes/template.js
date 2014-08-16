@@ -20,7 +20,9 @@ exports.template_list = function(query,params,get_json,verify){
                     connection.release();
                     verify(err,false,'sql 쿼리 오류입니다.');
                 }
-                if (rows.length == 0) {
+                console.log('template ㅜㅜ');
+                if (rows.length==0) {
+                    console.log('ㅜㅜ');
                     connection.release();
                     verify(null,false,"일치하는 결과가 없습니다.");
                 } else {
