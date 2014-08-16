@@ -86,73 +86,73 @@ function deleteImage(row, callback) {
 function saveImage(image, callback) {
 
 
-        if (image.size) {
+    if (image.size) {
 
-            // 파일 이동
-            var baseImageDir = __dirname + '/../images/original/';
-            var destPath = path.normalize(baseImageDir + "o_" + path.basename(image.path));
-            fstools.move(image.path, destPath, function(err) {
-                if (err) {
-                    callback(err);
-                } else {
-                    console.log('Original file(', image.name, ') moved!!!');
-                    var largePath = __dirname + "/../images/large/" + "l_" + path.normalize(path.basename(image.path));
-                    var thumbPath = __dirname + "/../images/thumbs/" + "t_" + path.normalize(path.basename(image.path));
+        // 파일 이동
+        var baseImageDir = __dirname + '/../images/original/';
+        var destPath = path.normalize(baseImageDir + "o_" + path.basename(image.path));
+        fstools.move(image.path, destPath, function(err) {
+            if (err) {
+                callback(err);
+            } else {
+                console.log('Original file(', image.name, ') moved!!!');
+                var largePath = __dirname + "/../images/large/" + "l_" + path.normalize(path.basename(image.path));
+                var thumbPath = __dirname + "/../images/thumbs/" + "t_" + path.normalize(path.basename(image.path));
 
-                    async.series([
-                            function (cb) {
-                                im.resize({
-                                    srcPath: destPath,
-                                    dstPath: largePath,
-                                    width:   720
-                                }, function(err, stdout, stderr) {
-                                    if (err) {
-                                        cb(err);
-                                    } else {
-                                        cb();
-                                    }
-                                });
-                            },
-                            function (cb) {
-                                im.resize({
-                                    srcPath: largePath,
-                                    dstPath: thumbPath,
-                                    width:   200
-                                }, function(err, stdout, stderr) {
-                                    if (err) {
-                                        cb(err);
-                                    } else {
-                                        cb();
-                                    }
-                                });
-                            }
-                        ],
-                        function (err, results) {
-                            if ( err ){
-                                callback(err);
-                            }else{
-                                // 경로 저장
-                                var uploadFile = {
-                                    originalPath : destPath,
-                                    largePath : largePath,
-                                    thumbPath : thumbPath
-                                };
-                                callback(null, uploadFile);
-                            }
+                async.series([
+                        function (cb) {
+                            im.resize({
+                                srcPath: destPath,
+                                dstPath: largePath,
+                                width:   720
+                            }, function(err, stdout, stderr) {
+                                if (err) {
+                                    cb(err);
+                                } else {
+                                    cb();
+                                }
+                            });
+                        },
+                        function (cb) {
+                            im.resize({
+                                srcPath: largePath,
+                                dstPath: thumbPath,
+                                width:   200
+                            }, function(err, stdout, stderr) {
+                                if (err) {
+                                    cb(err);
+                                } else {
+                                    cb();
+                                }
+                            });
                         }
-                    );
-                }
-            });
-        } else {
-            fstools.remove(image.path, function(err) {
-                if (err) {
-                    callback(err);
-                } else {
-                    console.log('Zero file removed!!!');
-                    callback();
-                }
-            });
-        }
+                    ],
+                    function (err, results) {
+                        if ( err ){
+                            callback(err);
+                        }else{
+                            // 경로 저장
+                            var uploadFile = {
+                                originalPath : destPath,
+                                largePath : largePath,
+                                thumbPath : thumbPath
+                            };
+                            callback(null, uploadFile);
+                        }
+                    }
+                );
+            }
+        });
+    } else {
+        fstools.remove(image.path, function(err) {
+            if (err) {
+                callback(err);
+            } else {
+                console.log('Zero file removed!!!');
+                callback();
+            }
+        });
+    }
 
 }
 
@@ -405,8 +405,6 @@ exports.updatePost = function(req,res){
 
         //delete_list = [];
 
-
-
         // 파라미터 체크
         if ( !user_id || !post_id || !comment || !bookmark_cnt || !book_condition_id || !delete_list ){
             return res.json(getJsonData(0, '값이 없습니다.', null));
@@ -578,43 +576,58 @@ exports.updatePost = function(req,res){
 
 // 게시물 삭제
 exports.destroyPost = function(req,res){
-    var user_id = req.params.user_id,
-        post_id = req.body.post_id;
-
-    // 파라미터 체크
-    if ( !post_id ){
-        return res.json(getJsonData(0, 'post_id 값이 없습니다.', null));
-    }
-
-    //******************* 본인 세션 검사 필요 *******************//
-    // 세션의 user_id와 게시물의 user_id가 일치할 경우 실행
-
-
-    // 쿼리 함수
-    function sendQuery(query, data) {
-        connectionPool.getConnection(function(err, connection) {
-            if (err) {
-                res.json(getJsonData(0, 'DB 오류', null));
-            }
-            connection.query(query, data, function (err, result) {
-                if (err) {
-                    connection.release();
-                    return res.json(getJsonData(0, err.message, null));
-                }
-
-                console.log(result);
-                if ( !result.affectedRows ) return res.json(getJsonData(0, "삭제할 게시물이 없습니다.", null));
-
-                connection.release();
-                res.json(getJsonData(1, 'success', null));
-            });
-        });
-    };
 
     // 쿼리 요청
     var query = "UPDATE post SET current_status = 1 WHERE post_id = ? and user_id = ?;";
-    var data = [post_id, user_id];
-    sendQuery(query,data);
+    var data = [];
+
+    if (req.body.connection){
+        data = [req.body.post_id, req.params.user_id];
+        console.log(data);
+        req.body.connection.query(query, data, function (err, result) {
+            if (err) {
+                req.body.callback(err);
+            }else{
+                if ( !result.affectedRows ){
+                    req.body.callback(new Error("삭제할 게시물이 없습니다."));
+                }else{
+                    req.body.callback();
+                }
+            }
+        });
+    }else{
+        var form = new formidable.IncomingForm();
+        form.parse(req, function(err, fields) {
+
+            // 파라미터 체크
+            if ( !fields.post_id ){
+                res.json(getJsonData(0, 'post_id 값이 없습니다.', null));
+            }else{
+                data = [fields.post_id, req.params.user_id]
+                console.log(data);
+                getConnection(function (connection) {
+                    connection.query(query, data, function (err, result) {
+                        if (err) {
+                            connection.release();
+                            res.json(getJsonData(0, err.message, null));
+                        }else{
+                            connection.commit(function (err) {
+                                if (err) {
+                                    connection.rollback(function () {
+                                        connection.release();
+                                        res.json(getJsonData(0, err.message, null));
+                                    });
+                                }else{
+                                    connection.release();
+                                    res.json(getJsonData(1, 'success', null));
+                                }
+                            });
+                        }
+                    })
+                });
+            }
+        });
+    }
 };
 
 
@@ -639,10 +652,10 @@ exports.getPostDetail = function(req,res){
         "b.title, b.author, b.translator, b.publisher, b.pub_date, g.genre, " +
         "t.trade_id, t.current_status, ru.user_id req_user_id, ru.nickname req_nickname, ru.image req_image " +
         "FROM post p " +
-        "JOIN user u ON p.user_id = u.user_id " +
-        "JOIN post_image pi ON p.post_id = pi.post_id " +
-        "JOIN book b ON p.book_id = b.book_id " +
-        "JOIN genre g ON b.genre_id = g.genre_id " +
+        "LEFT JOIN user u ON p.user_id = u.user_id " +
+        "LEFT JOIN post_image pi ON p.post_id = pi.post_id " +
+        "LEFT JOIN book b ON p.book_id = b.book_id " +
+        "LEFT JOIN genre g ON b.genre_id = g.genre_id " +
         "LEFT JOIN (SELECT trade_id, current_status, post_id, req_user_id FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " +
         "LEFT JOIN user ru ON t.req_user_id = ru.user_id " +
         "WHERE p.post_id = ?;";
@@ -661,7 +674,7 @@ exports.getPostDetail = function(req,res){
             // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
             // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
 
-
+            console.log(query);
             var result = {
                 user : {
                     user_id : rows[0].user_id,
@@ -673,7 +686,7 @@ exports.getPostDetail = function(req,res){
                 post : {
                     comment : rows[0].comment,
                     book_mark_count : rows[0].bookmark_cnt,
-                    book_image_url : rows[0].large_image_paths,
+                    book_image_url : rows[0].large_image_paths.split(','),
                     book_condition : rows[0].book_condition_id,
                     is_certificate : rows[0].is_certificate,
                     create_date : rows[0].create_date,
@@ -725,10 +738,10 @@ exports.getPostList = function(req,res){
 
     // limit 변수 초기화
     var start = page * count;
-    var end = start + (count - 1);
+    var end = count * 1;
 
     // WHERE 조건절 변수
-    var where = "";
+    var where = "WHERE ";
 
     // ORDER BY 정렬 변수
     var sorter = "";
@@ -760,8 +773,13 @@ exports.getPostList = function(req,res){
                     list.push(item);
                 };
 
+                var result = {
+                    total_count: 0,
+                    list: list
+                };
+
                 connection.release();
-                res.json(getJsonData(1, 'success', list));
+                res.json(getJsonData(1, 'success', result));
             });
         });
     };
@@ -812,7 +830,7 @@ exports.getPostList = function(req,res){
 
         // 카테고리 있는 경우
         if ( category_id ){
-            where = "WHERE category_id = " + category_id + " ";
+            where = "WHERE category_id = " + category_id + " and ";
         }
     }
 
@@ -822,10 +840,11 @@ exports.getPostList = function(req,res){
         "FROM post p " +
         "JOIN book b ON p.book_id = b.book_id " +
         "JOIN post_image pi ON p.post_id = pi.post_id " +
-        "LEFT JOIN (SELECT * FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where +
+        "LEFT JOIN (SELECT post_id, current_status FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where + "p.current_status <> 1 " +
         "GROUP BY p.post_id " +
         "ORDER BY " + sorter + " p.create_date DESC LIMIT ?, ?;";
     console.log(query);
+    console.log(start, end);
     sendQuery(query, data);
 };
 
@@ -842,7 +861,7 @@ exports.searchPosts = function(req,res){
 
     // limit 변수 초기화
     var start = page * count;
-    var end = start + (count - 1);
+    var end = count * 1;
 
     // WHERE 조건절 변수
     var where = "WHERE ";
@@ -874,8 +893,13 @@ exports.searchPosts = function(req,res){
                     list.push(item);
                 };
 
+                var result = {
+                    total_count: 0,
+                    list: list
+                };
+
                 connection.release();
-                res.json(getJsonData(1, 'success', list));
+                res.json(getJsonData(1, 'success', result));
             });
         });
     };
@@ -887,7 +911,7 @@ exports.searchPosts = function(req,res){
     }
 
     // 검색 키워드
-    where = where + "(b.title LIKE '%" + keyword + "%' or b.author LIKE '%" + keyword + "%') ";
+    where = where + "(b.title LIKE '%" + keyword + "%' or b.author LIKE '%" + keyword + "%') and ";
 
     var data = [start, end];
     var query =
@@ -895,12 +919,14 @@ exports.searchPosts = function(req,res){
         "FROM post p " +
         "JOIN book b ON p.book_id = b.book_id " +
         "JOIN post_image pi ON p.post_id = pi.post_id " +
-        "LEFT JOIN (SELECT * FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where +
+        "LEFT JOIN (SELECT * FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where + "p.current_status <> 1 " +
         "GROUP BY p.post_id " +
         "ORDER BY p.create_date DESC LIMIT ?, ?;";
     console.log(query);
     sendQuery(query, data);
-}
+};
+
+
 exports.reportPost = function(req,res){
     var user_id = req.params.user_id;
     var post_id = req.body.post_id;
