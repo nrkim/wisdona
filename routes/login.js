@@ -68,6 +68,7 @@ exports.requestSendEmail = function(req,res){
 exports.logout = function(req,res){
     req.logout();
     if (!req.session.passport.user) {
+        console.log('성공!!');
         res.json(trans_json("success", 1));
     }
     else {
