@@ -1,13 +1,16 @@
 /**
  * Created by nrkim on 2014. 7. 29..
  */
+
 var json = require('./json');
+
 var trans_json = json.trans_json
 ,bcrypt = require('bcrypt-nodejs')
     ,template = require('./template')
     ,template_get = template.template_get
     ,template_post = template.template_post
     ,template_item = template.template_item;
+
 var formidable = require('formidable');
 var create_password = template.create_password;
 var async = require('async');
@@ -20,7 +23,7 @@ exports.facebookLogin = function(req,res){
 	} else {
 		res.json(trans_json("페이스북 로그인에 실패하였습니다.",0));
 	}
-}
+};
 
 exports.facebookLogout = function(req,res){
     request(
@@ -38,7 +41,7 @@ exports.facebookLogout = function(req,res){
 
         }
     );
-}
+};
 
 
 exports.requestActivationEmail = function(req,res){

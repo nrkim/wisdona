@@ -56,7 +56,7 @@ module.exports = function(passport) {
 
                     var facebookPhoto = "https://graph.facebook.com/v2.1/me/picture?access_token=" + accessToken;
                     var selectSql = 'SELECT user_id, facebook_id, facebook_token, nickname ' +
-                        'email, image FROM user WHERE facebook_id = ? or nickname = ? ';
+                        'email, image FROM user WHERE facebook_id = ? ';
 
                     connection.query(selectSql, [profile.id,req.body.nickname], function(err, rows, fields) {
                         if (err) {
@@ -65,13 +65,13 @@ module.exports = function(passport) {
                             return done(err);
                         }
                         if (rows.length) {
-
+//
                             var dup_nickname =duplication_check(rows,req.body.nickname);
                             console.log('dup nickanem ',dup_nickname);
                             if ( dup_nickname == "success"){
                                 console.log(rows);
-                                //에러가 있을 수 있는 코
-                                var rows = _.filter(rows, function(item){ return item.nickname !== req.body.nickname; });
+                                //에러가 있을 수 있는 코드
+                                var rows = _.filter(rows, function(item){ return item.nickname !== req.body.nickname; }); //
                                 var user = {};
                                 user.user_id = rows[0].user_id;
                                 user.facebookId = rows[0].facebook_id;
@@ -88,10 +88,12 @@ module.exports = function(passport) {
                                         connection.release();
                                         return done(null, user);
                                     });
+
                                 } else {
                                     connection.release();
                                     return done(null, user);
                                 }
+//
                             } else{
                                 return done(null,false,dup_nickname)
                             }

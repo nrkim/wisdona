@@ -46,6 +46,26 @@ module.exports = function(app,passport) {
         express.bodyParser(),
         passport.authenticate('facebook-token',{ scope: ['email'] }),
         login.facebookLogin);
+        /*function(req, res, next) {
+            template_item(
+                "SELECT nickname FROM user WHERE nickname = ?",
+                [req.body.nickname],
+                function(err,rows,msg){
+                    if (err) res.json(trans_json(msg,0));
+                    if (rows.length ==0) {
+                        passport.authenticate('facebook-token',{ scope: ['email'] }, function(err,user,info){
+                            if (user) {
+                                res.json(trans_json("success",1));
+                            } else {
+                                res.json(trans_json("페이스북 로그인에 실패하였습니다",0));
+                            }
+                        });
+                    }
+                    else res.json('닉네임이 중복됩니다.',0);
+                }
+            );
+            })(req, res, next);*/
+
     app.post('/facebook-logout', login.facebookLogout);
     
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);

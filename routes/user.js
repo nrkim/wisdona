@@ -23,9 +23,9 @@ exports.getUserPostList = function(req,res){
     var posts = [];
 
     //타입 체크
-    if (typeof user_id != "number" || typeof page != "number" || typeof count != "number"){
-        res.json(trans_json("타입을 확인해 주세요",0));
-    }
+    if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
+    if (typeof page    != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
+    if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
 
     console.log('trans_list!!');
 
@@ -73,7 +73,6 @@ exports.getReviewList = function(req,res){
             "JOIN book b ON b.book_id = p.book_id " +
             "JOIN user u  ON r.from_user_id = u.user_id " +
             "WHERE r.to_user_id = ? LIMIT ?, ? ";
-
     // 테스트 쿼리 : user_id  = 4
 
     template_list(

@@ -61,25 +61,30 @@ module.exports = function(passport) {
 
             process.nextTick(function () {
                 connectionPool.getConnection(function (err, connection) {
-                    if (err) return done(err);
+                    if (err){ console.log(err); return done(err); }
 
                     var selectSql = 'SELECT user_id, email, nickname  FROM user WHERE email = ? or nickname = ?';
                     connection.query(selectSql, [email, req.body.nickname], function (err, rows, fields) {
                         if (err) {
+                            console.log('err1');
                             connection.release();
                             return done(err);
                         }
                         if (rows.length) {
+                            console.log('err2');
                             connection.release();
                             return done(null, false,duplication_check(rows,req.body.nickname, email));
                         }
                         else {
+                            console.log('err3');
                             create_password(password, function (err, hashPass) {
                                 if (err) {
+                                    console.log('err4');
                                     connection.release();
                                     return done(err);
                                 }
                                 else {
+                                    console.log('err5');
                                     var user = {};
                                     user.email = email;
                                     user.password = hashPass;
@@ -88,19 +93,21 @@ module.exports = function(passport) {
                                         'like_total_cnt,sad_total_cnt,sleep_mode,create_date)' +
                                         'VALUES(?,?,?,0,0,0,0,now())';
 
+                                    console.log('err6');
                                     template_item(
                                         insertSql,
                                         [user.email, user.password, req.body.nickname],
                                         function (err, rows, info) {
-                                            if (err) return done(err);
+                                            console.log('err7');
+                                            if (err) {console.log('err8'); return done(err);}
                                             else {
+                                                console.log('err 9');
+                                                console.log('rows : insertId', rows.insertId);
                                                 user.user_id = rows.insertId;
                                                 return done(null, user);
                                             }
                                         }
                                     );
-
-
                                 }
                             });
                         }
