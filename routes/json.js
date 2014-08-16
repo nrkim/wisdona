@@ -7,10 +7,10 @@ exports.trans_json = function(message,code,result){
     return { code : code || 0, message : message || '메세지', result : result || null};
 };
 
-exports.trans_list = function(message,code,result){
+exports.trans_list = function(message,code,result,total_count){
 
     console.log('trans list is !!');
-    return { code : code || 0, message : message || '메세지', list : result || null};
+    return { code : code || 0, message : message || '메세지', total_count : total_count, list : result || null};
 };
 
 

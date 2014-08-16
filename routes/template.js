@@ -33,8 +33,9 @@ exports.template_list = function(query,params,get_json,verify){
                                 connection.release();
                                 verify(err,false, "리스트를 가져오지 못했습니다");
                             } else {
+                                console.log(results);
                                 connection.release();
-                                verify(null,results,'success');
+                                verify(null,results,'success',rows);
                             }
                         }
                     );
