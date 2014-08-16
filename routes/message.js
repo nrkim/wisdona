@@ -89,8 +89,8 @@ exports.destroyMessageGroup = function(req,res){
             query,
             [user_id,user_id,trade_id],
             function(err,rows,msg){
-                if(err) {res.json(trans_json(msg,0))};
-                else {res.json(trans_json(msg,1))};
+                if(err) {res.json(trans_json(msg,0));}
+                else {res.json(trans_json(msg,1));}
             }
         );
     });
