@@ -21,6 +21,8 @@ exports.template_list = function(query,params,get_json,verify){
                     connection.release();
                     verify(err,false,'sql 쿼리 오류입니다.');
                 }
+                console.log('query : ',query);
+                console.log('params : ',params);
                 console.log('rows... is : ',rows);
                 if (rows.length==0) {
                     connection.release();

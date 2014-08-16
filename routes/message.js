@@ -54,9 +54,9 @@ exports.getMessageGroupList = function(req,res){
         [user_id,start,count],
         message_list,
         function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json(msg,1,result));
-            else res.json(trans_json(msg,1));
+            if(err) {res.json(trans_json(msg,0));}
+            if(result) {res.json(trans_json(msg,1,result));}
+            else { res.json(trans_json(msg,1));}
         }
     );
 
