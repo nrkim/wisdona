@@ -56,6 +56,7 @@ exports.template_item = function(query,params,verify){
         connection.query(query, params, function (err, rows) {
             if (err) {
                 console.log('query');
+                console.log(err.message);
                 connection.release();
                 verify(err,false,'sql쿼리 오류입니다.');
             }

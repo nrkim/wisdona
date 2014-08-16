@@ -63,7 +63,7 @@ module.exports = function(passport) {
                 connectionPool.getConnection(function (err, connection) {
                     if (err){ console.log(err); return done(err); }
 
-                    var selectSql = 'SELECT user_id, email, nickname  FROM user WHERE email = ? or nickname = ?';
+                    var selectSql = 'SELECT user_id, email, nickname  FROM user WHERE (email = ? or nickname = ?) and sleep_mode = 0';
                     connection.query(selectSql, [email, req.body.nickname], function (err, rows, fields) {
                         if (err) {
                             console.log('err1');
@@ -133,7 +133,7 @@ module.exports = function(passport) {
                         return done(err);
                     }
                     console.log('err3');
-                    var selectSql = 'SELECT user_id, email, password FROM user WHERE email = ?';
+                    var selectSql = 'SELECT user_id, email, password FROM user WHERE email = ? and sleep_mode = 0';
                     template_item(
                         selectSql,
                         [email],
