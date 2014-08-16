@@ -127,8 +127,10 @@ module.exports = function(passport) {
             process.nextTick(function() {
                 connectionPool.getConnection(function(err, connection) {
                     if (err) {
+                        console.log('err1');
                         return done(err);
                     }
+                    console.log('err3');
                     var selectSql = 'SELECT user_id, email, password FROM user WHERE email = ?';
                     template_item(
                         selectSql,
@@ -144,12 +146,15 @@ module.exports = function(passport) {
                                 connection.release();
                                 return done(null, false, {'loginMessage' : '존재하지 않는 사용자 입니다.'});
                             }
+                            console.log('err54');
                             var user = rows[0];
                             connection.release();
                             bcrypt.compare(password, user.password, function(err, result) {
                                 if (!result){
+                                    console.log('errfff');
                                     return done(null, false, {'loginMessage' : '비밀번호가 틀렸습니다.'});
                                 }
+                                console.log('err1dsdfsdf');
                                 console.log('bcrypt.compare ====> ', user.password, '(', user,')');
                                 return done(null, user);
                             });
