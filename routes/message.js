@@ -17,6 +17,7 @@ var message_window = json.message_window
 var formidable = require('formidable');
 
 
+// api : /users/:user_id/message-groups/list
 exports.getMessageGroupList = function(req,res){
 
     //parameter로 받은 사용자 아이디
@@ -33,11 +34,12 @@ exports.getMessageGroupList = function(req,res){
         res.json(trans_json("타입을 확인해 주세요",0));
     }
 
+    //다시 한번 보기
     // 메시지 그룹의 리스트를 가져오는 쿼리문
     // 해당 거래의 메시지를 가저옴
     var query =
         "SELECT m.from_user_id, nickname, image, m.trade_id, title, message, be_message_cnt, m.create_date " +
-        "FROM (SELECT * FROM user WHERE sleep_mode = 0) JOIN message m ON m.from_user_id = u.user_id " +
+        "FROM (SELECT * FROM user WHERE sleep_mode = 0) u JOIN message m ON m.from_user_id = u.user_id " +
             "JOIN trade t ON m.trade_id = t.trade_id " +
             "JOIN post p ON t.post_id = p.post_id " +
             "JOIN book b ON p.book_id = b.book_id " +

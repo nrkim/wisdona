@@ -17,10 +17,11 @@ exports.template_list = function(query,params,get_json,verify){
         } else {
             connection.query(query, params, function (err, rows) {
                 if (err) {
+                    console.log('err',err.message);
                     connection.release();
                     verify(err,false,'sql 쿼리 오류입니다.');
                 }
-                console.log('template ㅜㅜ');
+                console.log('rows... is : ',rows);
                 if (rows.length==0) {
                     connection.release();
                     verify(null,false,"일치하는 결과가 없습니다.");
