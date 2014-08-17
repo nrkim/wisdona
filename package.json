@@ -21,6 +21,7 @@
         "winston" : "0.7.3",
         "cuid" : "1.2.4",
         "request": "2.40.0",
-        "crypto" : "0.0.3"
+        "crypto" : "0.0.3",
+        "node-schedule" :"0.1.3"
     }
 }

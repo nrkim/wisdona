@@ -17,9 +17,7 @@ var crypto = require('crypto');
 
 
 
-function send_email(){
 
-}
 
 
 // api : /request-activation-email/:user_id

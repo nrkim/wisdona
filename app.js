@@ -7,7 +7,8 @@ var express = require('express')
     , mysql = require('mysql')
     , util = require('util')
     , dbConfig = require('./config/database')
-    , gcmConfig = require('./config/gcm');
+    , gcmConfig = require('./config/gcm')
+    , cron_job = require('./routes/cron_job').auth_token_cron;
 
 var MySQLStore = require('connect-mysql')(express);
 global.connectionPool = mysql.createPool(dbConfig);
@@ -104,6 +105,7 @@ Date.prototype.format = function(format) //author: meizz
     return format;
 };
 
+cron_job();
 
 http.createServer(app).listen(app.get('port'), function(){
     console.log('Express server listening on port ' + app.get('port'));
