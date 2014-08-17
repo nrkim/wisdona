@@ -20,6 +20,7 @@
         "nodemailer-smtp-pool" : "0.1.7",
         "winston" : "0.7.3",
         "cuid" : "1.2.4",
-        "request": "2.40.0"
+        "request": "2.40.0",
+        "crypto" : "0.0.3"
     }
 }

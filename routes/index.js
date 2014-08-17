@@ -72,10 +72,10 @@ module.exports = function(app,passport) {
     app.post('/facebook-logout', login.facebookLogout);
     
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
-    app.get('/request-activation-email/:user_id', login.requestActivationEmail);
+    app.get('/request-activation-email/:email', send_email.requestActivationEmail);
     app.post('/request-send-email', send_email.requestSendEmail);
     app.post('/logout',isLoggedIn,login.logout);
-    app.post('/activation-email/:authkey', login.activationEmail);
+    app.get('/activation-email/:authkey', login.activationEmail);
 
     // 계정 생성,정보 관련
     app.post('/users/create',express.bodyParser(),function(req, res, next) {

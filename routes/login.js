@@ -76,13 +76,40 @@ exports.logout = function(req,res){
     }
 };
 
+
+// api : /activation-email/:authkey
 exports.activationEmail = function(req,res){
-    var data = {
-        "code": 1,
-        "message": "success",
-        "result" : null
-    };
-    res.json(data);
+
+    var authkey = req.params.authkey || res.send('인증 토큰을 입력하지 않았습니다.');
+    console.log('authkey....',authkey);
+
+    if(typeof authkey != "string") res.send('인증토큰 타입은 문자열 타입이어야 합니다.');
+
+    console.log('wow!!')
+
+    template_item(
+       "SELECT email, auth_token FROM email_auth WHERE ?",
+        {auth_token : authkey},
+        function(err,rows,msg){
+            console.log('rows...',rows);
+            if(err) { res.send('인증이 완료되지 못했습니다.');}
+            else {
+                console.log('!!');
+                if(rows.length == 0){res.send('인증이 만료되었습니다. 다시 시도해 주세요.');}
+                else{
+                    template_item(
+                        "UPDATE user SET email_auth = 1 WHERE email = ?",
+                        [rows[0].email],
+                        function(err,rows,msg){
+                            console.log('alks;djf');
+                            if(err){ res.send('이메일 인증 상태를 업데이트 하지 못했습니다.');}
+                            else { res.send('이메일 인증을 완료했습니다.');}
+                        }
+                    );
+                }
+            }
+        }
+    );
 };
 
 exports.updatePassword = function(req,res){

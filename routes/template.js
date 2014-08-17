@@ -50,7 +50,8 @@ exports.template_list = function(query,params,get_json,verify){
 };
 
 exports.template_item = function(query,params,verify){
-    console.log('template_post');
+    console.log('query',query);
+    console.log('params',params);
     connectionPool.getConnection(function (err, connection) {
         if (err) {
             console.log('데이터베이스 연결 오류');
@@ -67,6 +68,7 @@ exports.template_item = function(query,params,verify){
                 console.log('벼됵');
                 connection.commit();
                 connection.release();
+                console.log(rows);
                 verify(null,rows,'success');
             }
         });

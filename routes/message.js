@@ -98,7 +98,7 @@ exports.destroyMessageGroup = function(req,res){
     });
 };
 
-// api :
+// api : /users/:user_id/message-groups/:trade_id/create
 exports.createMessage = function(req,res){
 
 
@@ -206,7 +206,7 @@ exports.getUnreadMessgeList = function(req,res){
 
     // 테스트 케이스 trade_id =4, user_id = 5
     // 트렌젝션 할 필요 없음
-
+/*
     async.waterfall([
        function(callback){
            template_list(
@@ -230,7 +230,7 @@ exports.getUnreadMessgeList = function(req,res){
 
        }
     )
-
+*/
     connectionPool.getConnection(function(err,connection) {
         template_transaction(
             connection,

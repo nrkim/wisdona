@@ -64,11 +64,9 @@ exports.getUserInfo = function(req,res){
 exports.destroyUserAccount = function(req,res){
 
 
-    console.log('===========================');
     //계정 삭제시 휴면 계정
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-    console.log('휴면 계정   :     ',user_id);
     // 타입 검사
     if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
 
