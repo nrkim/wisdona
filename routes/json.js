@@ -146,7 +146,7 @@ exports.unread_msg_lst = function(item){
         create_date : item.create_date,
         user        : {
             user_id           : item.user_id,
-            nick_name         : item.from_user_id,
+            nick_name         : item.nickname,
             profile_image_url : item.image
         }
     };

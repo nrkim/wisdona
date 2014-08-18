@@ -14,7 +14,7 @@ var message_window = json.message_window
     ,template_transaction = template.template_transaction
     ,unread_msgs=json.unread_msgs
     ,unread_msg_lst= json.unread_msg_lst;
-var formidable = require('formidable');
+//var formidable = require('formidable');
 
 
 // api : /users/:user_id/message-groups/list
@@ -68,79 +68,67 @@ exports.getMessageGroupList = function(req,res){
 };
 
 exports.destroyMessageGroup = function(req,res){
+    //req.body = fields;
 
-    var form = new formidable.IncomingForm();
+    console.log('fields');
+    var user_id = req.session.passport.user;
+    //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
 
-    form.parse(req, function(err, fields, files) {
-        req.body = fields;
+    console.log('trade id is ',trade_id);
+    console.log('user_id is ',user_id);
 
-        console.log('fields');
-        var user_id = req.session.passport.user;
-        //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
-        var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
+    var query = "UPDATE trade t JOIN post p ON p.post_id = t.post_id " +
+        "SET be_show_group = (CASE WHEN req_user_id = ? THEN false ELSE true END), " +
+        "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
+        "WHERE trade_id = ?";
 
-        console.log('trade id is ',trade_id);
-        console.log('user_id is ',user_id);
-
-        var query = "UPDATE trade t JOIN post p ON p.post_id = t.post_id " +
-            "SET be_show_group = (CASE WHEN req_user_id = ? THEN false ELSE true END), " +
-            "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
-            "WHERE trade_id = ?";
-
-        template_item(
-            query,
-            [user_id,user_id,trade_id],
-            function(err,rows,msg){
-                if(err) {res.json(trans_json(msg,0));}
-                else {res.json(trans_json(msg,1));}
-            }
-        );
-    });
+    template_item(
+        query,
+        [user_id,user_id,trade_id],
+        function(err,rows,msg){
+            if(err) {res.json(trans_json(msg,0));}
+            else {res.json(trans_json(msg,1));}
+        }
+    );
 };
 
 // api : /users/:user_id/message-groups/:trade_id/create
 exports.createMessage = function(req,res){
+    //req.body = fields;
+
+    console.log(fields);
+
+    var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
+    var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
 
 
-    var form = new formidable.IncomingForm();
+    console.log('trade id is ',trade_id);
+    console.log('user_id is ',user_id);
+    console.log('message is : ',message);
 
-    form.parse(req, function(err, fields) {
-        req.body = fields;
-
-        console.log(fields);
-
-        var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
-        var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
-        var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
+    //타입 검사
+    if (typeof user_id  != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
+    if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
+    if (typeof trade_id != "number") res.json('트레이드 아이디 타입은 숫자여야 합니다',0);
 
 
-        console.log('trade id is ',trade_id);
-        console.log('user_id is ',user_id);
-        console.log('message is : ',message);
+    var query =
+        "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
+        "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
+        "FROM trade t " +
+        "JOIN post p ON t.post_id = p.post_id " +
+        "WHERE t.trade_id = ? ";
 
-        //타입 검사
-        if (typeof user_id  != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
-        if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
-        if (typeof trade_id != "number") res.json('트레이드 아이디 타입은 숫자여야 합니다',0);
-
-
-        var query =
-            "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
-            "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
-            "FROM trade t " +
-            "JOIN post p ON t.post_id = p.post_id " +
-            "WHERE t.trade_id = ? ";
-
-        template_item(
-            query,
-            [user_id,user_id,message,trade_id],
-            function(err,rows,msg){
-                if(err) {res.json(trans_json(msg,0));}
-                else {res.json(trans_json(msg,1));}
-            }
-        );
-
-    });
+    template_item(
+        query,
+        [user_id,user_id,message,trade_id],
+        function(err,rows,msg){
+            if(err) {res.json(trans_json(msg,0));}
+            else {res.json(trans_json(msg,1));}
+        }
+    );
 
 };
 
@@ -198,39 +186,53 @@ exports.getUnreadMessgeList = function(req,res){
     var get_query =
         "SELECT trade_id, message, m.create_date, from_user_id, nickname, image " +
         "FROM user u JOIN message m ON u.user_id = m.from_user_id " +
-        "WHERE m.to_user_id = ? AND m.is_sended = FALSE";
+        "WHERE to_user_id = ? AND m.is_sended = FALSE ";
 
     var update_query =
-        "UPDATE message m SET is_sended = true WHERE m.to_user_id = ? AND is_sended = FALSE";
+        "UPDATE message SET is_sended = TRUE WHERE to_user_id = ? AND is_sended = FALSE";
 
 
     // 테스트 케이스 trade_id =4, user_id = 5
     // 트렌젝션 할 필요 없음
+
+    template_list(
+        get_query,
+        [user_id],
+        unread_msg_lst,
+        function(err,result,msg){
+            if(err){res.json(trans_json(msg,0));}
+            else {res.json(trans_json("sucess",1,result));}
+        }
+    );
 /*
-    async.waterfall([
-       function(callback){
-           template_list(
-               get_qeury,
-               [user_id],
-               function(err,result,msg){
-                   if (err) callback(msg);
-                   if (result) callback(null, result);
-                   else callback (msg);
-               }
-           );
-       },
-       function(callback){
-           template_item(
-               update_query
-           )
-
-       }
-
-    ], function(err,result){
-
-       }
-    )
-*/
+    template_list(
+        get_query,
+        { to_user_id  : user_id},
+        unread_msg_lst,
+        function(err,result,msg){
+            if (err) { res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다.",0)); }
+            else {
+                console.log('template list!!');
+                if (result.length == 0){
+                    console.log('logloglog');
+                    res.json(trans_json("success",1,result));
+                } else{
+                    console.log('tmplate result');
+                    template_item(
+                        update_query,
+                        [user_id],
+                        function(err,rows,msg){
+                            console.log('loglog!!');
+                            if(err) { res.json(trans_json(msg,0));}
+                            else { res.json(trans_json('success',1,result));}
+                        }
+                    )
+                }
+            }
+        }
+    );
+    */
+/*
     connectionPool.getConnection(function(err,connection) {
         template_transaction(
             connection,
@@ -263,7 +265,7 @@ exports.getUnreadMessgeList = function(req,res){
             }
         );
     });
-
+*/
 /*
     connectionPool.getConnection(function(err,connection) {
         template_transaction(

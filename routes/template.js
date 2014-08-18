@@ -13,6 +13,7 @@ var async = require('async');
 exports.template_list = function(query,params,get_json,verify){
     connectionPool.getConnection(function (err, connection) {
         if (err) {
+            console.log('데이터베이스 연결 오류');
             verify(err,false,"데이터 베이스 연결 오류 입니다.");
         } else {
             connection.query(query, params, function (err, rows) {
@@ -21,28 +22,34 @@ exports.template_list = function(query,params,get_json,verify){
                     connection.release();
                     verify(err,false,'sql 쿼리 오류입니다.');
                 }
-                console.log('query : ',query);
-                console.log('params : ',params);
-                console.log('rows... is : ',rows);
-                if (rows.length==0) {
-                    connection.release();
-                    verify(null,false,"일치하는 결과가 없습니다.");
-                } else {
-                    async.map(rows,
-                        function(item, callback) {
-                            callback(null, get_json(item));
-                        },
-                        function(err, results) {
-                            if (err) {
-                                connection.release();
-                                verify(err,false, "리스트를 가져오지 못했습니다");
-                            } else {
-                                console.log(results);
-                                connection.release();
-                                verify(null,results,'success',rows);
+                else {
+                    console.log('query : ',query);
+                    console.log('params : ',params);
+                    console.log('rows... is : ',rows);
+                    if (rows.length==0) {
+                        console.log('rows... length = ',rows.length);
+                        connection.release();
+                        verify(null,false,"일치하는 결과가 없습니다.");
+                    } else {
+                        async.map(rows,
+                            function(item, callback) {
+                                console.log('item is ', item );
+                                callback(null, get_json(item));
+                            },
+                            function(err, results) {
+                                if (err) {
+                                    console.log('err : ',err.message);
+                                    connection.release();
+                                    verify(err,false, "리스트를 가져오지 못했습니다");
+                                } else {
+                                    console.log(results);
+                                    connection.release();
+                                    verify(null,results,'success',rows);
+                                }
                             }
-                        }
-                    );
+                        );
+                    }
+
                 }
             });
         }
@@ -76,7 +83,9 @@ exports.template_item = function(query,params,verify){
 };
 
 
-exports.connection_chain = function(){
+
+
+exports.connection_chain = function(query,params,verify){
 
 };
 

@@ -24,5 +24,4 @@ exports.auth_token_cron = function(){
             )
         }
     );
-
-}
+};
