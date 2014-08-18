@@ -4,7 +4,7 @@
 var async = require('async');
 var message = require('./message');
 var post = require('./post');
-var formidable = require('formidable');
+//var formidable = require('formidable');
 
 // 출력 JSON
 function getJsonData( code, message, result ){
@@ -88,6 +88,9 @@ exports.sendRequestPost = function(req,res){
                         // 거래 테이블 생성
                         query = "INSERT INTO trade SET ?";
                         data = {req_user_id:req.params.user_id, post_id:fields.post_id};
+                        console.log('post_id is : ',post_id);
+                        console.log('user_id is : ',user_id);
+
                         connection.query(query, data, function (err, result) {
                             if (err) {
                                 callback(err);
