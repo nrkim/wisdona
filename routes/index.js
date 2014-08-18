@@ -13,12 +13,13 @@ var account = require('../routes/account')
     ,other = require('../routes/other')
     ,trans_json = require('../routes/json').trans_json
     ,create_user = require('../routes/json').create_user
-    ,send_email = require('../routes/send_email');
+    ,send_email = require('../routes/send_email')
+    ,template_item = require('../routes/template').template_item;
 
 var isLoggedIn = function (req, res, next) {
 
     if (req.isAuthenticated() ){
-        logger.info('인증에 성공 하였습니다.');
+        //logger.info('인증에 성공 하였습니다.');
         return next();
     }
     else {
@@ -48,27 +49,28 @@ module.exports = function(app,passport) {
 
     app.post('/facebook-login',
         passport.authenticate('facebook-token',{ scope: ['email'] }),
-        login.facebookLogin);
-        /*function(req, res, next) {
+        //login.facebookLogin);
+        function(req, res, next) {
+            console.log(req.body.nickname);
             template_item(
                 "SELECT nickname FROM user WHERE nickname = ?",
                 [req.body.nickname],
-                function(err,rows,msg){
-                    if (err) res.json(trans_json(msg,0));
-                    if (rows.length ==0) {
-                        passport.authenticate('facebook-token',{ scope: ['email'] }, function(err,user,info){
+                function (err, rows, msg) {
+                    if (err) res.json(trans_json(msg, 0));
+                    if (rows.length == 0) {
+                        passport.authenticate('facebook-token', { scope: ['email'] }, function (err, user, info) {
                             if (user) {
-                                res.json(trans_json("success",1));
+                                res.json(trans_json("success", 1));
                             } else {
-                                res.json(trans_json("페이스북 로그인에 실패하였습니다",0));
+                                res.json(trans_json("페이스북 로그인에 실패하였습니다", 0));
                             }
                         });
                     }
-                    else res.json('닉네임이 중복됩니다.',0);
+                    else res.json('닉네임이 중복됩니다.', 0);
                 }
             );
-            })(req, res, next);*/
-
+        }
+    );
     app.post('/facebook-logout',login.facebookLogout);
     
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
