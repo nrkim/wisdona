@@ -163,7 +163,8 @@ exports.updateAccountSettings = function(req,res){
     console.log( 'nickname is : ', req.body.nickname);
     console.log('self_intro  : ',req.body.self_intro);
     console.log('name : ',req.body.name);
-    console.log('phon')
+    console.log('phon');
+    console.log('account push settings : ',req.body.push_settings);
 
     var updated = {};
 
