@@ -12,7 +12,7 @@ var _ = require('underscore'),
     formidable = require('formidable');
 
 var promotion = require('./promotion');
-
+var baseImageDir = __dirname + '/../images/';
 
 // 출력 JSON
 function getJsonData( code, message, result ){
@@ -55,13 +55,13 @@ function deleteImage(row, callback) {
     async.each(fileNames, function(fileName, cb) {
 
         // 파일 패스 설정
-        var path = __dirname + "/../images/";
+        var path = baseImageDir;
         if ( fileName.indexOf("o_") != -1){
             path = path + "original/";
         }else if(fileName.indexOf("l_") != -1) {
             path = path + "large/";
         }else{
-            path = path + "thumb/";
+            path = path + "thumbs/";
         }
 
         // 삭제할 파일패스로 해당 파일 삭제
@@ -91,15 +91,14 @@ function saveImage(image, callback) {
     if (image.size) {
 
         // 파일 이동
-        var baseImageDir = __dirname + '/../images/original/';
-        var destPath = path.normalize(baseImageDir + "o_" + path.basename(image.path));
+        var destPath = path.normalize(baseImageDir + "original/" + "o_" + path.basename(image.path));
         fstools.move(image.path, destPath, function(err) {
             if (err) {
                 callback(err);
             } else {
                 console.log('Original file(', image.name, ') moved!!!');
-                var largePath = __dirname + "/../images/large/" + "l_" + path.normalize(path.basename(image.path));
-                var thumbPath = __dirname + "/../images/thumbs/" + "t_" + path.normalize(path.basename(image.path));
+                var largePath = __dirname + baseImageDir + "large/" + "l_" + path.normalize(path.basename(image.path));
+                var thumbPath = __dirname + baseImageDir + "thumbs/" + "t_" + path.normalize(path.basename(image.path));
 
                 async.series([
                         function (cb) {
@@ -750,7 +749,7 @@ exports.getPostDetail = function(req,res){
             // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
             // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
 
-            console.log(query);
+
             var result = {
                 user : {
                     user_id : rows[0].user_id,
@@ -1031,4 +1030,38 @@ exports.reportPost = function(req,res){
     var data = {user_id:user_id, post_id:post_id, cause:cause};
     var query = "INSERT INTO post_report SET ?";
     sendQuery(query, data);
+}
+
+
+exports.getImage = function(req, res) {
+//    console.log("req.params: ", req.params);
+//    console.log("req.params.imagepath: ", req.params.imagepath);
+//    console.log("req.param('imagepath'): ", req.param('imagepath'));
+
+    // 파일 패스 설정
+    var imageType = baseImageDir;
+    if ( req.params.imagepath.indexOf("o_") != -1){
+        imageType = "original/";
+    }else if(req.params.imagepath.indexOf("l_") != -1) {
+        imageType = "large/";
+    }else{
+        imageType = "thumbs/";
+    }
+
+    var mimeType = mime.lookup(req.params.imagepath);
+
+    var filepath = path.normalize(baseImageDir + imageType + req.params.imagepath);
+    console.log('filepath', filepath);
+    fs.exists(filepath, function (exists) {
+        console.log(exists);
+        if (exists) {
+            res.set('Content-Type', mimeType);
+            var rs = fs.createReadStream(filepath);
+            rs.pipe(res);
+        } else {
+            res.json(404, {
+                data: "No phto found!!!"
+            });
+        }
+    });
 }
