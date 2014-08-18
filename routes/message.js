@@ -41,6 +41,14 @@ exports.getMessageGroupList = function(req,res){
     //다시 한번 보기
     // 메시지 그룹의 리스트를 가져오는 쿼리문
     // 해당 거래의 메시지를 가저옴
+
+
+
+
+    // do_show = 0인 메시지를 삭제한 모습을 구현 해야함
+
+
+
     var query =
         "SELECT m.from_user_id, nickname, image, m.trade_id, title, message, be_message_cnt, m.create_date " +
         "FROM (SELECT * FROM user WHERE sleep_mode = 0) u JOIN message m ON m.from_user_id = u.user_id " +
@@ -96,7 +104,7 @@ exports.destroyMessageGroup = function(req,res){
 exports.createMessage = function(req,res){
     //req.body = fields;
 
-    console.log(fields);
+    //console.log(fields);
 
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
