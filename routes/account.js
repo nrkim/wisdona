@@ -177,6 +177,10 @@ exports.updateAccountSettings = function(req,res){
     updated.push_settings = req.body.push_settings  || null;
 
 
+    if(updated.push_settings){
+        updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, 0);
+    }
+
     query =
         'UPDATE user SET ? WHERE user_id = ? ';
 
