@@ -308,9 +308,9 @@ exports.cancelPost = function(req,res){
     //    6-2. trade_log에 기록
 
 
-    var form = new formidable.IncomingForm();
+//    var form = new formidable.IncomingForm();
 
-    form.parse(req, function(err, fields) {
+//    form.parse(req, function(err, fields) {
 
         getConnection(function (connection) {
 
@@ -320,7 +320,7 @@ exports.cancelPost = function(req,res){
                         "SELECT p.user_id, t.trade_id, t.req_user_id, t.current_status " +
                         "FROM post p JOIN trade t ON p.post_id = t.post_id " +
                         "WHERE p.post_id = ? and t.current_status NOT IN(92, 91);";
-                    var data = [fields.post_id];
+                    var data = req.body.post_id; //[fields.post_id];
                     connection.query(query, data, function (err, rows, fields) {
                         if (err) {
                             callback(err);
@@ -345,7 +345,7 @@ exports.cancelPost = function(req,res){
                     // 게시물 삭제로 변경
 
                     req.body.connection = connection;
-                    req.body.post_id = fields.post_id;
+                    // req.body.post_id =  fields.post_id;
                     req.body.callback = function (err) {
                         if (err) {
                             callback(err)
@@ -448,5 +448,5 @@ exports.cancelPost = function(req,res){
                 }
             );
         });
-    })
+ //   })
 };
