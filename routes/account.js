@@ -156,6 +156,10 @@ exports.updateAccountSettings = function(req,res){
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     console.log('user_id : ',user_id);
+    console.log( 'nickname is : ', req.body.nick_name);
+    console.log('self_intro  : ',req.body.self_intro);
+    console.log('name : ',req.body.name);
+    console.log('phon')
 
     var updated = {};
 
@@ -167,16 +171,33 @@ exports.updateAccountSettings = function(req,res){
     updated.address = req.body.address              || null;
     updated.push_settings = req.body.push_settings  || null;
 
+
+    template_item(
+        "SELECT nickname FROM user WHERE nickname = ?",
+        [nickname],
+        function(err,rows,msg){
+            if (err) { res.json(trans_json(msg,0)); }
+            else {
+                if (rows.length ==0){
+                    template_item(
+                        query,
+                        [updated,user_id],
+                        function(err,rows,msg){
+                            if (err) res.json(trans_json(msg,0));
+                            else res.json(trans_json(msg,1));
+                        }
+                    );
+                }else{
+                    res.json(trans_json('닉네임이 중복됩니다. 다시 입력해 주세요',0));
+                }
+
+            }
+        }
+    );
+
     //console.log(updated);
     query =
         'UPDATE user SET ? WHERE user_id = ? ';
 
-    template_item(
-        query,
-        [updated,user_id],
-        function(err,rows,msg){
-            if (err) res.json(trans_json(msg,0));
-            else res.json(trans_json(msg,1));
-        }
-    );
+
 };

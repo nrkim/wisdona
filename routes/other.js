@@ -97,6 +97,7 @@ exports.getFaqList = function(req,res){
         null,
         faq_list,
         function(err,result,msg){
+            console.log(trans_json(msg,1,result));
             if(err) res.json(trans_json(msg,0));
             if(result) res.json(trans_json(msg,1,result));
             else res.json(trans_json(msg,1));
