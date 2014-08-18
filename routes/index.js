@@ -91,7 +91,7 @@ module.exports = function(app,passport) {
     });
     app.get('/users/:user_id/profile/show', account.getUserInfo);
     app.post('/users/destroy', isLoggedIn, account.destroyUserAccount);
-    app.get('/users/:user_id/account-settings/show', account.getAccountSettings);
+    app.get('/users/:user_id/account-settings/show', express.bodyParser(), account.getAccountSettings);
     app.post('/users/:user_id/account-settings/update', /*account.uploadImage,*/ account.updateAccountSettings);
 
     // 사용자

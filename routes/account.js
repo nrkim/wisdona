@@ -178,7 +178,8 @@ exports.updateAccountSettings = function(req,res){
 
 
     if(updated.push_settings){
-        updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, 0);
+
+        updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
     }
 
     query =
