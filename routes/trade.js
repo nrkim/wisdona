@@ -89,8 +89,8 @@ exports.sendRequestPost = function(req,res){
                         query = "INSERT INTO trade SET ?";
                         data = {req_user_id:req.params.user_id, post_id : req.body.post_id}
                             //post_id:fields.post_id};
-                        console.log('post_id is : ',post_id);
-                        console.log('user_id is : ',user_id);
+                        console.log('post_id is : ',req.body.post_id);
+                        console.log('user_id is : ',req.params.user_id);
 
                         connection.query(query, data, function (err, result) {
                             if (err) {
