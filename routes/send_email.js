@@ -26,6 +26,8 @@ exports.requestActivationEmail = function(req,res){
     //이메일 파라미터 전달
     var email = req.params.email || res.json(trans_json('이메일을 입력하지 않았습니다.',0));
 
+    console.log(email);
+
     //타입 체크
     if(typeof email !== 'string') res.json(trans_json('이메일 타입은 문자열 타입이어야 합니다.',0));
 
