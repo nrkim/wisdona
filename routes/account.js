@@ -96,6 +96,8 @@ exports.getAccountSettings = function(req,res){
         "FROM (SELECT * FROM user WHERE sleep_mode = 0) u " +
         "WHERE user_id = ?";
 
+    console.log('getAccountSettings!!');
+
     template_list(
         query,
         [user_id],
@@ -107,6 +109,7 @@ exports.getAccountSettings = function(req,res){
                 result[0].push_settings =
                     _.map(result[0].push_settings.split(','),
                         function(str){ return Number(str); });
+                console.log('push settings : ',result[0].push_settings);
                 res.json(trans_json('success', 1, result[0]));
             }
             else res.json(trans_json(msg,0));   // 일치하는 결과가 없을 때는 에러
