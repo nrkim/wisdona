@@ -59,7 +59,7 @@ exports.getServiceTerms = function(req,res){
         policy,
         function(err,result,msg){
             if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json(msg,1,result));
+            if(result) res.json(trans_json(msg,1,result[0]));
             else res.json(trans_json(msg,1));
         }
     );
@@ -72,7 +72,7 @@ exports.getPrivacy = function(req,res) {
         policy,
         function(err,result,msg){
             if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json(msg,1,result));
+            if(result) res.json(trans_json(msg,1,result[0]));
             else res.json(trans_json(msg,1));
         }
     );
