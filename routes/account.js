@@ -21,7 +21,7 @@ var _ = require('underscore')
     ,path = require('path')
     mime = require('mime');
 
-var formidable = require('formidable');
+//var formidable = require('formidable');
 
 
 // api: /users/:user_id/profile/show
@@ -157,6 +157,7 @@ exports.updateAccountSettings = function(req,res){
 
     console.log('user_id : ',user_id);
     console.log( 'nickname is : ', req.body.nick_name);
+    console.log( 'nickname is : ', req.body.nickname);
     console.log('self_intro  : ',req.body.self_intro);
     console.log('name : ',req.body.name);
     console.log('phon')
