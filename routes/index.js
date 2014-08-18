@@ -18,17 +18,20 @@ var account = require('../routes/account')
 var isLoggedIn = function (req, res, next) {
 
     if (req.isAuthenticated()) {
+        console.log('user is : ', req.user);
+        console.log('session id is : ',req.session.passport.user);
         console.log('athentication 되있습니다.')
         return next();
     }
-
-    res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
+    else {
+        res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
+    }
 };
 
 module.exports = function(app,passport) {
 
     // 로그인
-    app.post('/login', express.bodyParser(), function(req, res, next) {
+    app.post('/login', function(req, res, next) {
         console.log('email function !!! ',req.body.email);
         console.log('password is :::', req.body.password);
 
@@ -69,12 +72,14 @@ module.exports = function(app,passport) {
             );
             })(req, res, next);*/
 
-    app.post('/facebook-logout', login.facebookLogout);
+    app.post('/facebook-logout',
+        express.bodyParser(),
+        login.facebookLogout);
     
-    app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
-    app.get('/request-activation-email/:email', send_email.requestActivationEmail);
-    app.post('/request-send-email', send_email.requestSendEmail);
-    app.post('/logout',isLoggedIn,login.logout);
+    app.post('/users/:user_id/account-settings/password/update', express.bodyParser(), login.updatePassword);
+    app.get('/request-activation-email/:email',express.bodyParser(), send_email.requestActivationEmail);
+    app.post('/request-send-email', express.bodyParser(), send_email.requestSendEmail);
+    app.post('/logout',express.bodyParser(),isLoggedIn,login.logout);
     app.get('/activation-email/:authkey', login.activationEmail);
 
     // 계정 생성,정보 관련
@@ -88,9 +93,9 @@ module.exports = function(app,passport) {
         })(req, res, next);
     });
     app.get('/users/:user_id/profile/show', account.getUserInfo);
-    app.post('/users/destroy',isLoggedIn, account.destroyUserAccount);
+    app.post('/users/destroy',express.bodyParser(), isLoggedIn, account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', account.getAccountSettings);
-    app.post('/users/:user_id/account-settings/update', account.uploadImage, account.updateAccountSettings);
+    app.post('/users/:user_id/account-settings/update', /*account.uploadImage,*/ account.updateAccountSettings);
 
     // 사용자
     app.get('/users/:user_id/posts/list', user.getUserPostList);
@@ -105,9 +110,9 @@ module.exports = function(app,passport) {
     app.get('/users/:user_id/message-groups/:trade_id/unread/list',isLoggedIn,message.getUnreadMessgeList);
     app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',isLoggedIn,message.confirmMessage);
 
-
     // 평가
-    app.post('/users/:user_id/reviews/create',isLoggedIn, review.createUserReview);
+    app.post('/users/:user_id/reviews/create',/*express.bodyParser(),*/
+        isLoggedIn, review.createUserReview);
 
     // 게시물
     app.post('/users/:user_id/posts/create',isLoggedIn, post.createPost, post.uploadImages);

@@ -14,7 +14,6 @@ var message_window = json.message_window
     ,template_transaction = template.template_transaction
     ,unread_msgs=json.unread_msgs
     ,unread_msg_lst= json.unread_msg_lst;
-//var formidable = require('formidable');
 
 
 // api : /users/:user_id/message-groups/list
@@ -194,7 +193,7 @@ exports.getUnreadMessgeList = function(req,res){
 
     // 테스트 케이스 trade_id =4, user_id = 5
     // 트렌젝션 할 필요 없음
-
+/*
     template_list(
         get_query,
         [user_id],
@@ -204,7 +203,23 @@ exports.getUnreadMessgeList = function(req,res){
             else {res.json(trans_json("sucess",1,result));}
         }
     );
-/*
+*/
+    /*
+    connectionPool.getConnection(function (err, connection) {
+        if (err) {
+            console.log('데이터베이스 연결 오류');
+            verify(err,false,"데이터 베이스 연결 오류 입니다.");
+        } else {
+            connection.query(get_query, [user_id], function (err, rows) {
+                console.log('get query : ',get_query);
+                console.log('user id : ',user_id);
+                console.log('rows is : ',rows);
+                res.json(trans_json('test',1));
+            });
+        }
+    });
+*/
+
     template_list(
         get_query,
         { to_user_id  : user_id},
@@ -231,7 +246,7 @@ exports.getUnreadMessgeList = function(req,res){
             }
         }
     );
-    */
+
 /*
     connectionPool.getConnection(function(err,connection) {
         template_transaction(

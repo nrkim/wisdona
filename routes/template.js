@@ -17,15 +17,16 @@ exports.template_list = function(query,params,get_json,verify){
             verify(err,false,"데이터 베이스 연결 오류 입니다.");
         } else {
             connection.query(query, params, function (err, rows) {
+                console.log('query : ',query);
+                console.log('params : ',params);
+                console.log('rows... is : ',rows);
+
                 if (err) {
                     console.log('err',err.message);
                     connection.release();
                     verify(err,false,'sql 쿼리 오류입니다.');
                 }
                 else {
-                    console.log('query : ',query);
-                    console.log('params : ',params);
-                    console.log('rows... is : ',rows);
                     if (rows.length==0) {
                         console.log('rows... length = ',rows.length);
                         connection.release();
@@ -43,6 +44,7 @@ exports.template_list = function(query,params,get_json,verify){
                                     verify(err,false, "리스트를 가져오지 못했습니다");
                                 } else {
                                     console.log(results);
+                                    connection.commit();
                                     connection.release();
                                     verify(null,results,'success',rows);
                                 }
@@ -81,6 +83,7 @@ exports.template_item = function(query,params,verify){
         });
     });
 };
+
 
 
 

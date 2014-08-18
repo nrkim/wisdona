@@ -11,10 +11,8 @@ var json = require('./json')
     ,genre_list = json.genre_list
     ,template_item = template.template_item
     ,template_list = template.template_list;
-var formidable = require('formidable');
 
 exports.getGenreList = function(req,res) {
-
     template_item(
         "SELECT genre_id, genre FROM genre",
         null,
@@ -28,7 +26,6 @@ exports.getGenreList = function(req,res) {
 
 
 exports.getBookConditionList = function(req,res) {
-
     template_list(
         "SELECT * FROM book_condition",
         null,
@@ -42,23 +39,17 @@ exports.getBookConditionList = function(req,res) {
 };
 
 exports.getQnaList = function(req,res){
-    var form = new formidable.IncomingForm();
+    var user_id = req.params.user_id || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.", 0));
+    var question = req.body.question || res.json(trans_json("질문을 입력하지 않았습니다.", 0));
 
-    form.parse(req, function(err, fields) {
-        req.body = fields;
-
-        var user_id = req.params.user_id || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.", 0));
-        var question = req.body.question || res.json(trans_json("질문을 입력하지 않았습니다.", 0));
-
-        template_item(
-            "INSERT INTO qna(question,create_date,user_id) VALUES(?,NOW(),?) ",
-            [question, user_id],
-            function(err,rows,msg){
-                if(err) res.json(trans_json(msg,0));
-                else res.json(trans_json(msg,1));
-            }
-        );
-    });
+    template_item(
+        "INSERT INTO qna(question,create_date,user_id) VALUES(?,NOW(),?) ",
+        [question, user_id],
+        function(err,rows,msg){
+            if(err) res.json(trans_json(msg,0));
+            else res.json(trans_json(msg,1));
+        }
+    );
 };
 
 exports.getServiceTerms = function(req,res){

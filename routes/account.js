@@ -155,6 +155,8 @@ exports.updateAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
+    console.log('user_id : ',user_id);
+
     var updated = {};
 
     updated.nickname = req.body.nick_name           || null;

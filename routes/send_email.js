@@ -12,8 +12,8 @@ var nodemailer = require('nodemailer')
     ,tmplate_post = template.template_post
     ,template_item = template.template_item
     ,trans_json = require('../routes/json').trans_json;
-//var formidable = require('formidable');
 var crypto = require('crypto');
+var smtpTransport = require('nodemailer-smtp-transport');
 
 
 

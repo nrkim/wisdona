@@ -11,7 +11,6 @@ var trans_json = json.trans_json
     ,template_post = template.template_post
     ,template_item = template.template_item
     ,create_password = template.create_password;
-var formidable = require('formidable');
 var create_hash = template.create_hash;
 var async = require('async');
 var request = require('request');
@@ -114,65 +113,55 @@ exports.activationEmail = function(req,res){
 
 exports.updatePassword = function(req,res){
 
-    console.log('update password!!!');
-    var form = new formidable.IncomingForm();
+    console.log(fields);
 
-    form.parse(req, function(err, fields) {
-        req.body = fields;
-
-        console.log(fields);
-
-        var user_id = req.session.passport.user || res.json(trans_json("로그아웃되었습니다. 다시 로그인 해주세요.", 0));
-        var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.",0));
-        var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));
+    var user_id = req.session.passport.user || res.json(trans_json("로그아웃되었습니다. 다시 로그인 해주세요.", 0));
+    var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.",0));
+    var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));
 
 
-        console.log('user id : ',user_id);
-        console.log("old password is : ",old_password);
-        console.log("new password is : ",new_password);
+    console.log('user id : ',user_id);
+    console.log("old password is : ",old_password);
+    console.log("new password is : ",new_password);
 
 
 
-        connectionPool.getConnection(function(err, connection) {
-            if (err) {
-                res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
-            }
+    connectionPool.getConnection(function(err, connection) {
+        if (err) {
+            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
+        }
 
-            var query = "SELECT password FROM user WHERE user_id = ?"
-            connection.query(query,[user_id], function(err, rows, fields) {
-                if(err){
-                    connection.release();
-                    res.json(trans_json(err.code+" sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
-                }
-                if (!rows){
-                    res.json(trans_json("존재하지 않는 사용자입니다.",0));
-                }
-                bcrypt.compare(old_password,rows[0].password, function(err, result) {
-                    if (!result){
-                        return res.json(trans_json('현재 비밀번호가 틀렸습니다. 다시입력해 주십시오',0));
-                    }
-
-                    create_password(new_password,function(err,pass){
-                        if(err){ res.json(trans_json('비밀번호 생성에 실패했습니다.',0));}
-                        else {
-                            var query = "update user set password = ? where user_id = ?"
-                            template_post(
-                                res,
-                                query,
-                                [pass, user_id]
-                            );
-                        }
-                    });
-
-
-                });
+        var query = "SELECT password FROM user WHERE user_id = ?"
+        connection.query(query,[user_id], function(err, rows, fields) {
+            if(err){
                 connection.release();
+                res.json(trans_json(err.code+" sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
+            }
+            if (!rows){
+                res.json(trans_json("존재하지 않는 사용자입니다.",0));
+            }
+            bcrypt.compare(old_password,rows[0].password, function(err, result) {
+                if (!result){
+                    return res.json(trans_json('현재 비밀번호가 틀렸습니다. 다시입력해 주십시오',0));
+                }
+
+                create_password(new_password,function(err,pass){
+                    if(err){ res.json(trans_json('비밀번호 생성에 실패했습니다.',0));}
+                    else {
+                        var query = "update user set password = ? where user_id = ?"
+                        template_post(
+                            res,
+                            query,
+                            [pass, user_id]
+                        );
+                    }
+                });
+
 
             });
+            connection.release();
+
         });
     });
-/*
 
-async로 풀기
-*/
 };
