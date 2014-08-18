@@ -66,14 +66,14 @@ function updateTrade(connection, trade_id, status_id, callback) {
 
 exports.sendRequestPost = function(req,res){
 
-    var form = new formidable.IncomingForm();
+//    var form = new formidable.IncomingForm();
 
-    form.parse(req, function(err, fields) {
+//    form.parse(req, function(err, fields) {
 
         // 파라미터 체크
-        if ( !req.params.user_id || !fields.post_id  ){
-            res.json(getJsonData(0, '값이 없습니다.', null));
-        }else{
+//        if ( !req.params.user_id || !fields.post_id  ){
+//            res.json(getJsonData(0, '값이 없습니다.', null));
+//        }else{
             // 쿼리 요청
             getConnection(function (connection) {
 
@@ -87,7 +87,8 @@ exports.sendRequestPost = function(req,res){
 
                         // 거래 테이블 생성
                         query = "INSERT INTO trade SET ?";
-                        data = {req_user_id:req.params.user_id, post_id:fields.post_id};
+                        data = {req_user_id:req.params.user_id, post_id : req.body.post_id}
+                            //post_id:fields.post_id};
                         console.log('post_id is : ',post_id);
                         console.log('user_id is : ',user_id);
 
@@ -135,8 +136,8 @@ exports.sendRequestPost = function(req,res){
                     }
                 });
             });
-        }
-    });
+//        }
+//    });
 
 };
 
