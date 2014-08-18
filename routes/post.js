@@ -11,6 +11,8 @@ var _ = require('underscore'),
     im = require('imagemagick'),
     formidable = require('formidable');
 
+var promotion = require('./promotion');
+
 
 // 출력 JSON
 function getJsonData( code, message, result ){
@@ -84,7 +86,7 @@ function deleteImage(row, callback) {
 
 // 웹 서버에 원본, 중간, 썸네일 이미지 저장
 function saveImage(image, callback) {
-
+        console.log(image);
 
     if (image.size) {
 
@@ -216,9 +218,68 @@ function deleteImageQuery(connection, post_image_id, callback) {
     });
 }
 
+function destroyPostQuery(connection, post_id, user_id, callback ){
+    var query = "UPDATE post SET current_status = 1 WHERE post_id = ? and user_id = ?;";
+    var data = [post_id, user_id];
+
+    connection.query(query, data, function (err, result) {
+        if (err) {
+            callback(err);
+        }else{
+            if ( !result.affectedRows ){
+                callback(new Error("삭제할 게시물이 없습니다."));
+            }else{
+                var sanction = require('./sanction');
+
+                async.parallel([
+                    function (cb) {
+                        // 제제 게시물이면 addSanction
+                        sanction.checkSanctionPost(connection, post_id, user_id, function (err, is_sanction) {
+                            if ( err ){
+                                cb(err);
+                            }else{
+                                // 제제 대상 게시물
+                                if ( is_sanction ){
+                                    var cause = '철회';
+                                    sanction.addSanction(connection, user_id, cause, 30, function (err) {
+                                        if(err){
+                                            cb(err);
+                                        }else{
+                                            cb();
+                                        }
+                                    })
+                                }else{
+                                    cb();
+                                }
+                            }
+                        });
+                    },
+                    function (cb) {
+                        // 프로모션 게시물 체크
+                        promotion.destroyPost(connection, post_id, user_id, function (err) {
+                            if ( err ){
+                                cb(err);
+                            }else{
+                                cb();
+                            }
+                        })
+                    }],
+                    function (err) {
+                        if (err){
+                            callback(err);
+                        }else{
+                            callback();
+                        }
+                    }
+                );
+            }
+        }
+    });
+}
+
 
 exports.createPost = function(req,res,next) {
-
+    console.log('들어왔음');
     var form = new formidable.IncomingForm();
     form.uploadDir = path.normalize(__dirname + '/../tmp/');
     form.keepExtensions = true;
@@ -231,25 +292,33 @@ exports.createPost = function(req,res,next) {
         if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.genre_id == null || req.body.name == null || req.body.is_certificate == null) {
             return res.json(getJsonData(0, "파라미터 값이 없습니다.", null));
         }
+        console.log('fields.is_certificate' , fields.is_certificate);
 
         //////// 이미지 파일 아닐 경우 처리 필요 ////////
         async.waterfall([
-            function(cb1) {
-                console.log(files);
+            function(callback) {
                 var filesArr = _.map(files, function(file) {
                     return file;
                 });
-                cb1(null, filesArr);
+                callback(null, filesArr);
             },
-            function(filesArr, cb1) {
+            function(filesArr, callback) {
                 req.uploadFiles = [];
 
-                saveImage(filesArr, function (err, uploadFiles) {
-                    if ( err ){
-                        cb1(err);
+                async.each(filesArr, function (image, cb) {
+                    saveImage(image, function (err, uploadFiles) {
+                        if ( err ){
+                            cb(err);
+                        }else{
+                            req.uploadFiles.push(uploadFiles);
+                            cb();
+                        }
+                    })
+                }, function (err) {
+                    if( err){
+                        callback(err);
                     }else{
-                        req.uploadFiles = uploadFiles;
-                        cb1();
+                        callback();
                     }
                 })
             }
@@ -335,29 +404,48 @@ exports.uploadImages = function (req, res) {
             },
             // 4. post_id 참조 사진 등록(썸네일 이미지 제작, 파일 패스 DB 등록)
             function (post_id, callback) {
-                query = 'INSERT INTO post_image(original_image_path, large_image_path, thumbnail_path, mime, post_id) VALUES(?, ?, ?, ?, ?)';
-                var photos = req.uploadFiles;
-                async.each(
-                    photos,
-                    function (photo, callback) {
-                        var mimeType = mime.lookup(photo.originalPath);
-                        data = [path.basename(photo.originalPath), path.basename(photo.largePath), path.basename(photo.thumbPath), mimeType, post_id];
-                        connection.query(query, data, function (err, result) {
-                            if (err) {
-                                callback(err);
-                            } else {
-                                callback();
+                async.parallel([
+                    function (cb) {
+                        query = 'INSERT INTO post_image(original_image_path, large_image_path, thumbnail_path, mime, post_id) VALUES(?, ?, ?, ?, ?)';
+                        var photos = req.uploadFiles;
+                        async.each(
+                            photos,
+                            function (photo, cb2) {
+                                var mimeType = mime.lookup(photo.originalPath);
+                                data = [path.basename(photo.originalPath), path.basename(photo.largePath), path.basename(photo.thumbPath), mimeType, post_id];
+                                connection.query(query, data, function (err, result) {
+                                    if (err) {
+                                        cb2(err);
+                                    } else {
+                                        cb2();
+                                    }
+                                });
+                            },
+                            function (err) {
+                                if (err) {
+                                    cb(err);
+                                } else {
+                                    cb();
+                                }
                             }
-                        });
+                        );
                     },
-                    function (err) {
-                        if (err) {
-                            callback(err);
-                        } else {
-                            callback();
-                        }
+                    function (cb) {
+                        promotion.createPost(connection, post_id, req.params.user_id, function (err) {
+                            if ( err ){
+                                cb(err);
+                            }else{
+                                cb();
+                            }
+                        })
                     }
-                );
+                ], function (err) {
+                    if(err){
+                        callback(err);
+                    }else{
+                        callback();
+                    }
+                })
             }
         ], function (err) {
             if (err) {
@@ -575,55 +663,43 @@ exports.updatePost = function(req,res){
 };
 
 // 게시물 삭제
-exports.destroyPost = function(req,res){
-
-    // 쿼리 요청
-    var query = "UPDATE post SET current_status = 1 WHERE post_id = ? and user_id = ?;";
-    var data = [];
-
-    if (req.body.connection){
-        data = [req.body.post_id, req.params.user_id];
-        console.log(data);
-        req.body.connection.query(query, data, function (err, result) {
+exports.destroyPost = function(req,res) {
+    if (req.body.connection) {
+        destroyPostQuery(req.body.connection, req.body.post_id, req.params.user_id, function (err) {
             if (err) {
                 req.body.callback(err);
-            }else{
-                if ( !result.affectedRows ){
-                    req.body.callback(new Error("삭제할 게시물이 없습니다."));
-                }else{
-                    req.body.callback();
-                }
+            } else {
+                req.body.callback();
             }
         });
-    }else{
+    } else {
         var form = new formidable.IncomingForm();
-        form.parse(req, function(err, fields) {
-
+        form.parse(req, function (err, fields) {
             // 파라미터 체크
-            if ( !fields.post_id ){
+            if (!fields.post_id) {
                 res.json(getJsonData(0, 'post_id 값이 없습니다.', null));
-            }else{
-                data = [fields.post_id, req.params.user_id]
-                console.log(data);
+            } else {
+                data = [fields.post_id, req.params.user_id];
                 getConnection(function (connection) {
-                    connection.query(query, data, function (err, result) {
+
+                    destroyPostQuery(connection, fields.post_id, req.params.user_id, function (err) {
                         if (err) {
                             connection.release();
                             res.json(getJsonData(0, err.message, null));
-                        }else{
+                        } else {
                             connection.commit(function (err) {
                                 if (err) {
                                     connection.rollback(function () {
                                         connection.release();
                                         res.json(getJsonData(0, err.message, null));
                                     });
-                                }else{
+                                } else {
                                     connection.release();
                                     res.json(getJsonData(1, 'success', null));
                                 }
                             });
                         }
-                    })
+                    });
                 });
             }
         });
