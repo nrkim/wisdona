@@ -117,7 +117,7 @@ exports.requestActivationEmail = function(req,res){
 
         transporter.sendMail(mailOptions, function (err, info) {
             if (err) {
-                console.log(err.message);
+                console.log("err is : ",err.message);
                 res.json(trans_json('인증메일 전송에 실패했습니다.',0));
                 //logger.error(err);
             } else {
