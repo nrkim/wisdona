@@ -164,7 +164,7 @@ exports.updateAccountSettings = function(req,res){
 
     var updated = {};
 
-    updated.nickname = req.body.nick_name           || null;
+    //updated.nickname = req.body.nick_name           || null;
     updated.image = req.uploadFile                  || null;
     updated.self_intro = req.body.self_intro        || null;
     updated.name = req.body.name                    || null;
@@ -173,32 +173,49 @@ exports.updateAccountSettings = function(req,res){
     updated.push_settings = req.body.push_settings  || null;
 
 
-    template_item(
-        "SELECT nickname FROM user WHERE nickname = ?",
-        [nickname],
-        function(err,rows,msg){
-            if (err) { res.json(trans_json(msg,0)); }
-            else {
-                if (rows.length ==0){
-                    template_item(
-                        query,
-                        [updated,user_id],
-                        function(err,rows,msg){
-                            if (err) res.json(trans_json(msg,0));
-                            else res.json(trans_json(msg,1));
-                        }
-                    );
-                }else{
-                    res.json(trans_json('닉네임이 중복됩니다. 다시 입력해 주세요',0));
-                }
-
-            }
-        }
-    );
-
-    //console.log(updated);
     query =
         'UPDATE user SET ? WHERE user_id = ? ';
+
+    template_item(
+        query,
+        [updated,user_id],
+        function(err,rows,msg){
+            if (err) res.json(trans_json(msg,0));
+            else res.json(trans_json(msg,1));
+        }
+    );
+/*
+    if(nickname){
+        template_item(
+            "SELECT nickname FROM user WHERE nickname = ?",
+            [nickname],
+            function(err,rows,msg){
+                if (err) { res.json(trans_json(msg,0)); }
+                else {
+                    if (rows.length ==0){
+                        template_item(
+                            query,
+                            [updated,user_id],
+                            function(err,rows,msg){
+                                if (err) res.json(trans_json(msg,0));
+                                else res.json(trans_json(msg,1));
+                            }
+                        );
+                    }else{
+                        res.json(trans_json('닉네임이 중복됩니다. 다시 입력해 주세요',0));
+                    }
+
+                }
+            }
+        );
+    } else{
+
+    }
+
+
+    //console.log(updated);
+
+        */
 
 
 };
