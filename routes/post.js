@@ -96,8 +96,13 @@ function saveImage(image, callback) {
                 callback(err);
             } else {
                 console.log('Original file(', image.name, ') moved!!!');
+<<<<<<< Updated upstream
                 var largePath = __dirname + "/../images/large/" + "l_" + path.normalize(path.basename(image.path));
                 var thumbPath = __dirname + "/../images/thumbs/" + "t_" + path.normalize(path.basename(image.path));
+=======
+                var largePath = path.normalize(baseImageDir + "large/" + "l_" + path.basename(image.path));
+                var thumbPath = path.normalize(baseImageDir + "thumbs/" + "t_" + path.basename(image.path));
+>>>>>>> Stashed changes
 
                 async.series([
                         function (cb) {
@@ -652,12 +657,12 @@ exports.getPostDetail = function(req,res){
         "b.title, b.author, b.translator, b.publisher, b.pub_date, g.genre, " +
         "t.trade_id, t.current_status, ru.user_id req_user_id, ru.nickname req_nickname, ru.image req_image " +
         "FROM post p " +
-        "LEFT JOIN user u ON p.user_id = u.user_id " +
-        "LEFT JOIN post_image pi ON p.post_id = pi.post_id " +
-        "LEFT JOIN book b ON p.book_id = b.book_id " +
-        "LEFT JOIN genre g ON b.genre_id = g.genre_id " +
-        "LEFT JOIN (SELECT trade_id, current_status, post_id, req_user_id FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " +
-        "LEFT JOIN user ru ON t.req_user_id = ru.user_id " +
+        "JOIN user u ON p.user_id = u.user_id " +
+        "JOIN post_image pi ON p.post_id = pi.post_id " +
+        "JOIN book b ON p.book_id = b.book_id " +
+        "JOIN genre g ON b.genre_id = g.genre_id " +
+        "JOIN (SELECT trade_id, current_status, post_id, req_user_id FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " +
+        "JOIN user ru ON t.req_user_id = ru.user_id " +
         "WHERE p.post_id = ?;";
     console.log(query);
     var data = [post_id];
