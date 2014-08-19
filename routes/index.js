@@ -30,9 +30,10 @@ var isLoggedIn = function (req, res, next) {
 module.exports = function(app,passport) {
 
     // 로그인
-    app.post('/login', function(req, res, next) {
+    app.post('/login', express.bodyParser(),function(req, res, next) {
         console.log('email function !!! ',req.body.email);
         console.log('password is :::', req.body.password);
+
 
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
@@ -40,7 +41,7 @@ module.exports = function(app,passport) {
                 res.json(trans_json(info.loginMessage,0));
             } else {
                 req.logIn(user, function(err) {
-                    if (err) { res.json(trans_json("falil",0)); }
+                    if (err) { res.json(trans_json("fail",0)); }
                     else{ res.json(trans_json("success",1,create_user(user.user_id)));}
                 });
             }
@@ -103,17 +104,20 @@ module.exports = function(app,passport) {
     app.post('/facebook-logout',login.facebookLogout);
 
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
-    app.get('/request-activation-email/:email', send_email.requestActivationEmail);
+    app.get('/request-activation-email/:user_id', send_email.requestActivationEmail);
     app.post('/request-send-email', send_email.requestSendEmail);
     app.post('/logout', isLoggedIn,login.logout);
     app.get('/activation-email/:authkey', login.activationEmail);
 
     // 계정 생성,정보 관련
-    app.post('/users/create',function(req, res, next) {
+    app.post('/users/create',express.bodyParser(), function(req, res, next) {
+        console.log('sign up user');
+
         passport.authenticate('local-signup', function(err, user, info) {
             if (user === false) {
                 res.json(trans_json(info.signupMessage,0));
             } else {
+                console.log('user is :',user);
                 res.json(trans_json("success",1,create_user(user.user_id)));
             }
         })(req, res, next);

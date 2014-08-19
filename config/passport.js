@@ -52,12 +52,7 @@ module.exports = function(passport) {
             passReqToCallback: true
         },
         function (req, email, password, done) {
-
-/*
-            process.nextTick(function(){
-
-            });
-*/
+            console.log('passport user!!!');
 
             process.nextTick(function () {
                 connectionPool.getConnection(function (err, connection) {

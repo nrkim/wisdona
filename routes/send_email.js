@@ -13,18 +13,25 @@ var nodemailer = require('nodemailer')
     ,template_item = template.template_item
     ,trans_json = require('../routes/json').trans_json;
 var crypto = require('crypto');
-
+var sesTransport = require('nodemailer-ses-transport');
 
 // api : /request-activation-email/:user_id
 exports.requestActivationEmail = function(req,res){
 
     //이메일 파라미터 전달
-    var email = req.params.email || res.json(trans_json('이메일을 입력하지 않았습니다.',0));
+    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json('유저 아이디를 입력하지 않았습니다.',0));
 
-    console.log(email);
-
+    var email ='';
     //타입 체크
-    if(typeof email !== 'string') res.json(trans_json('이메일 타입은 문자열 타입이어야 합니다.',0));
+    if(typeof user_id !== 'number') res.json(trans_json('유저 아이디는 숫자 타입이어야 합니다.',0));
+
+    //이메일 얻는 함수
+    var get_email = function(callback){
+        template_item(
+            "SELECT email FROM user WHERE user_id = ?",
+            [user_id]
+        )
+    };
 
     //인증 토큰 생성
     var random_token = function (callback){
@@ -39,75 +46,72 @@ exports.requestActivationEmail = function(req,res){
                         if (err) { callback('sql 쿼리 오류 입니다.'); }
                         else {
                             if(rows.length == 0){ callback(null,token); }
-                            else{ random_token(callback); }
+                            else{ random_token(callback); } //같은 인증 토큰이 있으면 다시 수행.
                         }
                     }
                 );
             }
         });
-    }
+    };
 
     // 토큰 저장
     var insert_auth = function (token,callback){
         console.log('암호 생성 성공 ',token);
         template_item(
-            "SELECT email FROM email_auth WHERE email = ?",
-            [email],
+            "SELECT email FROM email_auth WHERE user_id = ?",
+            [user_id],
             function(err,rows,msg){
                 if(err){callback(msg);}
                 else{
-                    var now = new Date();
-                    var expire = function(n){ var v = new Date(); v.setDate(n.getDate() + 1); return v;}(now);
-                    now = now.format("yy-M-dd h:mm:ss");
+                    var expire = function(){ var v = new Date(); v.setDate(v.getDate() + 1); return v;}();
                     expire = expire.format("yy-M-dd h:mm:ss");
 
-                    console.log('now is ',now);
                     console.log('expires is : ',expire);
                     if(rows.length == 0){
                         console.log('이메일이 auth에 있지 않을 때');
                         template_item(
-                            "INSERT INTO email_auth(email,auth_token," +
-                            "create_date,expiration_date) VALUES(?,?,?,?) ",
-                            [email,token,now,expire],
+                            "INSERT INTO email_auth(user_id,email,auth_token,expiration_date)" +
+                            "SELECT user_id, email, ?, ?" +
+                            "FROM user u WHERE user_id = ? ",
+                            [token,expire,user_id],
                             function(err,rows,msg){
                                 if(err) {callback(msg);}
-                                else {callback(null,token);}
+                                else {callback(null,token,rows.insertId);}
                             }
                         );
                     }
                     else{
                         console.log('else case!!!');
                         template_item(
-                            "UPDATE email_auth SET auth_token = ?,create_date = ?, " +
-                            "expiration_date = ? WHERE email = ? ",
-                            [token,now,expire,email],
+                            "UPDATE email_auth SET auth_token = ?, " +
+                            "expiration_date = ? WHERE user_id = ? ",
+                            [token,expire,user_id],
                             function(err,rows,msg){
                                 if(err) {callback(msg);}
-                                else {callback(null,token);}
+                                else {callback(null,token,rows.insertId);}
                             }
                         );
                     }
                 }
             }
         );
-    }
+    };
 
     // 송신부
     var send_mail = function (token,callback){
         // 로컬 테스트 ; localhost:3000
-        template = '<a href="http://54.92.19.218/activation-email/'+token+'"> 계정 인증 url입니다. 클릭하세요. </a>';
+        template = '<a href="http://localhost:3000/activation-email/'+token+'"> 계정 인증 url입니다. 클릭하세요. </a>';
         console.log('template : ',template);
-        var transporter = nodemailer.createTransport({
-            service: authConfig.gmailAuth.service,
-            auth: {
-                user: authConfig.gmailAuth.user,
-                pass: authConfig.gmailAuth.pass
-            }
-        });
+        var transporter = nodemailer.createTransport(sesTransport({
+            accessKeyId : authConfig.sesAuth.key,
+            secretAccessKey : authConfig.sesAuth.secret,
+            region : authConfig.sesAuth.region,
+            rateLimit :1
+        }));
 
         var mailOptions = {
             from: 'nrkim1122@gmail.com',
-            to: [email],
+            to: [],
             subject: '[위즈도나] 인증 메일입니다.',
             html: template
         };
@@ -121,7 +125,7 @@ exports.requestActivationEmail = function(req,res){
                 res.json(trans_json('인증메일 전송에 성공했습니다.',1));
             }
         });
-    }
+    };
 
     async.waterfall([
         random_token,
@@ -186,13 +190,12 @@ exports.requestSendEmail = function (req,res){
                         }
                         connection.release();
 
-                        var transporter = nodemailer.createTransport({
-                            service: authConfig.gmailAuth.service,
-                            auth: {
-                                user: authConfig.gmailAuth.user,
-                                pass: authConfig.gmailAuth.pass
-                            }
-                        });
+                        var transporter = nodemailer.createTransport(sesTransport({
+                            accessKeyId : authConfig.sesAuth.key,
+                            secretAccessKey : authConfig.sesAuth.secret,
+                            region : authConfig.sesAuth.region,
+                            rateLimit :1
+                        }));
 
                         var mailOptions = {
                             from: 'nrkim1122@gmail.com',
