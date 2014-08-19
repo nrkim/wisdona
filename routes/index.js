@@ -46,10 +46,39 @@ module.exports = function(app,passport) {
             }
         })(req, res, next);
     });
+/*
+    app.post('/facebook-login',
+        express.bodyParser(),
+        function(req, res, next) {
+            template_item(
+                "SELECT nickname FROM user WHERE nickname = ?",
+                [req.body.nickname],
+                function (err, rows, msg) {
+                    if (err){ res.json(trans_json(err.message,0));}
+                    if (rows.length == 0) {
+                        console.log('length is 0!!!');
+                        req.dup_nickname = false;
+                        passport.authenticate('facebook-token', function(err, user, info) {
+                            if(user){ res.json(trans_json('success!!',1)); }
+                            else{ res.json(trans_json('fail!!',0)); }
+                        })(req, res, next);
+                    } else {
+                        req.dup_nickname = true;
+                        res.json(trans_json('닉네임이 중복됩니다.',0));
+                    }
+                }
+            );
+        });
+    */
 
     app.post('/facebook-login',
+        express.bodyParser(),
         passport.authenticate('facebook-token',{ scope: ['email'] }),
-        //login.facebookLogin);
+        login.facebookLogin);
+
+
+/*
+    app.post('/facebook-login',
         function(req, res, next) {
             console.log(req.body.nickname);
             template_item(
@@ -70,7 +99,7 @@ module.exports = function(app,passport) {
                 }
             );
         }
-    );
+    );*/
     app.post('/facebook-logout',login.facebookLogout);
 
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
