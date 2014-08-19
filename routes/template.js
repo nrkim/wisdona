@@ -74,7 +74,7 @@ exports.template_item = function(query,params,verify){
                 verify(err,false,'sql쿼리 오류입니다.');
             }
             else{
-                console.log('벼됵');
+                console.log('commit 성공');
                 connection.commit();
                 connection.release();
                 console.log('rows is ...',rows);

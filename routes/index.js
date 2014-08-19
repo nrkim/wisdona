@@ -42,6 +42,7 @@ module.exports = function(app,passport) {
                 req.logIn(user, function(err) {
                     if (err) { res.json(trans_json("fail",0)); }
                     else{
+                        req.session.passport.user = user.user_id;
                         res.json(trans_json("success",1,create_user(user.user_id)));
                     }
                 });
