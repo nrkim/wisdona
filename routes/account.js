@@ -102,15 +102,17 @@ exports.getAccountSettings = function(req,res){
         user_detail,
         function(err,result,msg){
             if(err) { res.json(trans_json(msg,0));}
-            if(result) {
+            else {
+                if(result) {
                     // push_settings 배열 만들기
                     result[0].push_settings =
                         _.map(result[0].push_settings.split(','),
                             function(str){ return Number(str); });
                     console.log('push settings : ',result[0].push_settings);
                     res.json(trans_json('success', 1, result[0]));
+                }
+                else { res.json(trans_json(msg,0)); }   // 일치하는 결과가 없을 때는 에러
             }
-            else { res.json(trans_json(msg,0)); }   // 일치하는 결과가 없을 때는 에러
         }
     );
 

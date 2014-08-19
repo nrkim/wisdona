@@ -10,7 +10,9 @@ var trans_json = json.trans_json
     ,template_get = template.template_get
     ,template_post = template.template_post
     ,template_item = template.template_item
-    ,create_password = template.create_password;
+    ,create_password = template.create_password
+    ,create_user = json.create_user;
+
 var create_hash = template.create_hash;
 var async = require('async');
 var request = require('request');
@@ -18,11 +20,26 @@ var request = require('request');
 
 exports.facebookLogin = function(req,res){
 	if (req.user) {
-		res.json(trans_json("success",1));
+        //req.session = req.user;
+        res.json(trans_json("success",1));
 	} else {
 		res.json(trans_json("페이스북 로그인에 실패하였습니다.",0));
 	}
 };
+
+exports.login = function(req,res){
+    if (req.session.passport.user) {
+        console.log('session.passport is ',req.session.passport.user);
+        req.session.save(function() {
+            console.log(req.session);
+        });
+        //req.session.passport.user = req.user.user_id;
+        res.json(trans_json(req.signup_msg,1,create_user(req.user.user_id)));
+    } else {
+        res.json(trans_json(req.signup_msg,0));
+    }
+};
+
 
 exports.facebookLogout = function(req,res){
     request(
@@ -37,7 +54,6 @@ exports.facebookLogout = function(req,res){
                 req.logout();
                 res.json(trans_json('로그아웃 하였습니다.',0));
             }
-
         }
     );
 };
@@ -123,8 +139,6 @@ exports.updatePassword = function(req,res){
     console.log('user id : ',user_id);
     console.log("old password is : ",old_password);
     console.log("new password is : ",new_password);
-
-
 
     connectionPool.getConnection(function(err, connection) {
         if (err) {

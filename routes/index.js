@@ -33,8 +33,6 @@ module.exports = function(app,passport) {
     app.post('/login', express.bodyParser(),function(req, res, next) {
         console.log('email function !!! ',req.body.email);
         console.log('password is :::', req.body.password);
-
-
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
                 console.log('login!!!');
@@ -42,7 +40,9 @@ module.exports = function(app,passport) {
             } else {
                 req.logIn(user, function(err) {
                     if (err) { res.json(trans_json("fail",0)); }
-                    else{ res.json(trans_json("success",1,create_user(user.user_id)));}
+                    else{
+                        res.json(trans_json("success",1,create_user(user.user_id)));
+                    }
                 });
             }
         })(req, res, next);
@@ -101,6 +101,8 @@ module.exports = function(app,passport) {
             );
         }
     );*/
+
+
     app.post('/facebook-logout',login.facebookLogout);
 
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
@@ -110,18 +112,19 @@ module.exports = function(app,passport) {
     app.get('/activation-email/:authkey', login.activationEmail);
 
     // 계정 생성,정보 관련
+
     app.post('/users/create',express.bodyParser(), function(req, res, next) {
         console.log('sign up user');
-
         passport.authenticate('local-signup', function(err, user, info) {
             if (user === false) {
                 res.json(trans_json(info.signupMessage,0));
             } else {
-                console.log('user is :',user);
+                req.session.passport.user = user.user_id;
                 res.json(trans_json("success",1,create_user(user.user_id)));
             }
         })(req, res, next);
     });
+
     app.get('/users/:user_id/profile/show', account.getUserInfo);
     app.post('/users/destroy', isLoggedIn, account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', isLoggedIn, account.getAccountSettings);
