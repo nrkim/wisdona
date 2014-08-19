@@ -288,7 +288,7 @@ exports.createPost = function(req,res,next) {
         req.body = fields;
 
         // 필수 파라미터에 값 없을 경우
-        if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.genre_id == null || req.body.name == null || req.body.is_certificate == null) {
+        if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.genre == null || req.body.name == null || req.body.is_certificate == null) {
             return res.json(getJsonData(0, "파라미터 값이 없습니다.", null));
         }
         console.log('fields.is_certificate' , fields.is_certificate);
@@ -362,37 +362,58 @@ exports.uploadImages = function (req, res) {
                         callback(null, rows[0].book_id);
                     });
                 } else {
-                    // 1. 책 등록(name, genre_id, author, translator, publisher, pub_date, isbn, isbn13, book_image_path, list_price)
-                    query = "INSERT INTO book SET ?";
-                    data = {
-                        title: req.body.name,
-                        author: req.body.author || null,
-                        translator: req.body.translator || null,
-                        publisher: req.body.publisher || null,
-                        pub_date: req.body.pub_date || null,
-                        isbn: req.body.isbn || null,
-                        isbn13: req.body.isbn13 || null,
-                        book_image_path: req.body.book_image_path || null,
-                        list_price: req.body.list_price || null,
-                        genre_id: req.body.genre_id
-                    };
-                    connection.query(query, data, function (err, result) {
-                        if (err) {
+
+
+                    async.waterfall([
+                        function (cb) {
+                            query = "SELECT genre_id, category_id FROM genre WHERE genre = ?";
+                            data = [req.body.genre];
+                            connection.query(query, data, function (err, rows, fields) {
+                                if (err) {
+                                    cb(err);
+                                }else{
+                                    cb(null, rows);
+                                }
+                            });
+                        },
+                        function (rows, cb) {
+                            // 1. 책 등록(name, genre_id, author, translator, publisher, pub_date, isbn, isbn13, book_image_path, list_price)
+                            query = "INSERT INTO book SET ?";
+                            data = {
+                                title: req.body.name,
+                                author: req.body.author || null,
+                                translator: req.body.translator || null,
+                                publisher: req.body.publisher || null,
+                                pub_date: req.body.pub_date || null,
+                                isbn: req.body.isbn || null,
+                                isbn13: req.body.isbn13 || null,
+                                book_image_path: req.body.book_image_path || null,
+                                list_price: req.body.list_price || null,
+                                genre_id: rows[0].genre_id
+                            };
+                            connection.query(query, data, function (err, result) {
+                                if (err) {
+                                    cb(err);
+                                }else{
+                                    console.log(rows[0].category_id, result.insertId);
+                                    cb(null, [rows[0].category_id, result.insertId]);
+                                }
+                            });
+                        }
+                    ], function (err, results) {
+                        if(err){
                             callback(err);
                         }else{
-                            callback(null, result.insertId);
+                            callback(null, results[0], results[1]);
                         }
-                    });
+                    })
                 }
             },
             // 3. book_id 참조 게시물 등록(category_id, user_id, book_id, first_image, second_image, third_image, fourth_image)
-            function (book_id, callback) {
-                query =
-                    "INSERT INTO post (comment, bookmark_cnt, user_id, book_id, category_id, book_condition_id, is_certificate) " +
-                    "SELECT ?, ?, ?, ?, category_id, ?, ? " +
-                    "FROM genre " +
-                    "WHERE genre_id = ?;";
-                data = [req.body.comment, req.body.bookmark_cnt, req.params.user_id, book_id, req.body.book_condition_id, req.body.is_certificate, req.body.genre_id];
+            function (category_id, book_id, callback) {
+                query = "INSERT INTO post (comment, bookmark_cnt, user_id, book_id, category_id, book_condition_id, is_certificate) VALUES(?, ?, ?, ?, ?, ?, ?)";
+
+                data = [req.body.comment, req.body.bookmark_cnt, req.params.user_id, book_id, category_id, req.body.book_condition_id, req.body.is_certificate, req.body.genre_id];
                 connection.query(query, data, function (err, result) {
                     if (err) {
                         callback(err);
@@ -488,12 +509,12 @@ exports.updatePost = function(req,res){
             comment = req.body.comment,
             bookmark_cnt = req.body.bookmark_cnt,
             book_condition_id = req.body.book_condition_id,
-            delete_list = req.body.delete_list;
+            destroy_list = req.body.destroy_list;
 
         //delete_list = [];
 
         // 파라미터 체크
-        if ( !user_id || !post_id || !comment || !bookmark_cnt || !book_condition_id || !delete_list ){
+        if ( !user_id || !post_id || !comment || !bookmark_cnt || !book_condition_id || !destroy_list ){
             return res.json(getJsonData(0, '값이 없습니다.', null));
         }
 
@@ -506,14 +527,13 @@ exports.updatePost = function(req,res){
         // 1. files {1,2,3,4} 이미지 있는지 없는지 파악
         // 1-1  있다 : 기존 이미지 삭제 -> 신규 이미지 업로드 -> post_image 로우 UPDATE
         // 1-2  없다 : 신규 이미지 업로드 -> post_image 로우 INSERT
-        // 2. delete_list 참고해서 기존 이미지 삭제 -> post_image에 해당 이미지들 DELETE
+        // 2. destroy_list 참고해서 기존 이미지 삭제 -> post_image에 해당 이미지들 DELETE
 
         getConnection(function (connection) {
             async.waterfall([
                 function (callback) {
-                    console.log( files, delete_list.length);
+                    console.log( files, destroy_list.length);
                     if ( files  ){
-                        console.log("잉?");
                         var query = "SELECT * FROM post_image WHERE post_id = ?";
                         var data = [post_id];
                         connection.query(query, data, function (err, rows, fields) {
@@ -525,7 +545,6 @@ exports.updatePost = function(req,res){
                             }
                         });
                     }else{
-                        console.log("파일, 삭제 리스트 다 없음");
                         callback();
                     }
 
@@ -557,14 +576,12 @@ exports.updatePost = function(req,res){
                                 if (err){
                                     cb(err);
                                 }else{
-                                    console.log("이미지 업데이트 쿼리 실행!!!");
                                     // 기존 이미지 변경은 query UPDATE
                                     if ( image.num <= rows.length ){
                                         updateImageQuery(connection, rows[image.num-1].post_image_id, uploadFile, function (err) {
                                             if (err){
                                                 cb(err);
                                             }else{
-                                                console.log("음?");
                                                 cb();
                                             }
                                         });
@@ -584,7 +601,6 @@ exports.updatePost = function(req,res){
                             if (err){
                                 callback(err);
                             }else{
-                                console.log("여긴");
                                 callback(null, rows);
                             }
                         })
@@ -593,8 +609,8 @@ exports.updatePost = function(req,res){
                     }
                 },
                 function (rows, callback) {
-                    if ( delete_list.length ){
-                        async.each(delete_list, function (num, cb) {
+                    if ( destroy_list.length ){
+                        async.each(destroy_list, function (num, cb) {
                             deleteImage(rows[num], function (err) {
                                 if(err){
                                     cb(err);
