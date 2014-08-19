@@ -21,8 +21,6 @@ var _ = require('underscore')
     ,path = require('path')
     mime = require('mime');
 
-//var formidable = require('formidable');
-
 
 // api: /users/:user_id/profile/show
 exports.getUserInfo = function(req,res){
@@ -96,8 +94,6 @@ exports.getAccountSettings = function(req,res){
         "FROM (SELECT * FROM user WHERE sleep_mode = 0) u " +
         "WHERE user_id = ?";
 
-    console.log('getAccountSettings!!');
-
     template_list(
         query,
         [user_id],
@@ -158,14 +154,6 @@ exports.updateAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-    console.log('user_id : ',user_id);
-    console.log( 'nickname is : ', req.body.nick_name);
-    console.log( 'nickname is : ', req.body.nickname);
-    console.log('self_intro  : ',req.body.self_intro);
-    console.log('name : ',req.body.name);
-    console.log('phon');
-    console.log('account push settings : ',req.body.push_settings);
-
     var updated = {};
 
     //updated.nickname = req.body.nick_name           || null;
@@ -193,38 +181,5 @@ exports.updateAccountSettings = function(req,res){
             else res.json(trans_json(msg,1));
         }
     );
-/*
-    if(nickname){
-        template_item(
-            "SELECT nickname FROM user WHERE nickname = ?",
-            [nickname],
-            function(err,rows,msg){
-                if (err) { res.json(trans_json(msg,0)); }
-                else {
-                    if (rows.length ==0){
-                        template_item(
-                            query,
-                            [updated,user_id],
-                            function(err,rows,msg){
-                                if (err) res.json(trans_json(msg,0));
-                                else res.json(trans_json(msg,1));
-                            }
-                        );
-                    }else{
-                        res.json(trans_json('닉네임이 중복됩니다. 다시 입력해 주세요',0));
-                    }
-
-                }
-            }
-        );
-    } else{
-
-    }
-
-
-    //console.log(updated);
-
-        */
-
 
 };

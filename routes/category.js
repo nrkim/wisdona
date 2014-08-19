@@ -15,9 +15,9 @@ exports.getCategoryList = function(req,res){
         null,
         category_list,
         function(err,result,msg){
-            if (err) res.json(trans_json(msg,0));
-            if (result) res.json(trans_json(msg,1,result));
-            else res.json(trans_json(msg,0));
+            if (err) { res.json(trans_json(msg,0)); }
+            if (result){ res.json(trans_json(msg,1,result)); }
+            else { res.json(trans_json(msg,0)); }
         }
     );
 };

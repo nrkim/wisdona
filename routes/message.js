@@ -11,8 +11,6 @@ var message_window = json.message_window
     ,template = require('./template')
     ,template_item = template.template_item
     ,template_list = template.template_list
-    ,template_transaction = template.template_transaction
-    ,unread_msgs=json.unread_msgs
     ,unread_msg_lst= json.unread_msg_lst;
 
 
@@ -27,27 +25,18 @@ exports.getMessageGroupList = function(req,res){
     var page = JSON.parse(req.query.page) || 0;
     var count = JSON.parse(req.query.count) || 10;
 
-    console.log('user_id : ',user_id);
-    console.log('page : ',page);
-    console.log('count : ',count);
-
     // 페이징 관련 계산
     var start = page*count;
+
     //타입 체크
-    if (typeof user_id != "number" || typeof page != "number" || typeof count != "number"){
-        res.json(trans_json("타입을 확인해 주세요",0));
-    }
+    if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
+    if (typeof user_id != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
+    if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
 
     //다시 한번 보기
     // 메시지 그룹의 리스트를 가져오는 쿼리문
     // 해당 거래의 메시지를 가저옴
-
-
-
-
     // do_show = 0인 메시지를 삭제한 모습을 구현 해야함
-
-
 
     var query =
         "SELECT m.from_user_id, nickname, image, m.trade_id, title, message, be_message_cnt, m.create_date " +
@@ -75,9 +64,7 @@ exports.getMessageGroupList = function(req,res){
 };
 
 exports.destroyMessageGroup = function(req,res){
-    //req.body = fields;
 
-    console.log('fields');
     var user_id = req.session.passport.user;
     //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
     var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
@@ -102,18 +89,10 @@ exports.destroyMessageGroup = function(req,res){
 
 // api : /users/:user_id/message-groups/:trade_id/create
 exports.createMessage = function(req,res){
-    //req.body = fields;
-
-    //console.log(fields);
 
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
     var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
-
-
-    console.log('trade id is ',trade_id);
-    console.log('user_id is ',user_id);
-    console.log('message is : ',message);
 
     //타입 검사
     if (typeof user_id  != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
@@ -141,8 +120,6 @@ exports.createMessage = function(req,res){
 
 exports.getMessageList = function(req,res){
 
-
-    console.log("??");
     //parameter로 받은 사용자 아이디
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
@@ -183,12 +160,8 @@ exports.getMessageList = function(req,res){
 exports.getUnreadMessgeList = function(req,res){
 
 
-    console.log('hello hello');
     var user_id = req.session.passport.user;
     var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
-
-    console.log('user_id is : ',user_id);
-    console.log('trade id is :: ',trade_id);
 
     var get_query =
         "SELECT trade_id, message, m.create_date, from_user_id, nickname, image " +
@@ -199,35 +172,6 @@ exports.getUnreadMessgeList = function(req,res){
         "UPDATE message SET is_sended = TRUE WHERE to_user_id = ? AND is_sended = FALSE";
 
 
-    // 테스트 케이스 trade_id =4, user_id = 5
-    // 트렌젝션 할 필요 없음
-/*
-    template_list(
-        get_query,
-        [user_id],
-        unread_msg_lst,
-        function(err,result,msg){
-            if(err){res.json(trans_json(msg,0));}
-            else {res.json(trans_json("sucess",1,result));}
-        }
-    );
-*/
-    /*
-    connectionPool.getConnection(function (err, connection) {
-        if (err) {
-            console.log('데이터베이스 연결 오류');
-            verify(err,false,"데이터 베이스 연결 오류 입니다.");
-        } else {
-            connection.query(get_query, [user_id], function (err, rows) {
-                console.log('get query : ',get_query);
-                console.log('user id : ',user_id);
-                console.log('rows is : ',rows);
-                res.json(trans_json('test',1));
-            });
-        }
-    });
-*/
-
     template_list(
         get_query,
         { to_user_id  : user_id},
@@ -235,17 +179,13 @@ exports.getUnreadMessgeList = function(req,res){
         function(err,result,msg){
             if (err) { res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다.",0)); }
             else {
-                console.log('template list!!');
                 if (result.length == 0){
-                    console.log('logloglog');
                     res.json(trans_json("success",1,result));
                 } else{
-                    console.log('tmplate result');
                     template_item(
                         update_query,
                         [user_id],
                         function(err,rows,msg){
-                            console.log('loglog!!');
                             if(err) { res.json(trans_json(msg,0));}
                             else { res.json(trans_json('success',1,result));}
                         }
@@ -254,80 +194,6 @@ exports.getUnreadMessgeList = function(req,res){
             }
         }
     );
-
-/*
-    connectionPool.getConnection(function(err,connection) {
-        template_transaction(
-            connection,
-            [{ query : get_query,params : [user_id]},
-             { query : update_query, params : [user_id]}],
-            [
-                function (callback) {
-                    connection.query(sql[0].query, sql[0].params, function (err, rows, info) {
-                        if (err) callback(err);
-                        if (rows.length == 0)
-                            return res.json(trans_json("읽지 않은 메시지가 없습니다", 1));
-                        else callback(null, user_id);
-                    });
-                },
-                function (callback) {
-                    connection.query(sql[1].query, sql[1].params, function (err, rows, info) {
-                        if (err) callback(err);
-                        callback(null);
-                    });
-                }
-            ], function(err,rows,msg){
-                if(err) {
-                    connection.release();
-                    res.json(trans_json(msg,0));
-                }
-                else {
-                    connection.realease();
-                    res.json(trans_json(msg,1));
-                }
-            }
-        );
-    });
-*/
-/*
-    connectionPool.getConnection(function(err,connection) {
-        template_transaction(
-            req,
-            res,
-            get_query,
-            update_query,
-            [user_id],
-            [user_id],
-            connection,
-            [
-                function (callback) {
-                    connection.query(get_query, [user_id], function (err, rows, info) {
-                        if (err) {
-                            console.log("err : ", err);
-                            callback(err);
-                        }
-                        if (rows.length == 0) {
-                            console.log('length : ', rows.length);
-                            return res.json(trans_json("읽지 않은 메시지가 없습니다", 1));
-                        } else {
-                            console.log("callback!!!");
-                            callback(null, user_id);
-                        }
-                    });
-                },
-                function (user_id, callback) {
-                    connection.query(update_query, [user_id], function (err, rows, info) {
-                        if (err) {
-                            console.log(err);
-                            callback(err);
-                        }
-                        console.log('err no !!');
-                        callback(null);
-                    });
-
-                }]
-        );
-    });*/
 };
 
 exports.confirmMessage = function(req,res){

@@ -13,11 +13,6 @@ var nodemailer = require('nodemailer')
     ,template_item = template.template_item
     ,trans_json = require('../routes/json').trans_json;
 var crypto = require('crypto');
-var smtpTransport = require('nodemailer-smtp-transport');
-
-
-
-
 
 
 // api : /request-activation-email/:user_id
