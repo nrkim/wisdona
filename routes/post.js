@@ -278,6 +278,7 @@ function destroyPostQuery(connection, post_id, user_id, callback ){
 
 
 exports.createPost = function(req,res,next) {
+    console.log('req.headers["content-type"]', req.headers['content-type']);
     console.log('들어왔음');
     var form = new formidable.IncomingForm();
     form.uploadDir = path.normalize(__dirname + '/../tmp/');
@@ -372,7 +373,11 @@ exports.uploadImages = function (req, res) {
                                 if (err) {
                                     cb(err);
                                 }else{
-                                    cb(null, rows);
+                                    if ( !rows.length ){
+                                        cb(new Error('장르 정보가 없습니다. > ' + req.body.genre ));
+                                    }else{
+                                        cb(null, rows);
+                                    }
                                 }
                             });
                         },
@@ -496,10 +501,11 @@ exports.uploadImages = function (req, res) {
 // 포스트 수정
 exports.updatePost = function(req,res){
 
-
-
+    console.log('들어오남?');
+    console.log('req.headers["content-type"]', req.headers['content-type']);
     //application/x-www-form-urlencoded
-    if (req.headers['content-type'] === 'application/json'){
+    if (req.headers['content-type'] === 'application/x-www-form-urlencoded'){
+        console.log('이미지 없음');
         runUpdate();
     } else {   // 'multipart/form-data'
         var form = new formidable.IncomingForm();
@@ -509,7 +515,7 @@ exports.updatePost = function(req,res){
         form.parse(req, function(err, fields, files) {
             req.body = fields;
             req.files = files;
-
+            console.log('이미지 있');
             runUpdate();
         });
     }
