@@ -20,8 +20,9 @@ exports.requestActivationEmail = function(req,res){
 
     //이메일 파라미터 전달
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json('유저 아이디를 입력하지 않았습니다.',0));
-
+    //전역 이메일
     var email ='';
+
     //타입 체크
     if(typeof user_id !== 'number') res.json(trans_json('유저 아이디는 숫자 타입이어야 합니다.',0));
 
@@ -29,7 +30,19 @@ exports.requestActivationEmail = function(req,res){
     var get_email = function(callback){
         template_item(
             "SELECT email FROM user WHERE user_id = ?",
-            [user_id]
+            [user_id],
+            function(err, rows, msg){
+                if(err) {callback('sql에러 입니다 : '+ err.message);}
+                else {
+                    if(rows.length = 0) {callback('등록되지 않은 유저 입니다.');}
+                    else {
+                        console.log(rows);
+                        console.log(msg);
+                        email=rows[0].email;
+                        callback(null);
+                    }
+                }
+            }
         )
     };
 
@@ -70,10 +83,9 @@ exports.requestActivationEmail = function(req,res){
                     if(rows.length == 0){
                         console.log('이메일이 auth에 있지 않을 때');
                         template_item(
-                            "INSERT INTO email_auth(user_id,email,auth_token,expiration_date)" +
-                            "SELECT user_id, email, ?, ?" +
-                            "FROM user u WHERE user_id = ? ",
-                            [token,expire,user_id],
+                            "INSERT INTO email_auth(user_id,email,auth_token,expiration_date) " +
+                            "VALUES(?,?,?,?)"
+                            [user_id,email,token,expire],
                             function(err,rows,msg){
                                 if(err) {callback(msg);}
                                 else {callback(null,token,rows.insertId);}
@@ -111,7 +123,7 @@ exports.requestActivationEmail = function(req,res){
 
         var mailOptions = {
             from: 'nrkim1122@gmail.com',
-            to: [],
+            to: [email],
             subject: '[위즈도나] 인증 메일입니다.',
             html: template
         };
@@ -128,6 +140,7 @@ exports.requestActivationEmail = function(req,res){
     };
 
     async.waterfall([
+        get_email,
         random_token,
         insert_auth,
         send_mail

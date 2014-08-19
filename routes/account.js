@@ -89,26 +89,28 @@ exports.getAccountSettings = function(req,res){
     // 페이스북 계정 정보
     // date time 안되는 이유 찾아보기
     var query =
-        "SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings, " +
-        "DATE_FORMAT(convert_tz(sanction_date , \"UTC\", \"Asia/Seoul\"), \"%Y-%m-%d %H:%i:%s\" ) " +
-        "FROM (SELECT * FROM user WHERE sleep_mode = 0) u " +
-        "WHERE user_id = ?";
+        'SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings, ' +
+        'email_auth, sanction_date ' +
+        'FROM (SELECT * FROM user WHERE sleep_mode = 0) u ' +
+        'WHERE user_id = ?';
+
+    //'DATE_FORMAT(convert_tz(sanction_date , "UTC", "Asia/Seoul"), "%Y-%m-%d %H:%i:%s" ) ' +
 
     template_list(
         query,
         [user_id],
         user_detail,
         function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
+            if(err) { res.json(trans_json(msg,0));}
             if(result) {
-                // push_settings 배열 만들기
-                result[0].push_settings =
-                    _.map(result[0].push_settings.split(','),
-                        function(str){ return Number(str); });
-                console.log('push settings : ',result[0].push_settings);
-                res.json(trans_json('success', 1, result[0]));
+                    // push_settings 배열 만들기
+                    result[0].push_settings =
+                        _.map(result[0].push_settings.split(','),
+                            function(str){ return Number(str); });
+                    console.log('push settings : ',result[0].push_settings);
+                    res.json(trans_json('success', 1, result[0]));
             }
-            else res.json(trans_json(msg,0));   // 일치하는 결과가 없을 때는 에러
+            else { res.json(trans_json(msg,0)); }   // 일치하는 결과가 없을 때는 에러
         }
     );
 

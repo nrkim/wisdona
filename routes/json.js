@@ -85,15 +85,16 @@ exports.message_window = function(item){
 
 exports.user_detail = function(item){
     return {
-        user_id           : item.user_id,
-        nick_name         : item.nickname,
-        profile_image_url : item.image,
-        self_intro        : item.self_intro,
-        name              : item.name,
-        phone             : item.phone,
-        address           : item.address,
-        push_settings     : item.push_settings,
-        sanction_date     : item.sanction_date
+        user_id              : item.user_id,
+        nick_name            : item.nickname,
+        profile_image_url    : item.image,
+        self_intro           : item.self_intro,
+        name                 : item.name,
+        phone                : item.phone,
+        address              : item.address,
+        push_settings        : item.push_settings,
+        email_authentication : item.email_auth,
+        sanction_date        : item.sanction_date
     };
 };
 
