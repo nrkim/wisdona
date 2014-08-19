@@ -8,6 +8,8 @@ var gcmConfig = require('./config/gcm');
     config/gcm.js------------------------------
     module.exports = {
     apikey: '님꺼'
+ddd
+
 
 };
 */
