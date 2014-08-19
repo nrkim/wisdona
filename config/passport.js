@@ -52,7 +52,12 @@ module.exports = function(passport) {
             passReqToCallback: true
         },
         function (req, email, password, done) {
-            console.log('passport user!!!');
+
+/*
+            process.nextTick(function(){
+
+            });
+*/
 
             process.nextTick(function () {
                 connectionPool.getConnection(function (err, connection) {
@@ -96,7 +101,7 @@ module.exports = function(passport) {
                                             console.log('err7');
                                             if (err) {console.log('err8'); return done(err);}
                                             else {
-                                                console.log('err 9');
+                                                console.log('rows ',rows);
                                                 console.log('rows : insertId', rows.insertId);
                                                 user.user_id = rows.insertId;
                                                 return done(null, user);

@@ -5,8 +5,8 @@ module.exports = {
         pass : 'my19740530'
     },
     sesAuth: {
-    key : 'AKIAIH56LHYXHZRDZ4EQ',
-        secret : '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',
+        key    : 'AKIAIKY4XRDJTWXUJCHQ',
+        secret : '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',
         region : 'us-west-2'
     }
 };

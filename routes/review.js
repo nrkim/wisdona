@@ -32,12 +32,14 @@ exports.createUserReview = function(req,res){
             "JOIN post p ON t.post_id = p.post_id " +
             "WHERE t.trade_id = ? ";
 
+        console.log('console.log!!!');
         template_item(
             query,
             [user_id,user_id,comments,point,trade_id],
             function(err,rows,msg){
-                if(err) res.json(trans_json(msg,0));
-                else res.json(trans_json(msg,1));
+                console.log('console.log!!!');
+                if(err) {res.json(trans_json(msg,0));}
+                else {res.json(trans_json(msg,1));}
             }
         );
     }

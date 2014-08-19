@@ -77,7 +77,7 @@ exports.template_item = function(query,params,verify){
                 console.log('벼됵');
                 connection.commit();
                 connection.release();
-                console.log(rows);
+                console.log('rows is ...',rows);
                 verify(null,rows,'success');
             }
         });
