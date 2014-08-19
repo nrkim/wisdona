@@ -747,8 +747,8 @@ exports.getPostDetail = function(req,res){
         "JOIN post_image pi ON p.post_id = pi.post_id " +
         "JOIN book b ON p.book_id = b.book_id " +
         "JOIN genre g ON b.genre_id = g.genre_id " +
-        "JOIN (SELECT trade_id, current_status, post_id, req_user_id FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " +
-        "JOIN user ru ON t.req_user_id = ru.user_id " +
+        "LEFT JOIN (SELECT trade_id, current_status, post_id, req_user_id FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " +
+        "LEFT JOIN user ru ON t.req_user_id = ru.user_id " +
         "WHERE p.post_id = ?;";
     console.log(query);
     var data = [post_id];
@@ -765,7 +765,7 @@ exports.getPostDetail = function(req,res){
             // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
             // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
 
-
+            console.log(rows[0].large_image_paths);
             var result = {
                 user : {
                     user_id : rows[0].user_id,
@@ -795,6 +795,12 @@ exports.getPostDetail = function(req,res){
             if ( !rows[0].trade_id ) {
                 trade = null;
             }else{
+
+                // 배송완료 이후 '당일'인지 '익일'인지 파악 당일 : 2, 익일 : 3
+                if ( rows[0].current_status == 2 ){
+
+                }
+
                 trade = {
                     trade_id : rows[0].trade_id,
                     current_status : rows[0].current_status,

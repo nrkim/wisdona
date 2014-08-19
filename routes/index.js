@@ -39,10 +39,10 @@ module.exports = function(app,passport) {
                 console.log('login!!!');
                 res.json(trans_json(info.loginMessage,0));
             } else {
-            	req.logIn(user, function(err) {
-            	      if (err) { res.json(trans_json("falil",0)); }
-            	      else{ res.json(trans_json("success",1,create_user(user.user_id)));}
-            	});
+                req.logIn(user, function(err) {
+                    if (err) { res.json(trans_json("falil",0)); }
+                    else{ res.json(trans_json("success",1,create_user(user.user_id)));}
+                });
             }
         })(req, res, next);
     });
@@ -72,7 +72,7 @@ module.exports = function(app,passport) {
         }
     );
     app.post('/facebook-logout',login.facebookLogout);
-    
+
     app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
     app.get('/request-activation-email/:email', send_email.requestActivationEmail);
     app.post('/request-send-email', send_email.requestSendEmail);
@@ -119,6 +119,7 @@ module.exports = function(app,passport) {
     app.get('/posts/list', post.getPostList);
     app.get('/posts/search', post.searchPosts);
     app.post('/users/:user_id/posts/report',isLoggedIn, post.reportPost);
+    app.get('/images/:imagepath', post.getImage);
 
     // 교환
     app.post('/users/:user_id/posts/send-request',isLoggedIn, trade.sendRequestPost);
