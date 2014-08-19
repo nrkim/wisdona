@@ -741,13 +741,13 @@ exports.getPostDetail = function(req,res){
         "p.comment, p.bookmark_cnt, p.book_condition_id, " +
         "GROUP_CONCAT(pi.large_image_path) large_image_paths, " +
         "b.title, b.author, b.translator, b.publisher, b.pub_date, g.genre, " +
-        "t.trade_id, t.current_status, ru.user_id req_user_id, ru.nickname req_nickname, ru.image req_image " +
+        "t.trade_id, t.current_status, t.last_update, ru.user_id req_user_id, ru.nickname req_nickname, ru.image req_image " +
         "FROM post p " +
         "JOIN user u ON p.user_id = u.user_id " +
         "JOIN post_image pi ON p.post_id = pi.post_id " +
         "JOIN book b ON p.book_id = b.book_id " +
         "JOIN genre g ON b.genre_id = g.genre_id " +
-        "LEFT JOIN (SELECT trade_id, current_status, post_id, req_user_id FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " +
+        "LEFT JOIN (SELECT trade_id, current_status, post_id, req_user_id, last_update FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " +
         "LEFT JOIN user ru ON t.req_user_id = ru.user_id " +
         "WHERE p.post_id = ?;";
     console.log(query);
@@ -796,14 +796,35 @@ exports.getPostDetail = function(req,res){
                 trade = null;
             }else{
 
+                var current_status;
                 // 배송완료 이후 '당일'인지 '익일'인지 파악 당일 : 2, 익일 : 3
-                if ( rows[0].current_status == 2 ){
-
-                }
+                if (rows[0].current_status == 1 ) {
+                    current_status = 1;
+                }else if( rows[0].current_status == 2 ){
+                    var tommorowDate = new Date();
+                    tommorowDate.setDate(tommorowDate.getDate() + 1);
+                    var sendDate = new Date(rows[0].last_update);
+                    // 익일 = 3
+                    if ( sendDate > tommorowDate ){
+                        current_status = 3;
+                    }else{
+                        // 당일 = 2
+                        current_status = 2;
+                    }
+                }else if(rows[0].current_status == 3) {
+                    // 평가완료 (기부자)
+                    current_status = 4;
+                }else if(rows[0].current_status == 4) {
+                    // 평가완료 (요청자)
+                    current_status = 5;
+                }else {
+                    // 평가완료 (완료)
+                    current_status = 6;
+                };
 
                 trade = {
                     trade_id : rows[0].trade_id,
-                    current_status : rows[0].current_status,
+                    current_status : current_status,
                     beneficiary : {
                         user_id : rows[0].req_user_id,
                         nick_name : rows[0].req_nickname,
