@@ -496,13 +496,25 @@ exports.uploadImages = function (req, res) {
 // 포스트 수정
 exports.updatePost = function(req,res){
 
-    var form = new formidable.IncomingForm();
-    form.uploadDir = path.normalize(__dirname + '/../tmp/');
-    form.keepExtensions = true;
 
 
-    form.parse(req, function(err, fields, files) {
-        req.body = fields;
+    //application/x-www-form-urlencoded
+    if (req.headers['content-type'] === 'application/json'){
+        runUpdate();
+    } else {   // 'multipart/form-data'
+        var form = new formidable.IncomingForm();
+        form.uploadDir = path.normalize(__dirname + '/../tmp/');
+        form.keepExtensions = true;
+
+        form.parse(req, function(err, fields, files) {
+            req.body = fields;
+            req.files = files;
+
+            runUpdate();
+        });
+    }
+
+    function runUpdate() {
 
         var user_id = req.params.user_id,
             post_id = req.body.post_id,
@@ -511,8 +523,10 @@ exports.updatePost = function(req,res){
             book_condition_id = req.body.book_condition_id,
             destroy_list = req.body.destroy_list;
 
-        //delete_list = [];
+        console.log(post_id);
+        console.log(destroy_list);
 
+        //destroy_list=[];
         // 파라미터 체크
         if ( !user_id || !post_id || !comment || !bookmark_cnt || !book_condition_id || !destroy_list ){
             return res.json(getJsonData(0, '값이 없습니다.', null));
@@ -532,31 +546,24 @@ exports.updatePost = function(req,res){
         getConnection(function (connection) {
             async.waterfall([
                 function (callback) {
-                    console.log( files, destroy_list.length);
-                    if ( files  ){
-                        var query = "SELECT * FROM post_image WHERE post_id = ?";
-                        var data = [post_id];
-                        connection.query(query, data, function (err, rows, fields) {
-                            if (err) {
-                                callback(err);
-                            }else{
-                                console.log(rows);
-                                callback(null, rows);
-                            }
-                        });
-                    }else{
-                        callback();
-                    }
-
+                    //console.log( files, destroy_list.length);
+                    var query = "SELECT * FROM post_image WHERE post_id = ?";
+                    var data = [post_id];
+                    connection.query(query, data, function (err, rows, fields) {
+                        if (err) {
+                            callback(err);
+                        }else{
+                            console.log(rows);
+                            callback(null, rows);
+                        }
+                    });
                 },
                 function (rows, callback) {
                     // 이미지 있으면 실행
                     // 없으면 다음 구문 넘김
-
-                    if ( files ){
+                    if ( req.files ){
                         // files의 이미지 번호가 db에 있으면 변경 없으면 추가
-
-                        var imageArr = _.map(files, function (image, num) {
+                        var imageArr = _.map(req.files, function (image, num) {
                             // 이미 있는 경우 삭제(서버) -> 업로드(서버) -> 쿼리(업데이트)
                             image.num = num;
                             if ( num <= rows.length ){
@@ -674,7 +681,7 @@ exports.updatePost = function(req,res){
                 }
             });
         });
-    });
+    }
 };
 
 // 게시물 삭제
@@ -688,16 +695,19 @@ exports.destroyPost = function(req,res) {
             }
         });
     } else {
+        /*
         var form = new formidable.IncomingForm();
         form.parse(req, function (err, fields) {
+            req.body = fields;
+            */
             // 파라미터 체크
-            if (!fields.post_id) {
+            if (!req.body.post_id) {
                 res.json(getJsonData(0, 'post_id 값이 없습니다.', null));
             } else {
-                data = [fields.post_id, req.params.user_id];
+                data = [req.body.post_id, req.params.user_id];
                 getConnection(function (connection) {
 
-                    destroyPostQuery(connection, fields.post_id, req.params.user_id, function (err) {
+                    destroyPostQuery(connection, req.body.post_id, req.params.user_id, function (err) {
                         if (err) {
                             connection.release();
                             res.json(getJsonData(0, err.message, null));
@@ -717,7 +727,7 @@ exports.destroyPost = function(req,res) {
                     });
                 });
             }
-        });
+//        });
     }
 };
 

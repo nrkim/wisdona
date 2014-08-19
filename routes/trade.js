@@ -5,6 +5,7 @@ var async = require('async');
 var message = require('./message');
 var post = require('./post');
 //var formidable = require('formidable');
+//var gcm = require('./gcm');
 
 // 출력 JSON
 function getJsonData( code, message, result ){
@@ -66,6 +67,8 @@ function updateTrade(connection, trade_id, status_id, callback) {
 
 exports.sendRequestPost = function(req,res){
 
+
+    console.log('req.body.post_id', req.body.post_id);
 //    var form = new formidable.IncomingForm();
 
 //    form.parse(req, function(err, fields) {
@@ -125,12 +128,26 @@ exports.sendRequestPost = function(req,res){
                                 });
                             }else{
                                 connection.release();
-                                // trade_id로 요청 메시지 보내기
-                                //req.params.trade_id = trade_id;
-                                //req.body.message = "배송지 정보는 아래와 같습니다.";
-                                //message.createMessage(req,res);
-
                                 res.json(getJsonData(1, "success", null));
+
+                                // GCM 보내기
+                                query =
+                                    "SELECT user_id FROM post WHERE user_id = ?;";
+                                data = [req.params.user_id];
+                                connection.query(query, data, function (err, rows, fields) {
+                                    if (err) {
+                                        console.log('sql err : ', err.message);
+                                    }else{
+//                                        gcm.sendMessage([rows[0].user_id], '요청 메시지', req.params.user_id + '님이 책을 요청하셨습니다.', function (err) {
+//                                            // 완료
+//                                            if(err){
+//                                                console.log('gcm err :', err.message);
+//                                            }else{
+//                                                console.log('gcm success');
+//                                            }
+//                                        });
+                                    }
+                                });
                             }
                         });
                     }
@@ -146,14 +163,17 @@ exports.acceptPost = function(req,res){
     // 요청자/기부자 판별
     // 1. 게시물 + trade
 
+    /*
     var form = new formidable.IncomingForm();
 
     form.parse(req, function(err, fields) {
+        req.body = fields;
+        */
         // 파라미터 체크
-        if ( !req.params.user_id || !fields.post_id  ){
+        if ( !req.params.user_id || !req.body.post_id  ){
             res.json(getJsonData(0, '값이 없습니다.', null));
         }else{
-            console.log(req.params.user_id, fields.post_id);
+            console.log(req.params.user_id, req.body.post_id);
             getConnection(function (connection) {
                 var query;
                 var data;
@@ -165,7 +185,7 @@ exports.acceptPost = function(req,res){
                             "SELECT p.user_id, t.trade_id, t.req_user_id, t.current_status " +
                             "FROM post p JOIN trade t ON p.post_id = t.post_id " +
                             "WHERE p.post_id = ? and t.current_status NOT IN(92, 91);";
-                        data = [fields.post_id];
+                        data = [req.body.post_id];
                         connection.query(query, data, function (err, rows, fields) {
                             if (err) {
                                 callback(err);
@@ -289,7 +309,7 @@ exports.acceptPost = function(req,res){
                 });
             });
         }
-    });
+//    });
 };
 
 exports.cancelPost = function(req,res){
