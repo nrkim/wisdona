@@ -23,6 +23,7 @@ var isLoggedIn = function (req, res, next) {
         return next();
     }
     else {
+        console.log('로그아웃');
         res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
     }
 };

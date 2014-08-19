@@ -31,14 +31,30 @@ exports.requestActivationEmail = function(req,res){
         template_item(
             "SELECT email FROM user WHERE user_id = ?",
             [user_id],
-            function(err, rows, msg){
+            function(err, result, msg){
+                console.log('err is :',err);
+                console.log('result is :', result);
+                console.log('message is .. ',msg);
+
                 if(err) {callback('sql에러 입니다 : '+ err.message);}
                 else {
-                    if(rows.length = 0) {callback('등록되지 않은 유저 입니다.');}
+                    console.log('err is :',err);
+                    console.log('  result is :', result);
+                    console.log('message is .. ',msg);
+
+                    if(result.length == 0) {
+
+                        console.log('err is :',err);
+                        console.log('  ==result is :', result);
+                        console.log('message is .. ',msg);
+
+                        callback('등록되지 않은 유저 입니다.');
+                    }
                     else {
-                        console.log(rows);
-                        console.log(msg);
-                        email=rows[0].email;
+                        console.log('err is :',err);
+                        console.log('          result is :', result);
+                        console.log('message is .. ',msg);
+                        email=result[0].email;
                         callback(null);
                     }
                 }

@@ -13,13 +13,13 @@ var json = require('./json')
     ,template_list = template.template_list;
 
 exports.getGenreList = function(req,res) {
-    template_item(
+    template_list(
         "SELECT genre_id, genre FROM genre",
         null,
         genre_list,
-        function(err,rows,msg){
-            if(err) res.json(trans_json(msg,0));
-            else res.json(trans_json(msg,1));
+        function(err,result,msg){
+            if(err) {res.json(trans_json(msg,0));}
+            else {res.json(trans_json(msg,1,result));}
         }
     );
 };
@@ -31,9 +31,9 @@ exports.getBookConditionList = function(req,res) {
         null,
         book_state,
         function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json(msg,1,result));
-            else res.json(trans_json(msg,1));
+            if(err) {res.json(trans_json(msg,0));}
+            if(result) {res.json(trans_json(msg,1,result))}
+            else {res.json(trans_json(msg,1));}
         }
     );
 };
