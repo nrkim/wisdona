@@ -93,7 +93,7 @@ exports.user_detail = function(item){
         phone                : item.phone,
         address              : item.address,
         push_settings        : item.push_settings,
-        email_authentication : item.email_auth,
+        email_authentication : item.email_authentication,
         sanction_date        : item.sanction_date
     };
 };

@@ -90,9 +90,10 @@ exports.getAccountSettings = function(req,res){
     // date time 안되는 이유 찾아보기
     var query =
         'SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings, ' +
-        'email_auth, sanction_date ' +
+        'email_auth "email_authentication", ' +
+        '(CASE WHEN sanction_date < NOW() THEN TRUE ELSE FALSE END) sanction_date ' +
         'FROM (SELECT * FROM user WHERE sleep_mode = 0) u ' +
-        'WHERE user_id = ?';
+        'WHERE user_id = 4 ';
 
     //'DATE_FORMAT(convert_tz(sanction_date , "UTC", "Asia/Seoul"), "%Y-%m-%d %H:%i:%s" ) ' +
 
@@ -109,6 +110,10 @@ exports.getAccountSettings = function(req,res){
                         _.map(result[0].push_settings.split(','),
                             function(str){ return Number(str); });
                     console.log('push settings : ',result[0].push_settings);
+                    if(result[0].email_authentication) {result[0].email_authentication = true;}
+                    else {result[0].email_authentication = false;}
+                    if(result[0].sanction_date) {result[0].sanction_date = true;}
+                    else {result[0].sanction_date = false;}
                     res.json(trans_json('success', 1, result[0]));
                 }
                 else { res.json(trans_json(msg,0)); }   // 일치하는 결과가 없을 때는 에러
