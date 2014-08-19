@@ -8,7 +8,8 @@ var express = require('express')
     , util = require('util')
     , dbConfig = require('./config/database')
     , gcmConfig = require('./config/gcm')
-    , cron_job = require('./routes/cron_job').auth_token_cron;
+    , cron_job = require('./routes/cron_job').auth_token_cron
+    , util_function = require('./util_function');
 
 var MySQLStore = require('connect-mysql')(express);
 global.connectionPool = mysql.createPool(dbConfig);
@@ -17,28 +18,8 @@ var options = {
     pool: connectionPool
 };
 
-function handleDisconnect() {
-    connectionPool = mysql.createPool(dbConfig);
-
-
-    connectionPool.getConnection(function (err) {
-        if (err) {
-            console.log('error when connecting to db:', err);
-            setTimeout(handleDisconnect, 2000);
-        }
-    });
-
-    connectionPool.on('error', function (err) {
-        console.log('db error', err);
-        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-            handleDisconnect();
-        } else {
-            throw err;
-        }
-    });
-}
-
-handleDisconnect();
+// 디비 에러시 커넥션이 끊기면서 서버가 죽는 현상을 방지하는 함수
+util_function.handleDisconnect();
 
 require('./config/passport')(passport);
 require('./config/facebook')(passport);
@@ -63,7 +44,7 @@ app.use(express.session({
     secret: 'tacademymobileserverexpert',
     store: new MySQLStore(options),
     cookie: {
-        maxAge: 31536000000
+        maxAge: 31536000000 //세션 유지기간 365일
     }
 }));
 
@@ -80,11 +61,14 @@ if ('development' === app.get('env')) {
     app.use(express.errorHandler());
 }
 
-//require('./routes')(app, passport);
-
+// 생성된 패스포트 인자로 넘겨줌
 require('./routes')(app, passport);
 
+//크론 관련 작업 수행
 cron_job();
+
+//date formatting 함수 추가
+util_function.dateFormat();
 
 http.createServer(app).listen(app.get('port'), function(){
     console.log('Express server listening on port ' + app.get('port'));
