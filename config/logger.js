@@ -10,9 +10,9 @@ var logger = new winston.Logger({
         }),
         new winston.transports.DailyRotateFile({
             level : 'error',
-            filename : 'app-debug-log',
+            filename : 'log/app-debug-log',
             datePattern : '.yyyy-MM-ddTHH-mm.log',
-            maxsize : 1024
+            maxsize : 1024 * 1024
         })
     ]
 });

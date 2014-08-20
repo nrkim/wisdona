@@ -182,7 +182,6 @@ exports.destroyPostCheck = function (connection, post_id, user_id, callback) {
                     ], function (err) {
                         if(err){
                             callback(err);
-                            logger.errror('/--------------------------------------- start ----------------------------------------/');
                             logger.errror('/ 프로모션 게시물 삭제시 처리 error : ', err.message);
                             logger.errror('/---------------------------------------- end -----------------------------------------/');
 
@@ -197,6 +196,9 @@ exports.destroyPostCheck = function (connection, post_id, user_id, callback) {
 };
 
 exports.createPostCheck = function (connection, post_id, user_id, callback) {
+
+
+    logger.debug('게시물 프로모션 체크!');
 
     var query;
     var data;
@@ -284,7 +286,6 @@ exports.createPostCheck = function (connection, post_id, user_id, callback) {
     ], function (err) {
         if ( err){
             callback(err);
-            logger.errror('/--------------------------------------- start ----------------------------------------/');
             logger.errror('/ 프로모션 게시물 생성시 처리 error : ', err.message);
             logger.errror('/---------------------------------------- end -----------------------------------------/');
         }else{

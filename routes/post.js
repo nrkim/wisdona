@@ -77,7 +77,7 @@ function deleteImage(row, callback) {
     }, function (err) {
         if ( err ){
             callback(err);
-            logger.error('/--------------------------------------- start ----------------------------------------/');
+
             logger.error('서버 이미지 삭제 error : ', err.message);
             logger.error('/---------------------------------------- end -----------------------------------------/');
         }else{
@@ -149,7 +149,7 @@ function saveImage(image, callback) {
         fstools.remove(image.path, function(err) {
             if (err) {
                 callback(err);
-                logger.error('/--------------------------------------- start ----------------------------------------/');
+
                 logger.error('서버 이미지 저장 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             } else {
@@ -178,9 +178,9 @@ function updateImageQuery(connection, post_image_id, filePath, callback){
     connection.query(query, data, function (err, result) {
         if (err) {
             callback(err);
-            logger.error('/--------------------------------------- start ----------------------------------------/');
+
             logger.error('/ 업데이트 이미지 쿼리 error : ', err.message);
-            logger.error('/---------------------------------------- end -----------------------------------------/');
+
         }else{
             callback();
         }
@@ -198,9 +198,9 @@ function insertImageQuery(connection, post_id, filePath, callback) {
     connection.query(query, data, function (err, result) {
         if (err) {
             callback(err);
-            logger.error('/--------------------------------------- start ----------------------------------------/');
+
             logger.error('이미지 인설트 쿼리 error : ', err.message);
-            logger.error('/---------------------------------------- end -----------------------------------------/');
+
         } else {
             callback();
         }
@@ -217,9 +217,9 @@ function deleteImageQuery(connection, post_image_id, callback) {
     connection.query(query, data, function (err, result) {
         if (err) {
             callback(err);
-            logger.error('/--------------------------------------- start ----------------------------------------/');
+
             logger.error('이미지 삭제 쿼리 error : ', err.message);
-            logger.error('/---------------------------------------- end -----------------------------------------/');
+
         } else {
             callback();
         }
@@ -229,7 +229,7 @@ function deleteImageQuery(connection, post_image_id, callback) {
 function destroyPostQuery(connection, post_id, user_id, callback ){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
     logger.debug('/ 게시물 삭제 : ', {post_id:post_id, user_id:user_id});
-    logger.debug('/---------------------------------------- end -----------------------------------------/');
+
 
     var query = "UPDATE post SET current_status = 1 WHERE post_id = ? and user_id = ?;";
     var data = [post_id, user_id];
@@ -279,9 +279,9 @@ function destroyPostQuery(connection, post_id, user_id, callback ){
                     function (err) {
                         if (err){
                             callback(err);
-                            logger.error('/--------------------------------------- start ----------------------------------------/');
+
                             logger.error('게시물 삭제 쿼리 error : ', err.message);
-                            logger.error('/---------------------------------------- end -----------------------------------------/');
+
                         }else{
                             callback();
                         }
@@ -304,9 +304,9 @@ exports.saveImages = function(req,res,next) {
         req.body = fields;
 
         logger.debug('/--------------------------------------- start ----------------------------------------/');
-        logger.debug('게시물 생성 : ', req.body);
+        logger.debug('게시물 생성 요청 : ', req.body);
         logger.debug('이미지 파일 : ', Object.keys(files));
-        logger.debug('/---------------------------------------- end -----------------------------------------/');
+
 
         // 필수 파라미터에 값 없을 경우
         if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.genre == null || req.body.name == null || req.body.is_certificate == null) {
@@ -346,7 +346,7 @@ exports.saveImages = function(req,res,next) {
             if (err) {
                 // 오류 나면 남은 이미지 삭제
                 res.json(getJsonData(0, err.message, null));
-                logger.error('/--------------------------------------- start ----------------------------------------/');
+
                 logger.error('게시물 생성 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
@@ -501,7 +501,6 @@ exports.insertPostQuery = function (req, res) {
                     res.json(getJsonData(0, err.message, null));
                 });
 
-                logger.error('/--------------------------------------- start ----------------------------------------/');
                 logger.error('게시물 인설트 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
@@ -514,6 +513,10 @@ exports.insertPostQuery = function (req, res) {
                     }else{
                         connection.release();
                         res.json(getJsonData(1, 'success', null));
+                        logger.debug('.');
+                        logger.debug('.');
+                        logger.debug('게시물 인설트 성공!');
+                        logger.debug('/---------------------------------------- end -----------------------------------------/');
 
                     }
                 });
@@ -549,9 +552,8 @@ exports.updatePost = function(req,res){
     function runUpdate() {
 
         logger.debug('/--------------------------------------- start ----------------------------------------/');
-        logger.debug('게시물 업데이트 : ', req.body);
+        logger.debug('게시물 업데이트 요청 : ', req.body);
         logger.debug('이미지 파일 : ', Object.keys(req.files));
-        logger.debug('/---------------------------------------- end -----------------------------------------/');
 
         var user_id = req.params.user_id,
             post_id = req.body.post_id,
@@ -700,9 +702,9 @@ exports.updatePost = function(req,res){
                         res.json(getJsonData(0, err.message, null));
                     });
 
-                    logger.error('/--------------------------------------- start ----------------------------------------/');
                     logger.error('게시물 인설트 error : ', err.message);
                     logger.error('/---------------------------------------- end -----------------------------------------/');
+
                 }else{
 
                     connection.commit(function (err) {
@@ -714,7 +716,10 @@ exports.updatePost = function(req,res){
                         }else{
                             connection.release();
                             res.json(getJsonData(1, 'success', null));
-
+                            logger.debug('.');
+                            logger.debug('.');
+                            logger.debug('게시물 업데이트 요청 성공!');
+                            logger.debug('/---------------------------------------- end -----------------------------------------/');
                         }
                     });
                 }
@@ -754,7 +759,6 @@ exports.destroyPost = function(req,res) {
                                 res.json(getJsonData(0, err.message, null));
                             });
 
-                            logger.error('/--------------------------------------- start ----------------------------------------/');
                             logger.error('/ 게시물 삭제 error : ', err.message);
                             logger.error('/---------------------------------------- end -----------------------------------------/');
                         } else {
@@ -767,6 +771,11 @@ exports.destroyPost = function(req,res) {
                                 } else {
                                     connection.release();
                                     res.json(getJsonData(1, 'success', null));
+
+                                    logger.debug('.');
+                                    logger.debug('.');
+                                    logger.debug('게시물 삭제 성공!');
+                                    logger.debug('/---------------------------------------- end -----------------------------------------/');
                                 }
                             });
                         }
@@ -780,6 +789,11 @@ exports.destroyPost = function(req,res) {
 
 // 게시물 상세 정보
 exports.getPostDetail = function(req,res){
+
+    logger.debug('/--------------------------------------- start ----------------------------------------/');
+    logger.debug('게시물 상세정보 요청 : ', req.params.post_id);
+
+
     var post_id = req.params.post_id;
 
     // 파라미터 체크
@@ -816,7 +830,7 @@ exports.getPostDetail = function(req,res){
                 connection.release();
                 res.json(getJsonData(0, err.message, null));
 
-                logger.error('/--------------------------------------- start ----------------------------------------/');
+
                 logger.error('게시물 상세정보 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
@@ -894,6 +908,11 @@ exports.getPostDetail = function(req,res){
 
                 connection.release();
                 res.json(getJsonData(1, 'success', result));
+
+                logger.debug('.');
+                logger.debug('.');
+                logger.debug('게시물 상세정보 요청 성공!');
+                logger.debug('/---------------------------------------- end -----------------------------------------/');
             }
         });
     });
@@ -901,6 +920,9 @@ exports.getPostDetail = function(req,res){
 };
 
 exports.getPostList = function(req,res){
+    logger.debug('/--------------------------------------- start ----------------------------------------/');
+    logger.debug('게시물 상세정보 요청 : ', {category_id:req.query.category_id, page:req.query.page, count:req.query.count, sort:req.query.sort, theme:req.query.theme});
+
     var category_id = req.query.category_id;
     var page = req.query.page;
     var count = req.query.count;
@@ -991,7 +1013,7 @@ exports.getPostList = function(req,res){
                 connection.release();
                 res.json(getJsonData(0, err.message, null));
 
-                logger.error('/--------------------------------------- start ----------------------------------------/');
+
                 logger.error('게시물 리스트 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
@@ -1068,7 +1090,7 @@ exports.searchPosts = function(req,res){
                 connection.release();
                 res.json(getJsonData(0, err.message, null));
 
-                logger.error('/--------------------------------------- start ----------------------------------------/');
+
                 logger.error('게시물 검색 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{

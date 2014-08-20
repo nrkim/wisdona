@@ -30,7 +30,6 @@ exports.addSanction = function(connection, user_id, cause, period, callback){
 
     logger.debug('/--------------------------------------- start ----------------------------------------/');
     logger.debug('/ 사용자 제재 : ', {user_id:user_id, cause:cause, period:period});
-    logger.debug('/---------------------------------------- end ----------------------------------------/');
 
     var query;
     var data;
@@ -102,7 +101,8 @@ exports.addSanction = function(connection, user_id, cause, period, callback){
         }], function (err) {
             if (err) {
                 callback(err);
-                logger.errror('/--------------------------------------- start ----------------------------------------/');
+
+
                 logger.errror('/ 사용자 제재 error : ', err.message);
                 logger.errror('/---------------------------------------- end -----------------------------------------/');
             } else {

@@ -68,7 +68,7 @@ function updateTrade(connection, trade_id, status_id, callback) {
 exports.sendRequestPost = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
     logger.debug('/ 교환 요청 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
-    logger.debug('/---------------------------------------- end -----------------------------------------/');
+
 
     // 쿼리 요청
     getConnection(function (connection) {
@@ -111,7 +111,7 @@ exports.sendRequestPost = function(req,res){
                     res.json(getJsonData(0, err.message, null));
                 });
 
-                logger.errror('/--------------------------------------- start ----------------------------------------/');
+
                 logger.errror('/ 교환 요청 error : ', err.message);
                 logger.errror('/---------------------------------------- end -----------------------------------------/');
 
@@ -144,6 +144,11 @@ exports.sendRequestPost = function(req,res){
 //                                });
                             }
                         });
+
+                        logger.debug('.');
+                        logger.debug('.');
+                        logger.debug('교환 요청 성공!');
+                        logger.debug('/---------------------------------------- end -----------------------------------------/');
                     }
                 });
             }
@@ -155,7 +160,7 @@ exports.sendRequestPost = function(req,res){
 exports.acceptPost = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
     logger.debug('/ 교환 수락 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
-    logger.debug('/---------------------------------------- end -----------------------------------------/');
+
     // 요청자/기부자 판별
     // 1. 게시물 + trade
 
@@ -276,7 +281,7 @@ exports.acceptPost = function(req,res){
                         res.json(getJsonData(0, err.message, null));
                     });
 
-                    logger.errror('/--------------------------------------- start ----------------------------------------/');
+
                     logger.errror('/ 거래 단계별 수락 error : ', err.message);
                     logger.errror('/---------------------------------------- end -----------------------------------------/');
                 }else{
@@ -289,6 +294,11 @@ exports.acceptPost = function(req,res){
                         }else{
                             connection.release();
                             res.json(getJsonData(1, 'success', null));
+
+                            logger.debug('.');
+                            logger.debug('.');
+                            logger.debug('교환 수락 요청 성공!');
+                            logger.debug('/---------------------------------------- end -----------------------------------------/');
                         }
 
 
@@ -306,7 +316,7 @@ exports.acceptPost = function(req,res){
 exports.cancelPost = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
     logger.debug('/ 교환 취소/철회 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
-    logger.debug('/---------------------------------------- end -----------------------------------------/');
+
 
     // 1. post + trade SELECT
     // 2. 배송전인지 파악 -> current_status
@@ -444,7 +454,7 @@ exports.cancelPost = function(req,res){
                         res.json(getJsonData(0, err.message, null));
                     });
 
-                    logger.errror('/--------------------------------------- start ----------------------------------------/');
+
                     logger.errror('/ 거래 취소/철회 error : ', err.message);
                     logger.errror('/---------------------------------------- end -----------------------------------------/');
                 }else{
@@ -457,6 +467,11 @@ exports.cancelPost = function(req,res){
                         }else{
                             connection.release();
                             res.json(getJsonData(1, 'success', null));
+
+                            logger.debug('.');
+                            logger.debug('.');
+                            logger.debug('거래 취소/철회 요청 성공!');
+                            logger.debug('/---------------------------------------- end -----------------------------------------/');
                         }
                     });
                 }
