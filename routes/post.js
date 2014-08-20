@@ -90,7 +90,7 @@ function deleteImage(row, callback) {
 
 // 웹 서버에 원본, 중간, 썸네일 이미지 저장
 function saveImage(image, callback) {
-    logger.debug('image : ', image);
+    logger.debug('imageFile : ', {path:image.path, size:image.size});
     if (image.size) {
 
         // 파일 이동
@@ -827,6 +827,7 @@ exports.getPostDetail = function(req,res){
         "LEFT JOIN user ru ON t.req_user_id = ru.user_id " +
         "WHERE p.post_id = ?;";
     var data = [post_id];
+    logger.debug(query);
     connectionPool.getConnection(function(err, connection) {
         if (err) {
             res.json(getJsonData(0, 'DB 오류', null));
@@ -842,7 +843,7 @@ exports.getPostDetail = function(req,res){
             }else{
                 // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
                 // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
-                logger.debug('rows[0].large_image_paths', rows[0].large_image_paths);
+                logger.debug('이미지 : ', rows[0].large_image_paths);
                 var result = {
                     user : {
                         user_id : rows[0].user_id,

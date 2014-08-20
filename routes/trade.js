@@ -84,7 +84,6 @@ exports.sendRequestPost = function(req,res){
                 query = "INSERT INTO trade SET ?";
                 data = {req_user_id:req.params.user_id, post_id : req.body.post_id};
 
-
                 connection.query(query, data, function (err, result) {
                     if (err) {
                         callback(err);
@@ -96,6 +95,25 @@ exports.sendRequestPost = function(req,res){
             function (trade_id, callback) {
                 async.parallel([
                     function (cb) {
+                        // 책갈피 회수
+                        query = "UPDATE user SET bookmark_total_cnt = bookmark_total_cnt - 1 WHERE bookmark_total_cnt > 0 AND user_id = ?;";
+                        data = [req.params.user_id];
+
+                        connection.query(query, data, function (err, result) {
+                            if (err) {
+                                cb(err);
+                            }else{
+                                if ( !result.affectedRows ) {
+                                    err = new Error('책갈피가 부족합니다.');
+                                    err.code = 99;
+                                    cb(err);
+                                }else{
+                                    cb();
+                                }
+                            }
+                        });
+                    },
+                    function (cb) {
                         // 거래 로그 추가 : 요청완료(요청자)
                         insertTradeLog(connection, trade_id, 1, function (err) {
                             if(err) cb(err);
@@ -103,7 +121,7 @@ exports.sendRequestPost = function(req,res){
                         })
                     },
                     function (cb) {
-                        req.body.trade_id = trade_id;
+                        req.params.trade_id = trade_id;
                         req.body.message = req.params.user_id + '님이 책을 요청하셨습니다.';
                         // 메시지 전송
                         message.createMessage(req, connection, function (err, result) {
@@ -120,7 +138,9 @@ exports.sendRequestPost = function(req,res){
             if (err) {
                 connection.rollback(function () {
                     connection.release();
-                    res.json(getJsonData(0, err.message, null));
+
+                    res.json(getJsonData(err.code || 0, err.message, null));
+
                 });
 
 
@@ -136,29 +156,31 @@ exports.sendRequestPost = function(req,res){
                         });
                     }else{
                         connection.release();
-                        res.json(getJsonData(1, "success", null));
+
+                        var result = {message:req.body.message};
+                        res.json(getJsonData(1, "success", result));
 
 
                         // GCM 전송
-                        query = "SELECT user_id FROM post WHERE user_id = ?;";
+                        query = "SELECT gcm_registration_id FROM user WHERE user_id = ?;";
                         data = [req.params.user_id];
                         connection.query(query, data, function (err, rows, fields) {
                             if (err) {
                                 logger.error('교환 요청 GCM 에러!', err.message);
                             }else{
-                                gcm.sendMessage([user_id], '요청 메시지', req.body.message, function (err) {
+                                gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, function (err) {
                                     // 완료
                                     if(err){
-                                        logger.error('교환 요청 GCM error :', err.message);
+                                        logger.error('교환 요청 GCM error :', err);
                                     }else{
                                         logger.debug('교환 요청 GCM 성공!');
                                     }
                                 });
                             }
                         });
-                        logger.debug('.');
-                        logger.debug('.');
-                        logger.debug('교환 요청 성공!');
+                        logger.debug('/.');
+                        logger.debug('/.');
+                        logger.debug('/교환 요청 성공!');
                         logger.debug('/---------------------------------------- end -----------------------------------------/');
                     }
                 });
@@ -170,7 +192,7 @@ exports.sendRequestPost = function(req,res){
 
 exports.acceptPost = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
-    logger.debug('/ 교환 수락 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
+    logger.debug('/ 거래 단계별 수락 : ', {user_id:req.params.user_id, post_id : req.body.post_id});
 
     // 요청자/기부자 판별
     // 1. 게시물 + trade
@@ -276,7 +298,7 @@ exports.acceptPost = function(req,res){
                         },
                         function (cb) {
                             if ( status_id == 2 ){
-                                req.body.trade_id = rows[0].trade_id;
+                                req.params.trade_id = rows[0].trade_id;
                                 // 메시지 전송
                                 message.createMessage(req, connection, function (err, result) {
                                     if(err) cb(err);
@@ -312,32 +334,41 @@ exports.acceptPost = function(req,res){
                                 res.json(getJsonData(0, err.message, null));
                             });
                         }else{
-                            connection.release();
-                            res.json(getJsonData(1, 'success', null));
 
+
+                            var result;
+                            // 배송 완료 시 GCM 전송 / status_id == 2
                             if ( status_id == 2 ){
                                 // GCM 전송
-                                gcm.sendMessage([req.body.to_user_id], '위즈도나', req.body.message, function (err) {
-                                    // 완료
-                                    if(err){
-                                        logger.error('교환 수락 GCM error :', err.message);
-                                    }else{
-                                        logger.debug('교환 수락 GCM 성공!');
+                                query = "SELECT gcm_registration_id FROM user WHERE user_id = ?;";
+                                data = [req.body.to_user_id];
+                                connection.query(query, data, function (err, rows, fields) {
+                                    if (err) {
+                                        logger.error('교환 요청 GCM 에러!', err.message);
+                                    } else {
+                                        gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, function (err) {
+                                            // 완료
+                                            if (err) {
+                                                logger.error('교환 수락 GCM error :', err.message);
+                                            } else {
+                                                logger.debug('교환 수락 GCM 성공!');
+                                            }
+                                        });
                                     }
                                 });
+                                result = {message:req.body.message};
+                            }else{
+                                result = null;
                             }
 
-                            logger.debug('.');
-                            logger.debug('.');
-                            logger.debug('교환 수락 요청 성공!');
+                            connection.release();
+                            res.json(getJsonData(1, 'success', result));
+
+                            logger.debug('/.');
+                            logger.debug('/.');
+                            logger.debug('/거래 단계별 수락 성공!');
                             logger.debug('/---------------------------------------- end -----------------------------------------/');
                         }
-
-
-                        // 수취완료 시점에 상대방에게 책갈피 보내기  추가 !
-                        // trade_id로 요청 메시지 보내기
-                        //message.createMessage(req,res);
-
                     });
                 }
             });
@@ -410,7 +441,7 @@ exports.cancelPost = function(req,res){
                     post.destroyPost(req, res);
                 },
                 function (rows, callback) {
-                    req.body.trade_id = rows[0].trade_id;
+                    req.params.trade_id = rows[0].trade_id;
                     // 기부자
                     if (rows[0].user_id == req.params.user_id) {
                         //    5-1. trade의 current_status '철회'로 변경
@@ -515,21 +546,31 @@ exports.cancelPost = function(req,res){
                             });
                         }else{
                             connection.release();
-                            res.json(getJsonData(1, 'success', null));
+
+                            var result = {message:req.body.message};
+                            res.json(getJsonData(1, "success", result));
 
                             // GCM 전송
-                            gcm.sendMessage([req.body.to_user_id], '위즈도나', req.body.message, function (err) {
-                                // 완료
-                                if(err){
-                                    logger.error('교환 취소/철회 GCM error :', err.message);
-                                }else{
-                                    logger.debug('교환 취소/철회 GCM 성공!');
+                            query = "SELECT gcm_registration_id FROM user WHERE user_id = ?;";
+                            data = [req.body.to_user_id];
+                            connection.query(query, data, function (err, rows, fields) {
+                                if (err) {
+                                    logger.error('교환 요청 GCM 에러!', err.message);
+                                } else {
+                                    gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, function (err) {
+                                        // 완료
+                                        if (err) {
+                                            logger.error('교환 취소/철회 GCM error :', err.message);
+                                        } else {
+                                            logger.debug('교환 취소/철회 GCM 성공!');
+                                        }
+                                    });
                                 }
                             });
 
-                            logger.debug('.');
-                            logger.debug('.');
-                            logger.debug('거래 취소/철회 요청 성공!');
+                            logger.debug('/.');
+                            logger.debug('/.');
+                            logger.debug('/거래 취소/철회 요청 성공!');
                             logger.debug('/---------------------------------------- end -----------------------------------------/');
                         }
                     });
