@@ -106,12 +106,22 @@ exports.createMsg = function(req,res){
         "JOIN post p ON t.post_id = p.post_id " +
         "WHERE t.trade_id = ? ";
 
+    // 클로저로 바꿀 예정
     template_item(
         query,
         [user_id,user_id,message,trade_id],
         function(err,rows,msg){
             if(err) {res.json(trans_json(msg,0));}
-            else {res.json(trans_json(msg,1));}
+            else {
+                template_item(
+                    "SELECT * FROM message m JOIN "
+                );
+
+                sendMessage([user_id],title,message,function(){
+
+                });
+                res.json(trans_json(msg,1));
+            }
         }
     );
 }
