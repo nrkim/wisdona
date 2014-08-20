@@ -87,7 +87,7 @@ exports.user_detail = function(item){
     console.log('nickname',item.nick_name);
     return {
         user_id              : item.user_id,
-        nick_name            : item.nick_name,
+        nick_name            : item.nickname,
         profile_image_url    : item.image,
         self_intro           : item.self_intro,
         name                 : item.name,

@@ -99,30 +99,31 @@ exports.getAccountSettings = function(req,res){
         'email_auth "email_authentication", ' +
         '(CASE WHEN sanction_date < NOW() THEN TRUE ELSE FALSE END) sanction_date ' +
         'FROM (SELECT * FROM user WHERE sleep_mode = 0) u ' +
-        'WHERE user_id = 4 ';
+        'WHERE user_id = ? ';
 
     template_list(
         query,
         [user_id],
         user_detail,
         function(err,result,msg){
+            console.log('result!!!',result);
             if(err) { res.json(trans_json(msg,0));}
             else {
-                if(result) {
-                    console.log('=============================');
-                    console.log('rows :::     ',result);
-                    console.log('nickname :',result[0].nickname);
-
+                console.log('res  ',result);
+                if(result.length == 0) {
+                    res.json(trans_json(msg,0));
+                }
+                else {
+                    console.log('res2 : ',result);
                     result[0].push_settings =
                         _.map(result[0].push_settings.split(','),
-                        function(str){ return Number(str); });
+                            function(str){ return Number(str); });
                     if(result[0].email_authentication) { result[0].email_authentication = true; }
                     else { result[0].email_authentication = false; }
                     if(result[0].sanction_date) { result[0].sanction_date = true; }
                     else { result[0].sanction_date = false; }
                     res.json(trans_json('success', 1, result[0]));
-                }
-                else { res.json(trans_json(msg,0)); }   // 일치하는 결과가 없을 때는 에러
+                }   // 일치하는 결과가 없을 때는 에러
             }
         }
     );
