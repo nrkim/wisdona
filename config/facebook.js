@@ -107,10 +107,10 @@ module.exports = function(passport) {
                                             newUser.facebookName = profile.name.givenName + ' ' + profile.name.familyName;
                                             newUser.facebookPhoto = "https://graph.facebook.com/v2.1/me/picture?access_token=" + accessToken;
                                             var insertSql = 'INSERT INTO user (facebook_id, facebook_token, email, ' +
-                                                'image) VALUES(?, ?, ?, ?)';
+                                                'image, nickname) VALUES(?, ?, ?, ?, ?)';
                                             connection.query(insertSql, [newUser.facebookId,
                                                 newUser.facebookToken, newUser.facebookEmail,
-                                                newUser.facebookPhoto], function(err, result) {
+                                                newUser.facebookPhoto, "이름없음"], function(err, result) {
                                                 if (err) {
                                                     console.log('err 1222',err.message);
                                                     connection.release();
