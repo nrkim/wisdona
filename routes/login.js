@@ -27,7 +27,7 @@ exports.registerLocal = function(req,res){
     console.log('user : ',req.session.passport.user);
 
     template_item(
-        "UPDATE user SET nickname = ?, gcm_registration_id  = ? WHERE user_id = ?",
+        "UPDATE user SET nickname = ?, gcm_registration_id  = ?, email_auth = true WHERE user_id = ?",
         [req.body.nickname, req.body.gcm_registration_id, req.session.passport.user],
         function(err,rows){
             if (err){

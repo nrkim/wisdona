@@ -3,7 +3,8 @@
  */
 var FacebookTokenStrategy = require('passport-facebook-token').Strategy
     , async = require('async')
-    , configAuth = require('./facebook_auth');
+    , configAuth = require('./facebook_auth')
+    , template_item = require('../routes/template').template_item;
 
 module.exports = function(passport) {
 
@@ -105,24 +106,25 @@ module.exports = function(passport) {
                                             newUser.facebookEmail = profile.emails[0].value;
                                             newUser.facebookName = profile.name.givenName + ' ' + profile.name.familyName;
                                             newUser.facebookPhoto = "https://graph.facebook.com/v2.1/me/picture?access_token=" + accessToken;
-                                            var insertSql = 'INSERT INTO users(facebook_id, facebook_token, email, ' +
-                                                ' image) VALUES(?, ?, ?, ?, ?)';
+                                            var insertSql = 'INSERT INTO user (facebook_id, facebook_token, email, ' +
+                                                'image) VALUES(?, ?, ?, ?)';
                                             connection.query(insertSql, [newUser.facebookId,
                                                 newUser.facebookToken, newUser.facebookEmail,
                                                 newUser.facebookPhoto], function(err, result) {
                                                 if (err) {
-                                                    console.log('err 1222');
+                                                    console.log('err 1222',err.message);
                                                     connection.release();
                                                     return done(err);
                                                 }
                                                 else {
                                                     console.log('not err222')
-                                                    newUser.id = result.insertId;
+                                                    newUser.user_id = result.insertId;
                                                     connection.release();
                                                     return done(null, newUser);
                                                 }
                                             });
                                         } else {
+                                            console.log('이메일 중복!QQQ');
                                             done(null,false,'이메일이 중복됩니다.');
                                         }
                                     }

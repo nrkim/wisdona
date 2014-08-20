@@ -68,11 +68,12 @@ module.exports = function(app,passport) {
                             if(user){
                                 console.log('json file !! ',user.user_id);
                                 req.json_file = create_user(user.user_id);
+                                req.session.passport.user = user.user_id;
                                 next();
                             }  //  next(null,true,'로그인에 성공하였습니다.');//res.json(trans_json('success!!',1));
                             else{
-                                console.log('json file failed !! ',user.user_id);
-                                res.json(trans_json('fail!!',0));
+                                //console.log('json file failed !! ',user.user_id);
+                                res.json(trans_json(msg,0));
                             } //next(null,false,'로그인에 실패 했습니다.')
                         })(req, res, next);
                     } else {
