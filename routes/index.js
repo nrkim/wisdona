@@ -95,6 +95,7 @@ module.exports = function(app,passport) {
                     res.json(trans_json('sql 에러입니다 : '+err.message,0));
                 } else{
                     if(user){
+                        req.session.passport.user = user.user_id;
                         res.json(trans_json("success",1,create_user(user.user_id)));
                     } else{
                         res.json(trans_json(info,2));
