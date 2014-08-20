@@ -38,22 +38,10 @@ exports.requestActivationEmail = function(req,res){
 
                 if(err) {callback('sql에러 입니다 : '+ err.message);}
                 else {
-                    console.log('err is :',err);
-                    console.log('  result is :', result);
-                    console.log('message is .. ',msg);
-
                     if(result.length == 0) {
-
-                        console.log('err is :',err);
-                        console.log('  ==result is :', result);
-                        console.log('message is .. ',msg);
-
                         callback('등록되지 않은 유저 입니다.');
                     }
                     else {
-                        console.log('err is :',err);
-                        console.log('          result is :', result);
-                        console.log('message is .. ',msg);
                         email=result[0].email;
                         callback(null);
                     }
