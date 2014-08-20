@@ -9,7 +9,8 @@ var _ = require('underscore'),
     path = require('path'),
     mime = require('mime'),
     im = require('imagemagick'),
-    formidable = require('formidable');
+    formidable = require('formidable')
+    logger = require('../config/logger');
 
 var promotion = require('./promotion');
 var baseImageDir = __dirname + '/../images/';
@@ -76,6 +77,9 @@ function deleteImage(row, callback) {
     }, function (err) {
         if ( err ){
             callback(err);
+
+            logger.error('서버 이미지 삭제 error : ', err.message);
+            logger.error('/---------------------------------------- end -----------------------------------------/');
         }else{
             callback(null);
         }
@@ -86,8 +90,6 @@ function deleteImage(row, callback) {
 
 // 웹 서버에 원본, 중간, 썸네일 이미지 저장
 function saveImage(image, callback) {
-    console.log(image);
-
     if (image.size) {
 
         // 파일 이동
@@ -96,7 +98,6 @@ function saveImage(image, callback) {
             if (err) {
                 callback(err);
             } else {
-                console.log('Original file(', image.name, ') moved!!!');
                 var largePath = path.normalize(baseImageDir + "large/" + "l_" + path.basename(image.path));
                 var thumbPath = path.normalize(baseImageDir + "thumbs/" + "t_" + path.basename(image.path));
 
@@ -148,8 +149,10 @@ function saveImage(image, callback) {
         fstools.remove(image.path, function(err) {
             if (err) {
                 callback(err);
+
+                logger.error('서버 이미지 저장 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
             } else {
-                console.log('Zero file removed!!!');
                 callback();
             }
         });
@@ -175,8 +178,10 @@ function updateImageQuery(connection, post_image_id, filePath, callback){
     connection.query(query, data, function (err, result) {
         if (err) {
             callback(err);
+
+            logger.error('/ 업데이트 이미지 쿼리 error : ', err.message);
+
         }else{
-            console.log("업데이트 : ", post_image_id);
             callback();
         }
 
@@ -193,8 +198,10 @@ function insertImageQuery(connection, post_id, filePath, callback) {
     connection.query(query, data, function (err, result) {
         if (err) {
             callback(err);
+
+            logger.error('이미지 인설트 쿼리 error : ', err.message);
+
         } else {
-            console.log("쿼리 추가 : ", post_id);
             callback();
         }
     });
@@ -210,14 +217,20 @@ function deleteImageQuery(connection, post_image_id, callback) {
     connection.query(query, data, function (err, result) {
         if (err) {
             callback(err);
+
+            logger.error('이미지 삭제 쿼리 error : ', err.message);
+
         } else {
-            console.log("쿼리 삭제 : ", post_image_id);
             callback();
         }
     });
 }
 
 function destroyPostQuery(connection, post_id, user_id, callback ){
+    logger.debug('/--------------------------------------- start ----------------------------------------/');
+    logger.debug('/ 게시물 삭제 : ', {post_id:post_id, user_id:user_id});
+
+
     var query = "UPDATE post SET current_status = 1 WHERE post_id = ? and user_id = ?;";
     var data = [post_id, user_id];
 
@@ -255,7 +268,7 @@ function destroyPostQuery(connection, post_id, user_id, callback ){
                         },
                         function (cb) {
                             // 프로모션 게시물 체크
-                            promotion.destroyPost(connection, post_id, user_id, function (err) {
+                            promotion.destroyPostCheck(connection, post_id, user_id, function (err) {
                                 if ( err ){
                                     cb(err);
                                 }else{
@@ -266,6 +279,9 @@ function destroyPostQuery(connection, post_id, user_id, callback ){
                     function (err) {
                         if (err){
                             callback(err);
+
+                            logger.error('게시물 삭제 쿼리 error : ', err.message);
+
                         }else{
                             callback();
                         }
@@ -277,21 +293,26 @@ function destroyPostQuery(connection, post_id, user_id, callback ){
 }
 
 
-exports.createPost = function(req,res,next) {
-    console.log('들어왔음');
+exports.saveImages = function(req,res,next) {
+
+
     var form = new formidable.IncomingForm();
     form.uploadDir = path.normalize(__dirname + '/../tmp/');
     form.keepExtensions = true;
 
-
     form.parse(req, function(err, fields, files) {
         req.body = fields;
+
+        logger.debug('/--------------------------------------- start ----------------------------------------/');
+        logger.debug('게시물 생성 요청 : ', req.body);
+        logger.debug('이미지 파일 : ', Object.keys(files));
+
 
         // 필수 파라미터에 값 없을 경우
         if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.genre == null || req.body.name == null || req.body.is_certificate == null) {
             return res.json(getJsonData(0, "파라미터 값이 없습니다.", null));
         }
-        console.log('fields.is_certificate' , fields.is_certificate);
+
 
         //////// 이미지 파일 아닐 경우 처리 필요 ////////
         async.waterfall([
@@ -324,7 +345,10 @@ exports.createPost = function(req,res,next) {
         ], function (err) {
             if (err) {
                 // 오류 나면 남은 이미지 삭제
-                return res.json(getJsonData(0, err.message, null));
+                res.json(getJsonData(0, err.message, null));
+
+                logger.error('게시물 생성 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
                 next();
             }
@@ -333,7 +357,7 @@ exports.createPost = function(req,res,next) {
     });
 };
 
-exports.uploadImages = function (req, res) {
+exports.insertPostQuery = function (req, res) {
 
     getConnection(function (connection) {
         async.waterfall([
@@ -372,7 +396,11 @@ exports.uploadImages = function (req, res) {
                                 if (err) {
                                     cb(err);
                                 }else{
-                                    cb(null, rows);
+                                    if ( !rows.length ){
+                                        cb(new Error('장르 정보가 없습니다. > ' + req.body.genre ));
+                                    }else{
+                                        cb(null, rows);
+                                    }
                                 }
                             });
                         },
@@ -395,7 +423,6 @@ exports.uploadImages = function (req, res) {
                                 if (err) {
                                     cb(err);
                                 }else{
-                                    console.log(rows[0].category_id, result.insertId);
                                     cb(null, [rows[0].category_id, result.insertId]);
                                 }
                             });
@@ -451,7 +478,7 @@ exports.uploadImages = function (req, res) {
                         );
                     },
                     function (cb) {
-                        promotion.createPost(connection, post_id, req.params.user_id, function (err) {
+                        promotion.createPostCheck(connection, post_id, req.params.user_id, function (err) {
                             if ( err ){
                                 cb(err);
                             }else{
@@ -473,6 +500,9 @@ exports.uploadImages = function (req, res) {
                     connection.release();
                     res.json(getJsonData(0, err.message, null));
                 });
+
+                logger.error('게시물 인설트 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
                 connection.commit(function (err) {
                     if (err) {
@@ -483,6 +513,10 @@ exports.uploadImages = function (req, res) {
                     }else{
                         connection.release();
                         res.json(getJsonData(1, 'success', null));
+                        logger.debug('.');
+                        logger.debug('.');
+                        logger.debug('게시물 인설트 성공!');
+                        logger.debug('/---------------------------------------- end -----------------------------------------/');
 
                     }
                 });
@@ -495,11 +529,13 @@ exports.uploadImages = function (req, res) {
 
 // 포스트 수정
 exports.updatePost = function(req,res){
-
-
-
+    logger.debug(req.headers["content-type"]);
     //application/x-www-form-urlencoded
-    if (req.headers['content-type'] === 'application/json'){
+
+    var contentType = req.headers['content-type'];
+
+    if (contentType === 'application/x-www-form-urlencoded' || contentType === 'application/json'){
+        req.files = req.files || {};
         runUpdate();
     } else {   // 'multipart/form-data'
         var form = new formidable.IncomingForm();
@@ -509,12 +545,15 @@ exports.updatePost = function(req,res){
         form.parse(req, function(err, fields, files) {
             req.body = fields;
             req.files = files;
-
             runUpdate();
         });
     }
 
     function runUpdate() {
+
+        logger.debug('/--------------------------------------- start ----------------------------------------/');
+        logger.debug('게시물 업데이트 요청 : ', req.body);
+        logger.debug('이미지 파일 : ', Object.keys(req.files));
 
         var user_id = req.params.user_id,
             post_id = req.body.post_id,
@@ -523,8 +562,6 @@ exports.updatePost = function(req,res){
             book_condition_id = req.body.book_condition_id,
             destroy_list = req.body.destroy_list;
 
-        console.log(post_id);
-        console.log(destroy_list);
 
         //destroy_list=[];
         // 파라미터 체크
@@ -553,7 +590,6 @@ exports.updatePost = function(req,res){
                         if (err) {
                             callback(err);
                         }else{
-                            console.log(rows);
                             callback(null, rows);
                         }
                     });
@@ -578,7 +614,6 @@ exports.updatePost = function(req,res){
                         });
 
                         async.each(imageArr, function (image, cb) {
-                            //console.log(image);
                             saveImage(image, function (err, uploadFile) {
                                 if (err){
                                     cb(err);
@@ -662,8 +697,14 @@ exports.updatePost = function(req,res){
                     });
                 }], function (err) {
                 if (err) {
-                    connection.release();
-                    res.json(getJsonData(0, err.message, null));
+                    connection.rollback(function () {
+                        connection.release();
+                        res.json(getJsonData(0, err.message, null));
+                    });
+
+                    logger.error('게시물 인설트 error : ', err.message);
+                    logger.error('/---------------------------------------- end -----------------------------------------/');
+
                 }else{
 
                     connection.commit(function (err) {
@@ -675,7 +716,10 @@ exports.updatePost = function(req,res){
                         }else{
                             connection.release();
                             res.json(getJsonData(1, 'success', null));
-
+                            logger.debug('.');
+                            logger.debug('.');
+                            logger.debug('게시물 업데이트 요청 성공!');
+                            logger.debug('/---------------------------------------- end -----------------------------------------/');
                         }
                     });
                 }
@@ -686,6 +730,7 @@ exports.updatePost = function(req,res){
 
 // 게시물 삭제
 exports.destroyPost = function(req,res) {
+
     if (req.body.connection) {
         destroyPostQuery(req.body.connection, req.body.post_id, req.params.user_id, function (err) {
             if (err) {
@@ -709,8 +754,13 @@ exports.destroyPost = function(req,res) {
 
                     destroyPostQuery(connection, req.body.post_id, req.params.user_id, function (err) {
                         if (err) {
-                            connection.release();
-                            res.json(getJsonData(0, err.message, null));
+                            connection.rollback(function () {
+                                connection.release();
+                                res.json(getJsonData(0, err.message, null));
+                            });
+
+                            logger.error('/ 게시물 삭제 error : ', err.message);
+                            logger.error('/---------------------------------------- end -----------------------------------------/');
                         } else {
                             connection.commit(function (err) {
                                 if (err) {
@@ -721,6 +771,11 @@ exports.destroyPost = function(req,res) {
                                 } else {
                                     connection.release();
                                     res.json(getJsonData(1, 'success', null));
+
+                                    logger.debug('.');
+                                    logger.debug('.');
+                                    logger.debug('게시물 삭제 성공!');
+                                    logger.debug('/---------------------------------------- end -----------------------------------------/');
                                 }
                             });
                         }
@@ -734,6 +789,11 @@ exports.destroyPost = function(req,res) {
 
 // 게시물 상세 정보
 exports.getPostDetail = function(req,res){
+
+    logger.debug('/--------------------------------------- start ----------------------------------------/');
+    logger.debug('게시물 상세정보 요청 : ', req.params.post_id);
+
+
     var post_id = req.params.post_id;
 
     // 파라미터 체크
@@ -760,7 +820,6 @@ exports.getPostDetail = function(req,res){
         "LEFT JOIN (SELECT trade_id, current_status, post_id, req_user_id, last_update FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " +
         "LEFT JOIN user ru ON t.req_user_id = ru.user_id " +
         "WHERE p.post_id = ?;";
-    console.log(query);
     var data = [post_id];
     connectionPool.getConnection(function(err, connection) {
         if (err) {
@@ -769,90 +828,101 @@ exports.getPostDetail = function(req,res){
         connection.query(query, data, function (err, rows, fields) {
             if (err) {
                 connection.release();
-                return res.json(getJsonData(0, err.message, null));
-            }
+                res.json(getJsonData(0, err.message, null));
 
-            // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
-            // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
 
-            console.log(rows[0].large_image_paths);
-            var result = {
-                user : {
-                    user_id : rows[0].user_id,
-                    nick_name : rows[0].nick_name,
-                    profile_image_url : rows[0].image,
-                    like_cnt : rows[0].like_total_cnt,
-                    sad_cnt : rows[0].sad_total_cnt
-                },
-                post : {
-                    comment : rows[0].comment,
-                    book_mark_count : rows[0].bookmark_cnt,
-                    book_image_url : rows[0].large_image_paths.split(','),
-                    book_condition : rows[0].book_condition_id,
-                    is_certificate : rows[0].is_certificate,
-                    create_date : rows[0].create_date,
-                    book : {
-                        book_name : rows[0].title,
-                        author : rows[0].author,
-                        publisher : rows[0].translator,
-                        publication_date : rows[0].pub_date,
-                        genre : rows[0].genre
-                    }
-                }
-            };
-
-            var trade;
-            if ( !rows[0].trade_id ) {
-                trade = null;
+                logger.error('게시물 상세정보 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
+                // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
+                // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
 
-                var current_status;
-                // 배송완료 이후 '당일'인지 '익일'인지 파악 당일 : 2, 익일 : 3
-                if (rows[0].current_status == 1 ) {
-                    current_status = 1;
-                }else if( rows[0].current_status == 2 ){
-                    var tommorowDate = new Date();
-                    tommorowDate.setDate(tommorowDate.getDate() + 1);
-                    var sendDate = new Date(rows[0].last_update);
-                    // 익일 = 3
-                    if ( sendDate > tommorowDate ){
-                        current_status = 3;
-                    }else{
-                        // 당일 = 2
-                        current_status = 2;
+                var result = {
+                    user : {
+                        user_id : rows[0].user_id,
+                        nick_name : rows[0].nick_name,
+                        profile_image_url : rows[0].image,
+                        like_cnt : rows[0].like_total_cnt,
+                        sad_cnt : rows[0].sad_total_cnt
+                    },
+                    post : {
+                        comment : rows[0].comment,
+                        book_mark_count : rows[0].bookmark_cnt,
+                        book_image_url : rows[0].large_image_paths.split(','),
+                        book_condition : rows[0].book_condition_id,
+                        is_certificate : rows[0].is_certificate,
+                        create_date : rows[0].create_date,
+                        book : {
+                            book_name : rows[0].title,
+                            author : rows[0].author,
+                            publisher : rows[0].translator,
+                            publication_date : rows[0].pub_date,
+                            genre : rows[0].genre
+                        }
                     }
-                }else if(rows[0].current_status == 3) {
-                    // 평가완료 (기부자)
-                    current_status = 4;
-                }else if(rows[0].current_status == 4) {
-                    // 평가완료 (요청자)
-                    current_status = 5;
-                }else {
-                    // 평가완료 (완료)
-                    current_status = 6;
                 };
 
-                trade = {
-                    trade_id : rows[0].trade_id,
-                    current_status : current_status,
-                    beneficiary : {
-                        user_id : rows[0].req_user_id,
-                        nick_name : rows[0].req_nickname,
-                        profile_image_url : rows[0].req_image
+                var trade;
+                if ( !rows[0].trade_id ) {
+                    trade = null;
+                }else{
+
+                    var current_status;
+                    // 배송완료 이후 '당일'인지 '익일'인지 파악 당일 : 2, 익일 : 3
+                    if (rows[0].current_status == 1 ) {
+                        current_status = 1;
+                    }else if( rows[0].current_status == 2 ){
+                        var tommorowDate = new Date();
+                        tommorowDate.setDate(tommorowDate.getDate() + 1);
+                        var sendDate = new Date(rows[0].last_update);
+                        // 익일 = 3
+                        if ( sendDate > tommorowDate ){
+                            current_status = 3;
+                        }else{
+                            // 당일 = 2
+                            current_status = 2;
+                        }
+                    }else if(rows[0].current_status == 3) {
+                        // 평가완료 (기부자)
+                        current_status = 4;
+                    }else if(rows[0].current_status == 4) {
+                        // 평가완료 (요청자)
+                        current_status = 5;
+                    }else {
+                        // 평가완료 (완료)
+                        current_status = 6;
+                    }
+
+                    trade = {
+                        trade_id : rows[0].trade_id,
+                        current_status : current_status,
+                        beneficiary : {
+                            user_id : rows[0].req_user_id,
+                            nick_name : rows[0].req_nickname,
+                            profile_image_url : rows[0].req_image
+                        }
                     }
                 }
+
+                result.trade = trade;
+
+                connection.release();
+                res.json(getJsonData(1, 'success', result));
+
+                logger.debug('.');
+                logger.debug('.');
+                logger.debug('게시물 상세정보 요청 성공!');
+                logger.debug('/---------------------------------------- end -----------------------------------------/');
             }
-
-            result.trade = trade;
-
-            connection.release();
-            res.json(getJsonData(1, 'success', result));
         });
     });
 
 };
 
 exports.getPostList = function(req,res){
+    logger.debug('/--------------------------------------- start ----------------------------------------/');
+    logger.debug('게시물 상세정보 요청 : ', {category_id:req.query.category_id, page:req.query.page, count:req.query.count, sort:req.query.sort, theme:req.query.theme});
+
     var category_id = req.query.category_id;
     var page = req.query.page;
     var count = req.query.count;
@@ -873,44 +943,6 @@ exports.getPostList = function(req,res){
 
     // ORDER BY 정렬 변수
     var sorter = "";
-
-    // 쿼리 함수
-    function sendQuery(query, data) {
-        connectionPool.getConnection(function(err, connection) {
-            if (err) {
-                res.json(getJsonData(0, 'DB 오류', null));
-            }
-            connection.query(query, data, function (err, rows, fields) {
-                if (err) {
-                    connection.release();
-                    return res.json(getJsonData(0, err.message, null));
-                }
-                var list = [];
-                for ( var i = 0; i < rows.length; i++ ){
-                    var current_status = rows[i].current_status || 0;
-                    var item = {
-                        post_id : rows[i].post_id,
-                        thumbnail_url : rows[i].thumbnail_path,
-                        book_name : rows[i].title,
-                        author : rows[i].author,
-                        publisher : rows[i].translator,
-                        publication_date : rows[i].pub_date,
-                        bookmark_count : rows[i].bookmark_cnt,
-                        current_status : current_status
-                    };
-                    list.push(item);
-                };
-
-                var result = {
-                    total_count: 0,
-                    list: list
-                };
-
-                connection.release();
-                res.json(getJsonData(1, 'success', result));
-            });
-        });
-    };
 
     // 테마 파라미터 있는 경우
     if ( theme ) {
@@ -935,7 +967,6 @@ exports.getPostList = function(req,res){
                 break;
         }
     }else{
-        console.log(sort);
         // 정렬방법
         switch (sort) {
             case "new" :
@@ -971,40 +1002,21 @@ exports.getPostList = function(req,res){
         "LEFT JOIN (SELECT post_id, current_status FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where + "p.current_status <> 1 " +
         "GROUP BY p.post_id " +
         "ORDER BY " + sorter + " p.create_date DESC LIMIT ?, ?;";
-    console.log(query);
-    console.log(start, end);
-    sendQuery(query, data);
-};
 
 
-exports.searchPosts = function(req,res){
-    var keyword = req.query.q;
-    var category_id = req.query.category_id;
-    var page = req.query.page;
-    var count = req.query.count;
-
-    // 파라미터 초기화
-    if ( !page ) page = 0;
-    if ( !count ) count = 20;
-
-    // limit 변수 초기화
-    var start = page * count;
-    var end = count * 1;
-
-    // WHERE 조건절 변수
-    var where = "WHERE ";
-
-    // 쿼리 함수
-    function sendQuery(query, data) {
-        connectionPool.getConnection(function(err, connection) {
+    connectionPool.getConnection(function(err, connection) {
+        if (err) {
+            res.json(getJsonData(0, 'DB 오류', null));
+        }
+        connection.query(query, data, function (err, rows, fields) {
             if (err) {
-                res.json(getJsonData(0, 'DB 오류', null));
-            }
-            connection.query(query, data, function (err, rows, fields) {
-                if (err) {
-                    connection.release();
-                    return res.json(getJsonData(0, err.message, null));
-                }
+                connection.release();
+                res.json(getJsonData(0, err.message, null));
+
+
+                logger.error('게시물 리스트 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
+            }else{
                 var list = [];
                 for ( var i = 0; i < rows.length; i++ ){
                     var current_status = rows[i].current_status || 0;
@@ -1028,10 +1040,28 @@ exports.searchPosts = function(req,res){
 
                 connection.release();
                 res.json(getJsonData(1, 'success', result));
-            });
+            }
         });
-    };
+    });
+};
 
+
+exports.searchPosts = function(req,res){
+    var keyword = req.query.q;
+    var category_id = req.query.category_id;
+    var page = req.query.page;
+    var count = req.query.count;
+
+    // 파라미터 초기화
+    if ( !page ) page = 0;
+    if ( !count ) count = 20;
+
+    // limit 변수 초기화
+    var start = page * count;
+    var end = count * 1;
+
+    // WHERE 조건절 변수
+    var where = "WHERE ";
 
     // 카테고리 있는 경우
     if ( category_id ){
@@ -1050,20 +1080,61 @@ exports.searchPosts = function(req,res){
         "LEFT JOIN (SELECT * FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where + "p.current_status <> 1 " +
         "GROUP BY p.post_id " +
         "ORDER BY p.create_date DESC LIMIT ?, ?;";
-    console.log(query);
-    sendQuery(query, data);
+
+    connectionPool.getConnection(function(err, connection) {
+        if (err) {
+            res.json(getJsonData(0, 'DB 오류', null));
+        }
+        connection.query(query, data, function (err, rows, fields) {
+            if (err) {
+                connection.release();
+                res.json(getJsonData(0, err.message, null));
+
+
+                logger.error('게시물 검색 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
+            }else{
+                var list = [];
+                for ( var i = 0; i < rows.length; i++ ){
+                    var current_status = rows[i].current_status || 0;
+                    var item = {
+                        post_id : rows[i].post_id,
+                        thumbnail_url : rows[i].thumbnail_path,
+                        book_name : rows[i].title,
+                        author : rows[i].author,
+                        publisher : rows[i].translator,
+                        publication_date : rows[i].pub_date,
+                        bookmark_count : rows[i].bookmark_cnt,
+                        current_status : current_status
+                    };
+                    list.push(item);
+                }
+
+                var result = {
+                    total_count: 0,
+                    list: list
+                };
+
+                connection.release();
+                res.json(getJsonData(1, 'success', result));
+            }
+        });
+    });
 };
 
 
+// 게시물 신고
 exports.reportPost = function(req,res){
     var user_id = req.params.user_id;
     var post_id = req.body.post_id;
     var cause = req.body.cause;
 
-    if ( !cause ) return res.json(getJsonData(0, '신고사유를 입력해야 됩니다.', null));
+    if ( !post_id || !cause ){
+        res.json(getJsonData(0, '신고사유를 입력해야 됩니다.', null));
+    }else{
+        var data = {user_id:user_id, post_id:post_id, cause:cause};
+        var query = "INSERT INTO post_report SET ?";
 
-    // 쿼리 함수
-    function sendQuery(query, data) {
         connectionPool.getConnection(function(err, connection) {
             if (err) {
                 res.json(getJsonData(0, 'DB 오류', null));
@@ -1071,25 +1142,22 @@ exports.reportPost = function(req,res){
             connection.query(query, data, function (err, rows, fields) {
                 if (err) {
                     connection.release();
-                    return res.json(getJsonData(0, err.message, null));
-                }
+                    res.json(getJsonData(0, err.message, null));
 
-                connection.release();
-                res.json(getJsonData(1, 'success', null));
+                    logger.error('/--------------------------------------- start ----------------------------------------/');
+                    logger.error('게시물 신고 error : ', err.message);
+                    logger.error('/---------------------------------------- end -----------------------------------------/');
+                }else{
+                    connection.release();
+                    res.json(getJsonData(1, 'success', null));
+                }
             });
         });
-    };
-
-    var data = {user_id:user_id, post_id:post_id, cause:cause};
-    var query = "INSERT INTO post_report SET ?";
-    sendQuery(query, data);
-}
+    }
+};
 
 
 exports.getImage = function(req, res) {
-//    console.log("req.params: ", req.params);
-//    console.log("req.params.imagepath: ", req.params.imagepath);
-//    console.log("req.param('imagepath'): ", req.param('imagepath'));
 
     // 파일 패스 설정
     var imageType = baseImageDir;
@@ -1104,17 +1172,18 @@ exports.getImage = function(req, res) {
     var mimeType = mime.lookup(req.params.imagepath);
 
     var filepath = path.normalize(baseImageDir + imageType + req.params.imagepath);
-    console.log('filepath', filepath);
     fs.exists(filepath, function (exists) {
-        console.log(exists);
         if (exists) {
             res.set('Content-Type', mimeType);
             var rs = fs.createReadStream(filepath);
             rs.pipe(res);
         } else {
-            res.json(404, {
-                data: "No phto found!!!"
-            });
+
+            res.json(getJsonData(404, '해당 이미지가 없습니다', null));
+
+            logger.error('/--------------------------------------- start ----------------------------------------/');
+            logger.error('이미지 요청 error : ', err.message);
+            logger.error('/---------------------------------------- end -----------------------------------------/');
         }
     });
 }

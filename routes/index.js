@@ -128,7 +128,7 @@ module.exports = function(app,passport) {
         isLoggedIn, review.createUserReview);
 
     // 게시물
-    app.post('/users/:user_id/posts/create',isLoggedIn, post.createPost, post.uploadImages);
+    app.post('/users/:user_id/posts/create',isLoggedIn, post.saveImages, post.insertPostQuery);
     app.post('/users/:user_id/posts/update',isLoggedIn, post.updatePost);
     app.post('/users/:user_id/posts/destroy',isLoggedIn, post.destroyPost);
     app.get('/posts/:post_id/show', post.getPostDetail);
