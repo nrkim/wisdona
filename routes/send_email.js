@@ -85,11 +85,6 @@ exports.requestActivationEmail = function(req,res){
 
                     console.log('expires is : ',expire);
                     if(rows.length == 0){
-                        console.log('이메일이 auth에 있지 않을 때');
-                        console.log('user_id',user_id);
-                        console.log('email',email);
-                        console.log('token',token);
-                        console.log('token',expire);
                         template_item(
                             "INSERT INTO email_auth(user_id,email,auth_token,expiration_date) VALUES(?,?,?,?)",
                             [user_id,email,token,expire],
@@ -100,8 +95,6 @@ exports.requestActivationEmail = function(req,res){
                         );
                     }
                     else{
-                        console.log('else case!!!');
-                        console.log('else case');
                         template_item(
                             "UPDATE email_auth SET auth_token = ?, " +
                             "expiration_date = ? WHERE user_id = ? ",
@@ -161,12 +154,8 @@ exports.requestActivationEmail = function(req,res){
 
 exports.requestSendEmail = function (req,res){
 
-    var form = new formidable.IncomingForm();
-
-    form.parse(req, function(err, fields) {
-        req.body = fields;
-        var user_email = req.body.email;
-        var tempPass = cuid.slug();
+    var user_email = req.body.email;
+    var tempPass = cuid.slug();
 
         // 먼저 insert 먼저 하고 transporting 하도록 template 수정 필요.
         // 해시 함수를 이용한 패스워드 생성 함수 필요
@@ -240,6 +229,5 @@ exports.requestSendEmail = function (req,res){
                     });
                 });
             });
-    });
 };
 
