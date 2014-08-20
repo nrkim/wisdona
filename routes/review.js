@@ -18,10 +18,10 @@ exports.createUserReview = function(req,res){
     var point   = req.body.point    || 0;
 
     //타입 검사
-    if (typeof user_id  != "number") { console.log('console;a');res.json(trans_json('유저 아이디 타입은 숫자여야 합니다.',0)); }
-    if (typeof trade_id != "number") { console.log('console;b');res.json(trans_json('트레이드 아이디 타입은 숫자여야 합니다.',0)); }
-    if (typeof point   != "number") { console.log('console;c');res.json(trans_json('점수 타입은 숫자여야 합니다',0)); }
-    if (typeof comments != "string") { console.log('console;d');res.json(trans_json('코멘트 타입은 문자열이여야 합니다',0)) };
+    if (typeof user_id  != "number") { res.json(trans_json('유저 아이디 타입은 숫자여야 합니다.',0));}
+    if (typeof trade_id != "number") { res.json(trans_json('트레이드 아이디 타입은 숫자여야 합니다.',0));}
+    if (typeof point   != "number")  { res.json(trans_json('점수 타입은 숫자여야 합니다',0));}
+    if (typeof comments != "string") { res.json(trans_json('코멘트 타입은 문자열이여야 합니다',0));}
 
     var query =
         "INSERT INTO review(from_user_id, to_user_id, comments, point, create_date, trade_id) " +

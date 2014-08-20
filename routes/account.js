@@ -26,6 +26,7 @@ var _ = require('underscore')
 exports.getUserInfo = function(req,res){
 
     var user_id = req.session.passport.user;
+    console.log('user id is ',user_id);
 
     //타입 체크
     if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
@@ -120,7 +121,6 @@ exports.getAccountSettings = function(req,res){
             }
         }
     );
-
 };
 
 // api :

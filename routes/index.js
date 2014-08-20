@@ -23,6 +23,7 @@ var isLoggedIn = function (req, res, next) {
         return next();
     }
     else {
+        //버그가 있을 것 같은 ...
         console.log('로그아웃');
         res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
     }
@@ -49,8 +50,8 @@ module.exports = function(app,passport) {
             }
         })(req, res, next);
     });
-/*
-    app.post('/facebook-login',
+
+    app.post('/facebook-signup',
         express.bodyParser(),
         function(req, res, next) {
             template_item(
@@ -62,6 +63,9 @@ module.exports = function(app,passport) {
                         console.log('length is 0!!!');
                         req.dup_nickname = false;
                         passport.authenticate('facebook-token', function(err, user, info) {
+                            console.log('info is ',info);
+                            console.log('err is ',err);
+                            console.log('user is ',user);
                             if(user){ res.json(trans_json('success!!',1)); }
                             else{ res.json(trans_json('fail!!',0)); }
                         })(req, res, next);
@@ -72,38 +76,12 @@ module.exports = function(app,passport) {
                 }
             );
         });
-    */
 
     app.post('/facebook-login',
         express.bodyParser(),
-        passport.authenticate('facebook-token',{ scope: ['email'] }),
-        login.facebookLogin);
-
-
-/*
-    app.post('/facebook-login',
-        function(req, res, next) {
-            console.log(req.body.nickname);
-            template_item(
-                "SELECT nickname FROM user WHERE nickname = ?",
-                [req.body.nickname],
-                function (err, rows, msg) {
-                    if (err) res.json(trans_json(msg, 0));
-                    if (rows.length == 0) {
-                        passport.authenticate('facebook-token', { scope: ['email'] }, function (err, user, info) {
-                            if (user) {
-                                res.json(trans_json("success", 1));
-                            } else {
-                                res.json(trans_json("페이스북 로그인에 실패하였습니다", 0));
-                            }
-                        });
-                    }
-                    else res.json('닉네임이 중복됩니다.', 0);
-                }
-            );
-        }
-    );*/
-
+        passport.authenticate('facebook-token',{ scope : ['email'] }),
+        login.facebookLogin
+    );
 
     app.post('/facebook-logout',login.facebookLogout);
 
