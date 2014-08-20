@@ -86,7 +86,7 @@ exports.message_window = function(item){
 exports.user_detail = function(item){
     return {
         user_id              : item.user_id,
-        nick_name            : item.nickname,
+        nick_name            : item.nick_name,
         profile_image_url    : item.image,
         self_intro           : item.self_intro,
         name                 : item.name,

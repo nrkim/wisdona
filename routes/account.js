@@ -111,7 +111,8 @@ exports.getAccountSettings = function(req,res){
                 if(result) {
                     console.log('=============================');
                     console.log('rows :::     ',result);
-                    console.log('nickname :',result[0].nickname);
+                    console.log('nickname :',result[0].nick_name);
+
                     result[0].push_settings =
                         _.map(result[0].push_settings.split(','),
                         function(str){ return Number(str); });
