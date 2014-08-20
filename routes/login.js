@@ -62,16 +62,16 @@ exports.registerDevice = funciton(req,res){
      });
 }
 */
-
+/*
 exports.facebookLogin = function(req,res){
 	if (req.user) {
         //req.session = req.user;
         res.json(trans_json("success",1));
 	} else {
-		res.json(trans_json("페이스북 로그인에 실패하였습니다.",0));
+		res.json(trans_json(,0));
 	}
 };
-
+*/
 exports.login = function(req,res){
     if (req.session.passport.user) {
         console.log('session.passport is ',req.session.passport.user);
