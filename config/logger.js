@@ -12,7 +12,7 @@ var logger = new winston.Logger({
             level : 'error',
             filename : 'log/app-debug-log',
             datePattern : '.yyyy-MM-ddTHH-mm.log',
-            maxsize : 1024 * 1024
+            maxsize : 1024
         })
     ]
 });

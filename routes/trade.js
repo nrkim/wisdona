@@ -4,8 +4,7 @@
 var async = require('async');
 var message = require('./message');
 var post = require('./post');
-//var formidable = require('formidable');
-//var gcm = require('./gcm');
+var gcm = require('./gcm');;
 
 // 출력 JSON
 function getJsonData( code, message, result ){
@@ -67,7 +66,7 @@ function updateTrade(connection, trade_id, status_id, callback) {
 
 exports.sendRequestPost = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
-    logger.debug('/ 교환 요청 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
+    logger.debug('/ 교환 요청 : ', {user_id:req.params.user_id, post_id : req.body.post_id});
 
 
     // 쿼리 요청
@@ -83,8 +82,8 @@ exports.sendRequestPost = function(req,res){
 
                 // 거래 테이블 생성
                 query = "INSERT INTO trade SET ?";
-                data = {req_user_id:req.params.user_id, post_id : req.body.post_id}
-                //post_id:fields.post_id};
+                data = {req_user_id:req.params.user_id, post_id : req.body.post_id};
+
 
                 connection.query(query, data, function (err, result) {
                     if (err) {
@@ -95,16 +94,29 @@ exports.sendRequestPost = function(req,res){
                 });
             },
             function (trade_id, callback) {
-                // 거래 로그 추가 : 요청완료(요청자)
-                insertTradeLog(connection, trade_id, 1, function (err) {
-                    if( err){
-                        callback(err);
-                    }else{
-                        callback(null, trade_id);
+
+                async.parallel([
+                    function (cb) {
+                        // 거래 로그 추가 : 요청완료(요청자)
+                        insertTradeLog(connection, trade_id, 1, function (err) {
+                            if(err) cb(err);
+                            else cb();
+                        })
+                    },
+                    function (cb) {
+                        req.body.trade_id = trade_id;
+                        // 메시지 전송
+                        message.createMessage(req, connection, function (err, result) {
+                            if(err) cb(err);
+                            else cb();
+                        });
                     }
+                ], function (err) {
+                    if(err) callback(err);
+                    else callback();
                 })
             }
-        ], function (err, trade_id) {
+        ], function (err) {
             if (err) {
                 connection.rollback(function () {
                     connection.release();
@@ -112,8 +124,8 @@ exports.sendRequestPost = function(req,res){
                 });
 
 
-                logger.errror('/ 교환 요청 error : ', err.message);
-                logger.errror('/---------------------------------------- end -----------------------------------------/');
+                logger.error('/ 교환 요청 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
 
             }else{
                 connection.commit(function (err) {
@@ -126,25 +138,24 @@ exports.sendRequestPost = function(req,res){
                         connection.release();
                         res.json(getJsonData(1, "success", null));
 
-                        // GCM 보내기
-                        query =
-                            "SELECT user_id FROM post WHERE user_id = ?;";
+
+                        // GCM 전송
+                        query = "SELECT user_id FROM post WHERE user_id = ?;";
                         data = [req.params.user_id];
                         connection.query(query, data, function (err, rows, fields) {
                             if (err) {
-                                console.log('sql err : ', err.message);
+
                             }else{
-//                                gcm.sendMessage([rows[0].user_id], '요청 메시지', req.params.user_id + '님이 책을 요청하셨습니다.', function (err) {
-//                                    // 완료
-//                                    if(err){
-//                                        console.log('gcm err :', err.message);
-//                                    }else{
-//                                        console.log('gcm success');
-//                                    }
-//                                });
+                                gcm.sendMessage([user_id], '요청 메시지', req.params.user_id + '님이 책을 요청하셨습니다.', function (err) {
+                                    // 완료
+                                    if(err){
+                                        logger.error('교환 요청 GCM error :', err.message);
+                                    }else{
+                                        logger.debug('교환 요청 GCM 성공!');
+                                    }
+                                });
                             }
                         });
-
                         logger.debug('.');
                         logger.debug('.');
                         logger.debug('교환 요청 성공!');
@@ -185,11 +196,7 @@ exports.acceptPost = function(req,res){
                             callback(err);
                         }else{
                             if ( rows ){
-                                if ( rows[0].req_user_id ){
-                                    callback(null, rows);
-                                }else{
-                                    callback(new Error("거래 데이터가 없습니다."));
-                                }
+                                callback(null, rows);
                             }else{
                                 callback(new Error("게시물 데이터가 없습니다."));
                             }
@@ -282,8 +289,8 @@ exports.acceptPost = function(req,res){
                     });
 
 
-                    logger.errror('/ 거래 단계별 수락 error : ', err.message);
-                    logger.errror('/---------------------------------------- end -----------------------------------------/');
+                    logger.error('/ 거래 단계별 수락 error : ', err.message);
+                    logger.error('/---------------------------------------- end -----------------------------------------/');
                 }else{
                     connection.commit(function (err) {
                         if (err) {
@@ -455,8 +462,8 @@ exports.cancelPost = function(req,res){
                     });
 
 
-                    logger.errror('/ 거래 취소/철회 error : ', err.message);
-                    logger.errror('/---------------------------------------- end -----------------------------------------/');
+                    logger.error('/ 거래 취소/철회 error : ', err.message);
+                    logger.error('/---------------------------------------- end -----------------------------------------/');
                 }else{
                     connection.commit(function (err) {
                         if (err) {
