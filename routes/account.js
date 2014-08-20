@@ -26,7 +26,8 @@ var _ = require('underscore')
 exports.getUserInfo = function(req,res){
 
     var user_id = req.session.passport.user;
-    console.log('user id is ',user_id);
+
+    console.log('get user info : user_id   ',user_id);
 
     //타입 체크
     if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
@@ -87,6 +88,10 @@ exports.destroyUserAccount = function(req,res){
 exports.getAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+
+    //console.log('account settings user_id :   ',user_id);
+
+
     // 페이스북 계정 정보
     // date time 안되는 이유 찾아보기
     var query =
@@ -94,30 +99,31 @@ exports.getAccountSettings = function(req,res){
         'email_auth "email_authentication", ' +
         '(CASE WHEN sanction_date < NOW() THEN TRUE ELSE FALSE END) sanction_date ' +
         'FROM (SELECT * FROM user WHERE sleep_mode = 0) u ' +
-        'WHERE user_id = 4 ';
-
-    //'DATE_FORMAT(convert_tz(sanction_date , "UTC", "Asia/Seoul"), "%Y-%m-%d %H:%i:%s" ) ' +
+        'WHERE user_id = ? ';
 
     template_list(
         query,
         [user_id],
         user_detail,
         function(err,result,msg){
+            console.log('result!!!',result);
             if(err) { res.json(trans_json(msg,0));}
             else {
-                if(result) {
-                    // push_settings 배열 만들기
+                console.log('res  ',result);
+                if(result.length == 0) {
+                    res.json(trans_json(msg,0));
+                }
+                else {
+                    console.log('res2 : ',result);
                     result[0].push_settings =
                         _.map(result[0].push_settings.split(','),
                             function(str){ return Number(str); });
-                    console.log('push settings : ',result[0].push_settings);
-                    if(result[0].email_authentication) {result[0].email_authentication = true;}
-                    else {result[0].email_authentication = false;}
-                    if(result[0].sanction_date) {result[0].sanction_date = true;}
-                    else {result[0].sanction_date = false;}
+                    if(result[0].email_authentication) { result[0].email_authentication = true; }
+                    else { result[0].email_authentication = false; }
+                    if(result[0].sanction_date) { result[0].sanction_date = true; }
+                    else { result[0].sanction_date = false; }
                     res.json(trans_json('success', 1, result[0]));
-                }
-                else { res.json(trans_json(msg,0)); }   // 일치하는 결과가 없을 때는 에러
+                }   // 일치하는 결과가 없을 때는 에러
             }
         }
     );
@@ -162,6 +168,8 @@ exports.uploadImage = function (req,res,next){
 exports.updateAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+
+
 
     var updated = {};
 

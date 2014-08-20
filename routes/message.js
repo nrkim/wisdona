@@ -88,7 +88,7 @@ exports.destroyMessageGroup = function(req,res){
 };
 
 // api : /users/:user_id/message-groups/:trade_id/create
-exports.createMsgMiddleware = function(req,res){
+exports.createMsg = function(req,res){
 
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
@@ -115,7 +115,6 @@ exports.createMsgMiddleware = function(req,res){
         }
     );
 }
-
 
 exports.createMessage = function(req,connection,next){
 
@@ -167,7 +166,6 @@ exports.getMessageList = function(req,res){
         "FROM trade t JOIN message m ON t.trade_id = m.trade_id " +
         "JOIN user u ON m.from_user_id = u.user_id WHERE t.trade_id = ? LIMIT ?, ? ";
     //sample 예제 trade_id =3, 0, 10
-
 
     template_list(
         query,

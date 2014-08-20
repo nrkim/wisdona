@@ -84,6 +84,7 @@ exports.message_window = function(item){
 
 
 exports.user_detail = function(item){
+    console.log('nickname',item.nick_name);
     return {
         user_id              : item.user_id,
         nick_name            : item.nickname,
