@@ -116,7 +116,7 @@ exports.requestActivationEmail = function(req,res){
     // 송신부
     var send_mail = function (token,callback){
         // 로컬 테스트 ; localhost:3000
-        template = '<a href="http://localhost:3000/activation-email/'+token+'"> 계정 인증 url입니다. 클릭하세요. </a>';
+        template = '<a href="http://54.92.19.218/activation-email/'+token+'"> 계정 인증 url입니다. 클릭하세요. </a>';
         console.log('template : ',template);
         var transporter = nodemailer.createTransport(sesTransport({
             accessKeyId : authConfig.sesAuth.key,
