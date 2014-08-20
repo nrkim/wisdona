@@ -19,7 +19,7 @@ var sesTransport = require('nodemailer-ses-transport');
 exports.requestActivationEmail = function(req,res){
 
     //이메일 파라미터 전달
-    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json('유저 아이디를 입력하지 않았습니다.',0));
+    var user_id = req.params.user_id || res.json(trans_json('유저 아이디를 입력하지 않았습니다.',0));
     //전역 이메일
     var email ='';
 
