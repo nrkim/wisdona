@@ -97,7 +97,7 @@ module.exports = function(app,passport) {
                     if(user){
                         res.json(trans_json("success",1));
                     } else{
-                        res.json(trans_json(info,0));
+                        res.json(trans_json(info,2));
                     }
                 }
             })(req, res, next);
