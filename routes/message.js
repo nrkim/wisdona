@@ -88,7 +88,7 @@ exports.destroyMessageGroup = function(req,res){
 };
 
 // api : /users/:user_id/message-groups/:trade_id/create
-exports.createMessage = function(req,res){
+exports.createMsgMiddleware = function(req,res){
 
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
@@ -98,7 +98,6 @@ exports.createMessage = function(req,res){
     if (typeof user_id  != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
     if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
     if (typeof trade_id != "number") res.json('트레이드 아이디 타입은 숫자여야 합니다',0);
-
 
     var query =
         "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
@@ -115,7 +114,33 @@ exports.createMessage = function(req,res){
             else {res.json(trans_json(msg,1));}
         }
     );
+}
 
+
+exports.createMessage = function(req,connection,next){
+
+    // 파라미터
+    var user_id = req.session.passport.user;
+    var trade_id = JSON.parse(req.params.trade_id) || next(new Error("거래 아이디를 입력하지 않았습니다."));
+    var message = req.body.message   || next(new Error("메시지를 입력하지 않았습니다."));
+
+    //타입 검사
+    if (typeof user_id  != "number") { next(new Error('유저 아이디 타입은 숫자여야 합니다.'));}
+    else if (typeof message  != "string") { next(new Error('메시지 타입은 문자열여야 합니다.'));}
+    else if (typeof trade_id != "number") { next(new Error('트레이드 아이디 타입은 숫자여야 합니다'));}
+    else{
+        var query =
+            "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
+            "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
+            "FROM trade t " +
+            "JOIN post p ON t.post_id = p.post_id " +
+            "WHERE t.trade_id = ? ";
+
+        connection.query(query,[user_id,user_id,message,trade_id],function(err,rows){
+            if (err){ next(err); }
+            else { next(null,rows) }
+        });
+    }
 };
 
 exports.getMessageList = function(req,res){

@@ -118,7 +118,27 @@ module.exports = function(app,passport) {
     // 대화
     app.get('/users/:user_id/message-groups/list',isLoggedIn, message.getMessageGroupList);
     app.post('/users/:user_id/message-groups/destroy',isLoggedIn, message.destroyMessageGroup);
-    app.post('/users/:user_id/message-groups/:trade_id/create',isLoggedIn, message.createMessage);
+    app.post('/users/:user_id/message-groups/:trade_id/create',isLoggedIn,
+    function(req,res){
+        connectionPool.getConnection(function (err,connection){
+            if(err){
+                res.json(trans_json('에러입니다.',0));
+            } else{
+              message.createMessage(req,connection,function(err,result){
+                  if( err) {
+                      connection.release();
+                      console.log('에러입니다 2');
+                      res.json(trans_json('에러 입니다..',0));
+                  }
+                  else {
+                      connection.release();
+                      console.log('connection : ',result);
+                      res.json(trans_json('success!',1));
+                  }
+              });
+            }
+        });
+    }); //message.createMsgMiddleware
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);
     app.get('/users/:user_id/message-groups/:trade_id/unread/list',isLoggedIn,message.getUnreadMessgeList);
     app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',isLoggedIn,message.confirmMessage);
