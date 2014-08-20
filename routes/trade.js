@@ -66,253 +66,248 @@ function updateTrade(connection, trade_id, status_id, callback) {
 
 
 exports.sendRequestPost = function(req,res){
+    logger.debug('/--------------------------------------- start ----------------------------------------/');
+    logger.debug('/ 교환 요청 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
+    logger.debug('/---------------------------------------- end -----------------------------------------/');
 
+    // 쿼리 요청
+    getConnection(function (connection) {
 
-    console.log('req.body.post_id', req.body.post_id);
-//    var form = new formidable.IncomingForm();
+        // 게시물 작성자와 요청한 사람이 같은지 체크
+        // 이미 거래중인지 체크
 
-//    form.parse(req, function(err, fields) {
+        var query;
+        var data;
+        async.waterfall([
+            function (callback) {
 
-        // 파라미터 체크
-//        if ( !req.params.user_id || !fields.post_id  ){
-//            res.json(getJsonData(0, '값이 없습니다.', null));
-//        }else{
-            // 쿼리 요청
-            getConnection(function (connection) {
+                // 거래 테이블 생성
+                query = "INSERT INTO trade SET ?";
+                data = {req_user_id:req.params.user_id, post_id : req.body.post_id}
+                //post_id:fields.post_id};
 
-                // 게시물 작성자와 요청한 사람이 같은지 체크
-                // 이미 거래중인지 체크
-
-                var query;
-                var data;
-                async.waterfall([
-                    function (callback) {
-
-                        // 거래 테이블 생성
-                        query = "INSERT INTO trade SET ?";
-                        data = {req_user_id:req.params.user_id, post_id : req.body.post_id}
-                            //post_id:fields.post_id};
-                        console.log('post_id is : ',req.body.post_id);
-                        console.log('user_id is : ',req.params.user_id);
-
-                        connection.query(query, data, function (err, result) {
-                            if (err) {
-                                callback(err);
-                            }else{
-                                callback(null, result.insertId);
-                            }
-                        });
-                    },
-                    function (trade_id, callback) {
-                        // 거래 로그 추가 : 요청완료(요청자)
-                        insertTradeLog(connection, trade_id, 1, function (err) {
-                            if( err){
-                                callback(err);
-                            }else{
-                                callback(null, trade_id);
-                            }
-                        })
+                connection.query(query, data, function (err, result) {
+                    if (err) {
+                        callback(err);
+                    }else{
+                        callback(null, result.insertId);
                     }
-                ], function (err, trade_id) {
+                });
+            },
+            function (trade_id, callback) {
+                // 거래 로그 추가 : 요청완료(요청자)
+                insertTradeLog(connection, trade_id, 1, function (err) {
+                    if( err){
+                        callback(err);
+                    }else{
+                        callback(null, trade_id);
+                    }
+                })
+            }
+        ], function (err, trade_id) {
+            if (err) {
+                connection.rollback(function () {
+                    connection.release();
+                    res.json(getJsonData(0, err.message, null));
+                });
+
+                logger.errror('/--------------------------------------- start ----------------------------------------/');
+                logger.errror('/ 교환 요청 error : ', err.message);
+                logger.errror('/---------------------------------------- end -----------------------------------------/');
+
+            }else{
+                connection.commit(function (err) {
                     if (err) {
                         connection.rollback(function () {
                             connection.release();
                             res.json(getJsonData(0, err.message, null));
                         });
                     }else{
-                        connection.commit(function (err) {
-                            if (err) {
-                                connection.rollback(function () {
-                                    connection.release();
-                                    res.json(getJsonData(0, err.message, null));
-                                });
-                            }else{
-                                connection.release();
-                                res.json(getJsonData(1, "success", null));
+                        connection.release();
+                        res.json(getJsonData(1, "success", null));
 
-                                // GCM 보내기
-                                query =
-                                    "SELECT user_id FROM post WHERE user_id = ?;";
-                                data = [req.params.user_id];
-                                connection.query(query, data, function (err, rows, fields) {
-                                    if (err) {
-                                        console.log('sql err : ', err.message);
-                                    }else{
-//                                        gcm.sendMessage([rows[0].user_id], '요청 메시지', req.params.user_id + '님이 책을 요청하셨습니다.', function (err) {
-//                                            // 완료
-//                                            if(err){
-//                                                console.log('gcm err :', err.message);
-//                                            }else{
-//                                                console.log('gcm success');
-//                                            }
-//                                        });
-                                    }
-                                });
+                        // GCM 보내기
+                        query =
+                            "SELECT user_id FROM post WHERE user_id = ?;";
+                        data = [req.params.user_id];
+                        connection.query(query, data, function (err, rows, fields) {
+                            if (err) {
+                                console.log('sql err : ', err.message);
+                            }else{
+//                                gcm.sendMessage([rows[0].user_id], '요청 메시지', req.params.user_id + '님이 책을 요청하셨습니다.', function (err) {
+//                                    // 완료
+//                                    if(err){
+//                                        console.log('gcm err :', err.message);
+//                                    }else{
+//                                        console.log('gcm success');
+//                                    }
+//                                });
                             }
                         });
                     }
                 });
-            });
-//        }
-//    });
+            }
+        });
+    });
 
 };
 
 exports.acceptPost = function(req,res){
-
+    logger.debug('/--------------------------------------- start ----------------------------------------/');
+    logger.debug('/ 교환 수락 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
+    logger.debug('/---------------------------------------- end -----------------------------------------/');
     // 요청자/기부자 판별
     // 1. 게시물 + trade
 
-    /*
-    var form = new formidable.IncomingForm();
+    // 파라미터 체크
+    if ( !req.params.user_id || !req.body.post_id  ){
+        res.json(getJsonData(0, '값이 없습니다.', null));
+    }else{
+        getConnection(function (connection) {
+            var query;
+            var data;
+            async.waterfall([
+                function (callback) {
 
-    form.parse(req, function(err, fields) {
-        req.body = fields;
-        */
-        // 파라미터 체크
-        if ( !req.params.user_id || !req.body.post_id  ){
-            res.json(getJsonData(0, '값이 없습니다.', null));
-        }else{
-            console.log(req.params.user_id, req.body.post_id);
-            getConnection(function (connection) {
-                var query;
-                var data;
-                async.waterfall([
-                    function (callback) {
-
-                        // 게시물 + 거래 테이블 조회
-                        query =
-                            "SELECT p.user_id, t.trade_id, t.req_user_id, t.current_status " +
-                            "FROM post p JOIN trade t ON p.post_id = t.post_id " +
-                            "WHERE p.post_id = ? and t.current_status NOT IN(92, 91);";
-                        data = [req.body.post_id];
-                        connection.query(query, data, function (err, rows, fields) {
-                            if (err) {
-                                callback(err);
-                            }else{
-                                if ( rows ){
-                                    if ( rows[0].req_user_id ){
-                                        callback(null, rows);
-                                    }else{
-                                        callback(new Error("거래 데이터가 없습니다."));
-                                    }
-                                }else{
-                                    callback(new Error("게시물 데이터가 없습니다."));
-                                }
-                            }
-                        });
-                    },
-                    function (rows, callback) {
-
-                        // 다음 거래 단계 파악
-                        var status_id;
-                        if ( req.params.user_id == rows[0].user_id ){
-                            // 기부자
-                            switch (rows[0].current_status) {
-                                case 1 :
-                                    // 요청완료
-                                    status_id = 2;
-                                    req.body.message = "배송을 완료 했습니다.";
-                                    break;
-                                case 2 :
-                                    // 배송완료
-                                    status_id = 3;
-                                    req.body.message = "평가를 완료 했습니다.";
-                                    break;
-                                case 4 :
-                                    // 수령완료 & 평가완료(요청자)
-                                    status_id = 5;
-                                    req.body.message = "평가를 완료 했습니다.";
-                                    break;
-                                default :
-                                    return callback(new Error("작성자 요청 : 값이 잘못되었거나 다음 단계로 진행할 수 없습니다"));
-                                    break;
-                            }
-                        }else if ( req.params.user_id == rows[0].req_user_id ) {
-                            // 요청자
-                            switch (rows[0].current_status) {
-                                case 2 :
-                                    // 배송완료
-                                    status_id = 4;
-                                    req.body.message = "수취 확인 및 평과 완료.";
-                                    break;
-                                case 3 :
-                                    // 평가완료(기부자)
-                                    status_id = 5;
-                                    req.body.message = "수취 확인 및 평과 완료.";
-                                    break;
-                                default :
-                                    return callback(new Error("요청자 요청 : 값이 잘못되었거나 다음 단계로 진행할 수 없습니다"));
-                                    break;
-                            }
+                    // 게시물 + 거래 테이블 조회
+                    query =
+                        "SELECT p.user_id, t.trade_id, t.req_user_id, t.current_status " +
+                        "FROM post p JOIN trade t ON p.post_id = t.post_id " +
+                        "WHERE p.post_id = ? and t.current_status NOT IN(92, 91);";
+                    data = [req.body.post_id];
+                    connection.query(query, data, function (err, rows, fields) {
+                        if (err) {
+                            callback(err);
                         }else{
-                            return callback(new Error("user_id 값이 잘못 되었습니다."));
+                            if ( rows ){
+                                if ( rows[0].req_user_id ){
+                                    callback(null, rows);
+                                }else{
+                                    callback(new Error("거래 데이터가 없습니다."));
+                                }
+                            }else{
+                                callback(new Error("게시물 데이터가 없습니다."));
+                            }
+                        }
+                    });
+                },
+                function (rows, callback) {
+
+                    // 다음 거래 단계 파악
+                    var status_id;
+                    if ( req.params.user_id == rows[0].user_id ){
+                        // 기부자
+                        switch (rows[0].current_status) {
+                            case 1 :
+                                // 요청완료
+                                status_id = 2;
+                                req.body.message = "배송을 완료 했습니다.";
+                                break;
+                            case 2 :
+                                // 배송완료
+                                status_id = 3;
+                                req.body.message = "평가를 완료 했습니다.";
+                                break;
+                            case 4 :
+                                // 수령완료 & 평가완료(요청자)
+                                status_id = 5;
+                                req.body.message = "평가를 완료 했습니다.";
+                                break;
+                            default :
+                                return callback(new Error("작성자 요청 : 값이 잘못되었거나 다음 단계로 진행할 수 없습니다"));
+                                break;
+                        }
+                    }else if ( req.params.user_id == rows[0].req_user_id ) {
+                        // 요청자
+                        switch (rows[0].current_status) {
+                            case 2 :
+                                // 배송완료
+                                status_id = 4;
+                                req.body.message = "수취 확인 및 평과 완료.";
+                                break;
+                            case 3 :
+                                // 평가완료(기부자)
+                                status_id = 5;
+                                req.body.message = "수취 확인 및 평과 완료.";
+                                break;
+                            default :
+                                return callback(new Error("요청자 요청 : 값이 잘못되었거나 다음 단계로 진행할 수 없습니다"));
+                                break;
+                        }
+                    }else{
+                        return callback(new Error("user_id 값이 잘못 되었습니다."));
+                    }
+
+                    async.parallel([
+                        function (callback) {
+                            // 거래 단계 변경
+                            updateTrade(connection, rows[0].trade_id, status_id, function (err) {
+                                if (err) {
+                                    callback(err);
+                                }else{
+                                    //req.params.trade_id = rows[0].trade_id;
+                                    callback();
+                                }
+                            });
+                        },
+                        function (callback) {
+                            // 거래 기록 추가(기부자 철회)
+                            insertTradeLog(connection, rows[0].trade_id, status_id, function (err) {
+                                if (err) {
+                                    callback(err);
+                                } else {
+                                    callback();
+                                }
+                            });
+                        }
+                    ], function (err) {
+                        if (err) {
+                            callback(err);
+                        } else {
+                            callback();
+                        }
+                    });
+                }
+
+            ], function (err) {
+                if (err) {
+                    connection.rollback(function () {
+                        connection.release();
+                        res.json(getJsonData(0, err.message, null));
+                    });
+
+                    logger.errror('/--------------------------------------- start ----------------------------------------/');
+                    logger.errror('/ 거래 단계별 수락 error : ', err.message);
+                    logger.errror('/---------------------------------------- end -----------------------------------------/');
+                }else{
+                    connection.commit(function (err) {
+                        if (err) {
+                            connection.rollback(function () {
+                                connection.release();
+                                res.json(getJsonData(0, err.message, null));
+                            });
+                        }else{
+                            connection.release();
+                            res.json(getJsonData(1, 'success', null));
                         }
 
-                        async.parallel([
-                            function (callback) {
-                                // 거래 단계 변경
-                                updateTrade(connection, rows[0].trade_id, status_id, function (err) {
-                                    if (err) {
-                                        callback(err);
-                                    }else{
-                                        //req.params.trade_id = rows[0].trade_id;
-                                        callback();
-                                    }
-                                });
-                            },
-                            function (callback) {
-                                // 거래 기록 추가(기부자 철회)
-                                insertTradeLog(connection, rows[0].trade_id, status_id, function (err) {
-                                    if (err) {
-                                        callback(err);
-                                    } else {
-                                        console.log("2-2. 거래 기록 추가");
-                                        callback();
-                                    }
-                                });
-                            }
-                            ], function (err) {
-                            if (err) {
-                                callback(err);
-                            } else {
-                                callback();
-                            }
-                        });
-                    }
 
-                ], function (err) {
-                    if (err) {
-                        connection.rollback(function () {
-                            connection.release();
-                            res.json(getJsonData(0, err.message, null));
-                        });
-                    }else{
-                        connection.commit(function (err) {
-                            if (err) {
-                                connection.rollback(function () {
-                                    connection.release();
-                                    res.json(getJsonData(0, err.message, null));
-                                });
-                            }else{
-                                connection.release();
-                                res.json(getJsonData(1, 'success', null));
-                            }
+                        // 수취완료 시점에 상대방에게 책갈피 보내기  추가 !
+                        // trade_id로 요청 메시지 보내기
+                        //message.createMessage(req,res);
 
-
-                            // 수취완료 시점에 상대방에게 책갈피 보내기  추가 !
-                            // trade_id로 요청 메시지 보내기
-                            //message.createMessage(req,res);
-
-                        });
-                    }
-                });
+                    });
+                }
             });
-        }
-//    });
+        });
+    }
 };
 
 exports.cancelPost = function(req,res){
+    logger.debug('/--------------------------------------- start ----------------------------------------/');
+    logger.debug('/ 교환 취소/철회 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
+    logger.debug('/---------------------------------------- end -----------------------------------------/');
+
     // 1. post + trade SELECT
     // 2. 배송전인지 파악 -> current_status
     // 3. 배송후이면 에러 처리 / 배송전이면 다음 실행
@@ -328,19 +323,15 @@ exports.cancelPost = function(req,res){
     //    6-2. trade_log에 기록
 
 
-//    var form = new formidable.IncomingForm();
+    getConnection(function (connection) {
 
-//    form.parse(req, function(err, fields) {
-
-        getConnection(function (connection) {
-
-            async.waterfall([
+        async.waterfall([
                 function (callback) {
                     query =
                         "SELECT p.user_id, t.trade_id, t.req_user_id, t.current_status " +
                         "FROM post p JOIN trade t ON p.post_id = t.post_id " +
                         "WHERE p.post_id = ? and t.current_status NOT IN(92, 91);";
-                    var data = req.body.post_id; //[fields.post_id];
+                    var data = req.body.post_id;
                     connection.query(query, data, function (err, rows, fields) {
                         if (err) {
                             callback(err);
@@ -446,27 +437,31 @@ exports.cancelPost = function(req,res){
                         });
                     }
                 }],
-                function (err) {
-                    if (err) {
-                        connection.rollback(function () {
-                            connection.release();
-                            res.json(getJsonData(0, err.message, null));
-                        });
-                    }else{
-                        connection.commit(function (err) {
-                            if (err) {
-                                connection.rollback(function () {
-                                    connection.release();
-                                    res.json(getJsonData(0, err.message, null));
-                                });
-                            }else{
+            function (err) {
+                if (err) {
+                    connection.rollback(function () {
+                        connection.release();
+                        res.json(getJsonData(0, err.message, null));
+                    });
+
+                    logger.errror('/--------------------------------------- start ----------------------------------------/');
+                    logger.errror('/ 거래 취소/철회 error : ', err.message);
+                    logger.errror('/---------------------------------------- end -----------------------------------------/');
+                }else{
+                    connection.commit(function (err) {
+                        if (err) {
+                            connection.rollback(function () {
                                 connection.release();
-                                res.json(getJsonData(1, 'success', null));
-                            }
-                        });
-                    }
+                                res.json(getJsonData(0, err.message, null));
+                            });
+                        }else{
+                            connection.release();
+                            res.json(getJsonData(1, 'success', null));
+                        }
+                    });
                 }
-            );
-        });
- //   })
+            }
+        );
+    });
+
 };

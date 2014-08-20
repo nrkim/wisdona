@@ -6,10 +6,10 @@ var winston = require('winston');
 var logger = new winston.Logger({
     transports: [
         new winston.transports.Console({
-            level : 'error'			//error level 로하면 info 안보임
+            level : 'debug'			//error level 로하면 info 안보임
         }),
         new winston.transports.DailyRotateFile({
-            level : 'debug',
+            level : 'error',
             filename : 'app-debug-log',
             datePattern : '.yyyy-MM-ddTHH-mm.log',
             maxsize : 1024

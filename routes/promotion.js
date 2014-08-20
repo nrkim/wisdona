@@ -85,7 +85,7 @@ function addPromotionLog(connection, post_id, user_id, promotion_id, type_num, c
 
 
 // 프로모션 게시물인지 체크
-exports.destroyPost = function (connection, post_id, user_id, callback) {
+exports.destroyPostCheck = function (connection, post_id, user_id, callback) {
     var query = "SELECT pl.post_id, pl.type_num, p.promotion_id, p.interval_num, p.max_count " +
         "FROM promotion_log pl " +
         "JOIN promotion p ON pl.promotion_id = p.promotion_id " +
@@ -182,6 +182,10 @@ exports.destroyPost = function (connection, post_id, user_id, callback) {
                     ], function (err) {
                         if(err){
                             callback(err);
+                            logger.errror('/--------------------------------------- start ----------------------------------------/');
+                            logger.errror('/ 프로모션 게시물 삭제시 처리 error : ', err.message);
+                            logger.errror('/---------------------------------------- end -----------------------------------------/');
+
                         }else{
                             callback();
                         }
@@ -192,7 +196,7 @@ exports.destroyPost = function (connection, post_id, user_id, callback) {
     });
 };
 
-exports.createPost = function (connection, post_id, user_id, callback) {
+exports.createPostCheck = function (connection, post_id, user_id, callback) {
 
     var query;
     var data;
@@ -280,6 +284,9 @@ exports.createPost = function (connection, post_id, user_id, callback) {
     ], function (err) {
         if ( err){
             callback(err);
+            logger.errror('/--------------------------------------- start ----------------------------------------/');
+            logger.errror('/ 프로모션 게시물 생성시 처리 error : ', err.message);
+            logger.errror('/---------------------------------------- end -----------------------------------------/');
         }else{
             callback();
         }
