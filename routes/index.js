@@ -37,45 +37,52 @@ module.exports = function(app,passport) {
         console.log('password is :::', req.body.password);
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
-                console.log('login!!!');
+                //next(null,false,info.loginMessage);
                 res.json(trans_json(info.loginMessage,0));
             } else {
                 req.logIn(user, function(err) {
-                    if (err) { res.json(trans_json("fail",0)); }
+                    if (err) { res.json(trans_json(err.message,0)); } //next(err);
                     else{
                         req.session.passport.user = user.user_id;
-                        res.json(trans_json("success",1,create_user(user.user_id)));
+                        req.json_file = create_user(user.user_id);
+                        next();
                     }
                 });
             }
         })(req, res, next);
-    });
+    },login.registerLocal);
 
     app.post('/facebook-signup',
         express.bodyParser(),
         function(req, res, next) {
             template_item(
-                "SELECT nickname FROM user WHERE nickname = ?",
+                "SELECT nickname FROM user WHERE nickname = ? ",
                 [req.body.nickname],
                 function (err, rows, msg) {
-                    if (err){ res.json(trans_json(err.message,0));}
+                    if (err){
+                        console.log('facebook err 1 ',err.message);
+                        res.json(trans_json(err.message,0));
+                    }////next(err);
                     if (rows.length == 0) {
-                        console.log('length is 0!!!');
-                        req.dup_nickname = false;
                         passport.authenticate('facebook-token', function(err, user, info) {
-                            console.log('info is ',info);
-                            console.log('err is ',err);
-                            console.log('user is ',user);
-                            if(user){ res.json(trans_json('success!!',1)); }
-                            else{ res.json(trans_json('fail!!',0)); }
+                            if(user){
+                                console.log('json file !! ',user.user_id);
+                                req.json_file = create_user(user.user_id);
+                                next();
+                            }  //  next(null,true,'로그인에 성공하였습니다.');//res.json(trans_json('success!!',1));
+                            else{
+                                console.log('json file failed !! ',user.user_id);
+                                res.json(trans_json('fail!!',0));
+                            } //next(null,false,'로그인에 실패 했습니다.')
                         })(req, res, next);
                     } else {
-                        req.dup_nickname = true;
+                        console.log('닉네임 중복!!! !! ',user.user_id);
+                        //next(null,false,'닉네임이 중복됩니다.');
                         res.json(trans_json('닉네임이 중복됩니다.',0));
                     }
                 }
             );
-        });
+        },login.registerLocal);
 
     app.post('/facebook-login',
         express.bodyParser(),
@@ -118,34 +125,13 @@ module.exports = function(app,passport) {
     // 대화
     app.get('/users/:user_id/message-groups/list',isLoggedIn, message.getMessageGroupList);
     app.post('/users/:user_id/message-groups/destroy',isLoggedIn, message.destroyMessageGroup);
-    app.post('/users/:user_id/message-groups/:trade_id/create',isLoggedIn,
-    function(req,res){
-        connectionPool.getConnection(function (err,connection){
-            if(err){
-                res.json(trans_json('에러입니다.',0));
-            } else{
-              message.createMessage(req,connection,function(err,result){
-                  if( err) {
-                      connection.release();
-                      console.log('에러입니다 2');
-                      res.json(trans_json('에러 입니다..',0));
-                  }
-                  else {
-                      connection.release();
-                      console.log('connection : ',result);
-                      res.json(trans_json('success!',1));
-                  }
-              });
-            }
-        });
-    }); //message.createMsgMiddleware
+    app.post('/users/:user_id/message-groups/:trade_id/create',isLoggedIn,message.createMsg);
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);
     app.get('/users/:user_id/message-groups/:trade_id/unread/list',isLoggedIn,message.getUnreadMessgeList);
     app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',isLoggedIn,message.confirmMessage);
 
     // 평가
-    app.post('/users/:user_id/reviews/create',
-        isLoggedIn, review.createUserReview);
+    app.post('/users/:user_id/reviews/create',isLoggedIn, review.createUserReview);
 
     // 게시물
     app.post('/users/:user_id/posts/create',isLoggedIn, post.saveImages, post.insertPostQuery);

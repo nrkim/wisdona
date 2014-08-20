@@ -2,7 +2,7 @@
  * Created by onam on 2014. 8. 11..
  */
 var async = require('async');
-var gcmConfig = require('./config/gcm');
+var gcmConfig = require('../config/gcm');
 
 /*
     config/gcm.js------------------------------
@@ -15,7 +15,7 @@ ddd
 */
 
 
-routs/index.js--------------------------------
+//routs/index.js--------------------------------
 var gcm = require('node-gcm'),
     gcmConfig = require('../config/gcm');
 
@@ -25,8 +25,8 @@ exports.updateDeviceId = function(user_id, userDeviceId, callback){
         if(err){
             callback(err);
         }else{
-            var query = 'UPDATE users SET gcm_registration_id = ? WHERE user_id = ?';
-            connection.query(query, [userDeviceId, user.id], function(err, result){
+            var query = 'UPDATE user SET gcm_registration_id = ? WHERE user_id = ?';
+            connection.query(query, [userDeviceId, user_id], function(err, result){
                 if(err){
                     connection.release();
                     callback(err);

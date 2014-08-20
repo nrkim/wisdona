@@ -134,6 +134,19 @@ exports.sendRequestPost = function(req,res){
                             if (err) {
                                 console.log('sql err : ', err.message);
                             }else{
+                                message.createMessage(req,connection,function(err,result){
+                                    if( err) {
+                                        connection.release();
+                                        console.log('에러입니다 2');
+                                        res.json(trans_json('에러 입니다..',0));
+                                    }
+                                    else {
+                                        connection.release();
+                                        console.log('connection : ',result);
+                                        res.json(trans_json('success!',1));
+                                    }
+                                });
+
 //                                gcm.sendMessage([rows[0].user_id], '요청 메시지', req.params.user_id + '님이 책을 요청하셨습니다.', function (err) {
 //                                    // 완료
 //                                    if(err){

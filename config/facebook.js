@@ -88,30 +88,48 @@ module.exports = function(passport) {
                                 return done(null, user);
                             }
                         } else {
-                            console.log('not err 5');
-                        	var newUser = {};
-                            newUser.facebookId = profile.id;
-                            newUser.facebookToken = accessToken;
-                            newUser.facebookEmail = profile.emails[0].value;
-                            newUser.facebookName = profile.name.givenName + ' ' + profile.name.familyName;
-                            newUser.facebookPhoto = "https://graph.facebook.com/v2.1/me/picture?access_token=" + accessToken;
-                            var insertSql = 'INSERT INTO users(facebook_id, facebook_token, email, ' +
-                                ' image) VALUES(?, ?, ?, ?, ?)';
-                            connection.query(insertSql, [newUser.facebookId,
-                                newUser.facebookToken, newUser.facebookEmail,
-                                newUser.facebookPhoto], function(err, result) {
-                                if (err) {
-                                    console.log('err 1222');
-                                    connection.release();
-                                    return done(err);
+                            var query = "SELECT email FROM user WHERE email = ?"
+                            template_item(
+                                query,
+                                [profile.emails[0].value],
+                                function(err,rows,info){
+                                    if(err){
+                                        done(err);
+                                    }
+                                    else {
+                                        if(rows.length == 0){
+                                            console.log('not err 5');
+                                            var newUser = {};
+                                            newUser.facebookId = profile.id;
+                                            newUser.facebookToken = accessToken;
+                                            newUser.facebookEmail = profile.emails[0].value;
+                                            newUser.facebookName = profile.name.givenName + ' ' + profile.name.familyName;
+                                            newUser.facebookPhoto = "https://graph.facebook.com/v2.1/me/picture?access_token=" + accessToken;
+                                            var insertSql = 'INSERT INTO users(facebook_id, facebook_token, email, ' +
+                                                ' image) VALUES(?, ?, ?, ?, ?)';
+                                            connection.query(insertSql, [newUser.facebookId,
+                                                newUser.facebookToken, newUser.facebookEmail,
+                                                newUser.facebookPhoto], function(err, result) {
+                                                if (err) {
+                                                    console.log('err 1222');
+                                                    connection.release();
+                                                    return done(err);
+                                                }
+                                                else {
+                                                    console.log('not err222')
+                                                    newUser.id = result.insertId;
+                                                    connection.release();
+                                                    return done(null, newUser);
+                                                }
+                                            });
+                                        } else {
+                                            done(null,false,'이메일이 중복됩니다.');
+                                        }
+                                    }
                                 }
-                                else {
-                                    console.log('not err222')
-                                    newUser.id = result.insertId;
-                                    connection.release();
-                                    return done(null, newUser);
-                                }
-                            });
+                            );
+
+
                         }
                     });
                 });

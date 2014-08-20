@@ -22,7 +22,7 @@ var pool_closure = function(next){
                 });
             }
         ],function(err,pool){
-            if(err) { next("에러 입니다."); }
+            if(err) { next(err); }
             else {
                 next (null,{
                     get_conn : function() {

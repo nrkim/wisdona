@@ -26,7 +26,6 @@ var _ = require('underscore')
 exports.getUserInfo = function(req,res){
 
     var user_id = req.session.passport.user;
-    console.log('user id is ',user_id);
 
     //타입 체크
     if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
@@ -96,8 +95,6 @@ exports.getAccountSettings = function(req,res){
         'FROM (SELECT * FROM user WHERE sleep_mode = 0) u ' +
         'WHERE user_id = 4 ';
 
-    //'DATE_FORMAT(convert_tz(sanction_date , "UTC", "Asia/Seoul"), "%Y-%m-%d %H:%i:%s" ) ' +
-
     template_list(
         query,
         [user_id],
@@ -106,15 +103,13 @@ exports.getAccountSettings = function(req,res){
             if(err) { res.json(trans_json(msg,0));}
             else {
                 if(result) {
-                    // push_settings 배열 만들기
                     result[0].push_settings =
                         _.map(result[0].push_settings.split(','),
-                            function(str){ return Number(str); });
-                    console.log('push settings : ',result[0].push_settings);
-                    if(result[0].email_authentication) {result[0].email_authentication = true;}
-                    else {result[0].email_authentication = false;}
-                    if(result[0].sanction_date) {result[0].sanction_date = true;}
-                    else {result[0].sanction_date = false;}
+                        function(str){ return Number(str); });
+                    if(result[0].email_authentication) { result[0].email_authentication = true; }
+                    else { result[0].email_authentication = false; }
+                    if(result[0].sanction_date) { result[0].sanction_date = true; }
+                    else { result[0].sanction_date = false; }
                     res.json(trans_json('success', 1, result[0]));
                 }
                 else { res.json(trans_json(msg,0)); }   // 일치하는 결과가 없을 때는 에러

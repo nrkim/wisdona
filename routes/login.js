@@ -7,16 +7,61 @@ var json = require('./json');
 var trans_json = json.trans_json
 ,bcrypt = require('bcrypt-nodejs')
     ,template = require('./template')
+    ,gcm = require('./gcm')
     ,template_get = template.template_get
     ,template_post = template.template_post
     ,template_item = template.template_item
     ,create_password = template.create_password
-    ,create_user = json.create_user;
+    ,create_user = json.create_user
+    ,updateDeviceId = gcm.updateDeviceId;
 
 var create_hash = template.create_hash;
 var async = require('async');
 var request = require('request');
 
+
+
+exports.registerLocal = function(req,res){
+    console.log('nickname : ',req.body.nickname);
+    console.log('registration id : ',req.body.gcm_registration_id);
+    console.log('user : ',req.session.passport.user);
+
+    template_item(
+        "UPDATE user SET nickname = ?, gcm_registration_id  = ? WHERE user_id = ?",
+        [req.body.nickname, req.body.gcm_registration_id, req.session.passport.user],
+        function(err,rows){
+            if (err){
+                console.log('error 2222',err.message);
+                res.json(trans_json('로그인에 실패했습니다.',0));
+            }
+            else {
+                if(req.json_file){
+                    console.log('jsonfile is exist!!');
+                    res.json(trans_json('로그인에 성공했습니다.',1,req.json_file));
+                } else {
+                    console.log('json file is not exist!!!');
+                    res.json(trans_json('로그인에 실패했습니다.',0));
+                }
+            }
+        }
+    );
+};
+
+/*
+exports.registerDevice = funciton(req,res){
+    updateDeviceId (
+        req.session.passport.user,
+        req.body.gcm_registration_id,
+        function(err){
+            if (err){
+                res.json(trans_json('로그인에 실패했습니다.',0));
+            }
+            else {
+                res.json(trans_json('페이스북 로그인에 성공했습니다.',1));
+            }
+     });
+}
+*/
 
 exports.facebookLogin = function(req,res){
 	if (req.user) {
@@ -49,7 +94,7 @@ exports.facebookLogout = function(req,res){
         },
         function(err, response, body) {
             if (err) {
-                res.redirect('/profile');
+                res.json(trans_json(err.message + '로그아웃에 실패하였습니다.',0));
             } else {
                 req.logout();
                 res.json(trans_json('로그아웃 하였습니다.',0));
