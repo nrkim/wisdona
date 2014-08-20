@@ -88,6 +88,10 @@ exports.destroyUserAccount = function(req,res){
 exports.getAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+
+    console.log('account settings user_id :   ',user_id);
+
+
     // 페이스북 계정 정보
     // date time 안되는 이유 찾아보기
     var query =
@@ -160,7 +164,7 @@ exports.updateAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-    console.log('account settings user_id :   ',user_id);
+
 
     var updated = {};
 
