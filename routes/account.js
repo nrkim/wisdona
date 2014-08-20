@@ -109,6 +109,7 @@ exports.getAccountSettings = function(req,res){
             if(err) { res.json(trans_json(msg,0));}
             else {
                 if(result) {
+                    console.log('nickname :',result[0].nickname);
                     result[0].push_settings =
                         _.map(result[0].push_settings.split(','),
                         function(str){ return Number(str); });
