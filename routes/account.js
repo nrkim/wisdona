@@ -89,7 +89,7 @@ exports.getAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-    console.log('account settings user_id :   ',user_id);
+    //console.log('account settings user_id :   ',user_id);
 
 
     // 페이스북 계정 정보
@@ -109,6 +109,8 @@ exports.getAccountSettings = function(req,res){
             if(err) { res.json(trans_json(msg,0));}
             else {
                 if(result) {
+                    console.log('=============================');
+                    console.log('rows :::     ',result);
                     console.log('nickname :',result[0].nickname);
                     result[0].push_settings =
                         _.map(result[0].push_settings.split(','),
