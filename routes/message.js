@@ -117,6 +117,7 @@ exports.createMsg = function(req,res){
                     "SELECT to_user_id FROM message m WHERE from_user_id = ? and is_sended = 0",
                     [user_id],
                     function(err,rows,info){
+//                        _.map(rows, function(item){ return item.; });
                         sendMessage([user_id],title,message,function(){
                         });
                     }

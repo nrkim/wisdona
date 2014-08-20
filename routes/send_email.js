@@ -86,13 +86,17 @@ exports.requestActivationEmail = function(req,res){
                     console.log('expires is : ',expire);
                     if(rows.length == 0){
                         console.log('이메일이 auth에 있지 않을 때');
+                        console.log('user_id',user_id);
+                        console.log('email',email);
+                        console.log('token',token);
+                        console.log('token',expire);
                         template_item(
                             "INSERT INTO email_auth(user_id,email,auth_token,expiration_date) " +
                             "VALUES(?,?,?,?)"
                             [user_id,email,token,expire],
                             function(err,rows,msg){
-                                if(err) {callback(msg);}
-                                else {callback(null,token,rows.insertId);}
+                                if(err) {console.log('err');callback(msg);}
+                                else {console.log('not err.....');callback(null,token,rows.insertId);}
                             }
                         );
                     }
