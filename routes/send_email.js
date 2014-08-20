@@ -108,7 +108,7 @@ exports.requestActivationEmail = function(req,res){
                             [token,expire,user_id],
                             function(err,rows,msg){
                                 if(err) {callback(msg);}
-                                else {callback(null,token,rows.insertId);}
+                                else {console.log('token',token);callback(null,token,rows.insertId);}
                             }
                         );
                     }
