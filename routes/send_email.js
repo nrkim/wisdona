@@ -91,8 +91,7 @@ exports.requestActivationEmail = function(req,res){
                         console.log('token',token);
                         console.log('token',expire);
                         template_item(
-                            "INSERT INTO email_auth(user_id,email,auth_token,expiration_date) " +
-                            "VALUES(?,?,?,?)"
+                            "INSERT INTO email_auth(user_id,email,auth_token,expiration_date) VALUES(?,?,?,?)",
                             [user_id,email,token,expire],
                             function(err,rows,msg){
                                 if(err) {console.log('err');callback(msg);}
@@ -102,12 +101,13 @@ exports.requestActivationEmail = function(req,res){
                     }
                     else{
                         console.log('else case!!!');
+                        console.log('else case');
                         template_item(
                             "UPDATE email_auth SET auth_token = ?, " +
                             "expiration_date = ? WHERE user_id = ? ",
                             [token,expire,user_id],
                             function(err,rows,msg){
-                                if(err) {callback(msg);}
+                                if(err) {console.log('token',token);callback(msg);}
                                 else {console.log('token',token);callback(null,token,rows.insertId);}
                             }
                         );
