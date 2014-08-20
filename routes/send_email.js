@@ -85,26 +85,23 @@ exports.requestActivationEmail = function(req,res){
 
                     console.log('expires is : ',expire);
                     if(rows.length == 0){
-                        console.log('이메일이 auth에 있지 않을 때');
                         template_item(
-                            "INSERT INTO email_auth(user_id,email,auth_token,expiration_date) " +
-                            "VALUES(?,?,?,?)"
+                            "INSERT INTO email_auth(user_id,email,auth_token,expiration_date) VALUES(?,?,?,?)",
                             [user_id,email,token,expire],
                             function(err,rows,msg){
-                                if(err) {callback(msg);}
-                                else {callback(null,token,rows.insertId);}
+                                if(err) {console.log('err');callback(msg);}
+                                else {console.log('not err.....');callback(null,token,rows.insertId);}
                             }
                         );
                     }
                     else{
-                        console.log('else case!!!');
                         template_item(
                             "UPDATE email_auth SET auth_token = ?, " +
                             "expiration_date = ? WHERE user_id = ? ",
                             [token,expire,user_id],
                             function(err,rows,msg){
-                                if(err) {callback(msg);}
-                                else {callback(null,token,rows.insertId);}
+                                if(err) {console.log('token',token);callback(msg);}
+                                else {console.log('token',token);callback(null,token,rows.insertId);}
                             }
                         );
                     }
@@ -116,7 +113,7 @@ exports.requestActivationEmail = function(req,res){
     // 송신부
     var send_mail = function (token,callback){
         // 로컬 테스트 ; localhost:3000
-        template = '<a href="http://localhost:3000/activation-email/'+token+'"> 계정 인증 url입니다. 클릭하세요. </a>';
+        template = '<a href="http://54.92.19.218/activation-email/'+token+'"> 계정 인증 url입니다. 클릭하세요. </a>';
         console.log('template : ',template);
         var transporter = nodemailer.createTransport(sesTransport({
             accessKeyId : authConfig.sesAuth.key,
@@ -157,12 +154,8 @@ exports.requestActivationEmail = function(req,res){
 
 exports.requestSendEmail = function (req,res){
 
-    var form = new formidable.IncomingForm();
-
-    form.parse(req, function(err, fields) {
-        req.body = fields;
-        var user_email = req.body.email;
-        var tempPass = cuid.slug();
+    var user_email = req.body.email;
+    var tempPass = cuid.slug();
 
         // 먼저 insert 먼저 하고 transporting 하도록 template 수정 필요.
         // 해시 함수를 이용한 패스워드 생성 함수 필요
@@ -236,6 +229,5 @@ exports.requestSendEmail = function (req,res){
                     });
                 });
             });
-    });
 };
 

@@ -64,7 +64,7 @@ module.exports = function(app,passport) {
                         res.json(trans_json(err.message,0));
                     }////next(err);
                     if (rows.length == 0) {
-                        passport.authenticate('facebook-token', function(err, user, info) {
+                        passport.authenticate('facebook-signup', function(err, user, info) {
                             if(user){
                                 console.log('json file !! ',user.user_id);
                                 req.json_file = create_user(user.user_id);
@@ -74,7 +74,7 @@ module.exports = function(app,passport) {
                             else{
                                 //console.log('json file failed !! ',user.user_id);
                                 res.json(trans_json(msg,0));
-                            } //next(null,false,'로그인에 실패 했습니다.')
+                            }   //next(null,false,'로그인에 실패 했습니다.')
                         })(req, res, next);
                     } else {
                         console.log('닉네임 중복!!! !! ',user.user_id);
@@ -87,9 +87,22 @@ module.exports = function(app,passport) {
 
     app.post('/facebook-login',
         express.bodyParser(),
-        passport.authenticate('facebook-token',{ scope : ['email'] }),
-        login.facebookLogin
-    );
+        function(req, res, next) {
+            console.log('facebook-login......');//{scope : ['email']},
+            passport.authenticate('facebook-login', function(err, user, info) {
+                console.log('log??????');
+                if (err){
+                    res.json(trans_json('sql 에러입니다 : '+err.message,0));
+                } else{
+                    if(user){
+                        req.session.passport.user = user.user_id;
+                        res.json(trans_json("success",1,create_user(user.user_id)));
+                    } else{
+                        res.json(trans_json(info,2));
+                    }
+                }
+            })(req, res, next);
+        });
 
     app.post('/facebook-logout',login.facebookLogout);
 
