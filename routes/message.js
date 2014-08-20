@@ -114,13 +114,13 @@ exports.createMsg = function(req,res){
             if(err) {res.json(trans_json(msg,0));}
             else {
                 template_item(
-                    "SELECT * FROM message m JOIN "
+                    "SELECT to_user_id FROM message m WHERE from_user_id = ? and is_sended = 0",
+                    [user_id],
+                    function(err,rows,info){
+                        sendMessage([user_id],title,message,function(){
+                        });
+                    }
                 );
-
-                sendMessage([user_id],title,message,function(){
-
-                });
-                res.json(trans_json(msg,1));
             }
         }
     );

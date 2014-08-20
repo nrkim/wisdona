@@ -74,7 +74,7 @@ module.exports = function(app,passport) {
                             else{
                                 //console.log('json file failed !! ',user.user_id);
                                 res.json(trans_json(msg,0));
-                            } //next(null,false,'로그인에 실패 했습니다.')
+                            }   //next(null,false,'로그인에 실패 했습니다.')
                         })(req, res, next);
                     } else {
                         console.log('닉네임 중복!!! !! ',user.user_id);
