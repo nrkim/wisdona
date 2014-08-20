@@ -1,23 +1,9 @@
 /**
  * Created by onam on 2014. 8. 11..
  */
-var async = require('async');
-var gcmConfig = require('./config/gcm');
-
-/*
-    config/gcm.js------------------------------
-    module.exports = {
-    apikey: '님꺼'
-ddd
-
-
-};
-*/
-
-
-routs/index.js--------------------------------
 var gcm = require('node-gcm'),
-    gcmConfig = require('../config/gcm');
+    gcmConfig = require('../config/gcm'),
+    async = require('async');
 
 // 유저 Device Id 업데이트
 exports.updateDeviceId = function(user_id, userDeviceId, callback){
@@ -46,7 +32,7 @@ function getUserDeviceID(user_id,  callback) {
             callback(err);
         }else{
             var query = 'SELECT gcm_registration_id FROM users WHERE user_id = ?';
-            connection.query(query, [user.id], function(err, rows, fields){
+            connection.query(query, [user_id], function(err, rows, fields){
                 if(err){
                     connection.release();
                     callback(err);
@@ -64,7 +50,7 @@ function getUserDeviceID(user_id,  callback) {
 }
 
 // GCM 보내기
-exports.sendMessage = function (users, title, message, callback ) {
+exports.sendMessage = function (userDeviceIds, title, message, callback ) {
     var message = new gcm.Message();
     message.addDataWithKeyValue('title', title);
     message.addDataWithKeyValue('message', message);
@@ -76,15 +62,12 @@ exports.sendMessage = function (users, title, message, callback ) {
     var sender = new gcm.Sender(gcmConfig.apikey);
     var registrationIds = [];
 
-    // 디바이스 아이디 등록
-    async.each(users,
-        function (user_id, cb) {
-            var userDeviceId = getUserDeviceID(user_id, function (err, userDeviceId) {
+    async.each(userDeviceIds,
+        function (deviceId, cb) {
+            sender.send(message, deviceId, 4, function(err, result){
                 if (err){
-                    // 에러처리
                     cb(err);
                 }else{
-                    registrationIds.push(userDeviceId);
                     cb();
                 }
             });
@@ -93,14 +76,37 @@ exports.sendMessage = function (users, title, message, callback ) {
             if(err){
                 callback(err);
             }else{
-                sender.send(message, registrationIds, 4, function(err, result){
-                    if (err){
-                        callback(err);
-                    }else{
-                        callback();
-                    }
-                });
+                callback();
             }
         }
     );
+
+
+    // 디바이스 아이디 등록
+//    async.each(users,
+//        function (user_id, cb) {
+//            var userDeviceId = getUserDeviceID(user_id, function (err, userDeviceId) {
+//                if (err){
+//                    // 에러처리
+//                    cb(err);
+//                }else{
+//                    registrationIds.push(userDeviceId);
+//                    cb();
+//                }
+//            });
+//        },
+//        function (err) {
+//            if(err){
+//                callback(err);
+//            }else{
+//                sender.send(message, registrationIds, 4, function(err, result){
+//                    if (err){
+//                        callback(err);
+//                    }else{
+//                        callback();
+//                    }
+//                });
+//            }
+//        }
+//    );
 };

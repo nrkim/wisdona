@@ -310,7 +310,7 @@ exports.saveImages = function(req,res,next) {
 
 
         // 필수 파라미터에 값 없을 경우
-        if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.genre == null || req.body.name == null || req.body.is_certificate == null) {
+        if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.name == null || req.body.is_certificate == null) {
             return res.json(getJsonData(0, "파라미터 값이 없습니다.", null));
         }
 
