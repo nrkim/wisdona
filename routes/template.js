@@ -10,20 +10,38 @@ var bcrypt = require('bcrypt-nodejs');
 var async = require('async');
 
 
-/*
-exports.connection_closure = function(){
-
-    var conn = function(){
-        connectionPool.getConnection(function (err,connection){
-            return connection;
-        });
-    }();
-
-    return function(){
-        return conn;
-    };
+// 커넥션 풀 클로저 함수
+// 중첩 쿼리를 사용 하더라도 커넥션을 계속 유지 할 수 있는 함수
+var pool_closure = function(next){
+    async.waterfall(
+        [
+            function (callback){
+                connectionPool.getConnection(function (err,connection){
+                    if (err){callback(err);}
+                    else {callback(null,connection);}
+                });
+            }
+        ],function(err,pool){
+            if(err) { next("에러 입니다."); }
+            else {
+                next (null,{
+                    get_conn : function() {
+                        return pool;
+                    },
+                    get_query : function(query,params,verify){
+                        result.query(query,params,function(err,rows){
+                            if (err){ verify(err); }
+                            else { verify(null,rows); }
+                        });
+                    },
+                    close_conn : function() {
+                        pool.release();
+                    }
+                });
+            }
+        }
+    );
 };
-*/
 
 // 커넥션 관련 탬플릿
 exports.template_list = function(query,params,get_json,verify){
