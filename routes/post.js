@@ -486,23 +486,23 @@ exports.insertPostQuery = function (req, res) {
                         );
                     },
                     function (cb) {
-                        promotion.createPostCheck(connection, post_id, req.params.user_id, function (err) {
+                        promotion.createPostCheck(connection, post_id, req.params.user_id, function (err, is_present) {
                             if ( err ){
                                 cb(err);
                             }else{
-                                cb();
+                                cb(null, is_present);
                             }
                         })
                     }
-                ], function (err) {
+                ], function (err, results) {
                     if(err){
                         callback(err);
                     }else{
-                        callback();
+                        callback(null, results[1]);
                     }
                 })
             }
-        ], function (err) {
+        ], function (err, result) {
             if (err) {
                 connection.rollback(function () {
                     connection.release();
@@ -520,7 +520,10 @@ exports.insertPostQuery = function (req, res) {
                         });
                     }else{
                         connection.release();
-                        res.json(getJsonData(1, 'success', null));
+                        var message = null;
+                        if ( result )  message = '책갈피가 증정 되었습니다.';
+                        res.json(getJsonData(1, 'success', message));
+
                         logger.debug('.');
                         logger.debug('.');
                         logger.debug('/ 게시물 인설트 성공!');
@@ -716,7 +719,7 @@ function updatePostQuery(req, res) {
 
 // 포스트 수정
 exports.updatePost = function(req,res){
-
+    var contentType = req.headers['content-type'];
     if (contentType === 'application/x-www-form-urlencoded' || contentType === 'application/json'){
         req.files = req.files || {};
         updatePostQuery(req, res);
@@ -836,7 +839,7 @@ exports.getPostDetail = function(req,res){
             }else{
                 // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
                 // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
-                logger.debug('이미지 : ', rows[0].large_image_paths);
+                logger.debug('/ 이미지 : ', rows[0].large_image_paths);
                 var result = {
                     user : {
                         user_id : rows[0].user_id,
@@ -1182,7 +1185,7 @@ exports.getImage = function(req, res) {
             res.json(getJsonData(404, '해당 이미지가 없습니다', null));
 
             logger.error('/--------------------------------------- start ----------------------------------------/');
-            logger.error('/ 이미지 요청 error : ');
+            logger.error('/ 이미지 요청 error : ', req.params.imagepath);
             logger.error('/---------------------------------------- end -----------------------------------------/');
         }
     });

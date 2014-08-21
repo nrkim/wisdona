@@ -196,8 +196,6 @@ exports.destroyPostCheck = function (connection, post_id, user_id, callback) {
 };
 
 exports.createPostCheck = function (connection, post_id, user_id, callback) {
-
-
     logger.debug('게시물 프로모션 체크!');
 
     var query;
@@ -219,7 +217,8 @@ exports.createPostCheck = function (connection, post_id, user_id, callback) {
                     if ( rows.length ){
                         cb(null, rows);
                     }else{
-                        callback();
+                        // 프로모션 기간 아닐 경우 빠져 나오기 / callback();
+                        callback(null, false);
                     }
                 }
             });
@@ -242,9 +241,10 @@ exports.createPostCheck = function (connection, post_id, user_id, callback) {
 
                     var max_total = promotion_rows[0].interval_num * promotion_rows[0].max_count;
                     if ( rows[0].total_type_num == max_total){
-                        // 해당 프로모션에 대한 책 등록이 모두 찼을 경우 제외
-                        callback();
+                        // 해당 프로모션에 대한 책 등록이 모두 찼을 경우 빠져 나오기
+                        callback(null, false);
                     }else{
+
                         // interval_num의 배수이면 책갈피 제공 아니면 패스 & 프로모션 로그 작성
                         async.parallel([
                             function (cb2) {
@@ -254,15 +254,14 @@ exports.createPostCheck = function (connection, post_id, user_id, callback) {
                                         if(err){
                                             cb2(err);
                                         }else{
-                                            cb2();
+                                            cb2(null, true);
                                         }
                                     })
                                 }else{
-                                    cb2();
+                                    cb2(null, false);
                                 }
                             },
                             function (cb2) {
-
                                 // 기록
                                 addPromotionLog(connection, post_id, user_id, promotion_rows[0].promotion_id, 1, function (err) {
                                     if(err){
@@ -272,24 +271,24 @@ exports.createPostCheck = function (connection, post_id, user_id, callback) {
                                     }
                                 })
                             }
-                        ], function (err) {
+                        ], function (err, results) {
                             if (err){
                                 cb(err);
                             }else{
-                                cb();
+                                cb(null, results[0]);
                             }
                         })
                     }
                 }
             });
         }
-    ], function (err) {
+    ], function (err, result) {
         if ( err){
             callback(err);
             logger.errror('/ 프로모션 게시물 생성시 처리 error : ', err.message);
             logger.errror('/---------------------------------------- end -----------------------------------------/');
         }else{
-            callback();
+            callback(null, result);
         }
     })
 }

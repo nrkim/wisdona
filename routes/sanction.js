@@ -103,8 +103,8 @@ exports.addSanction = function(connection, user_id, cause, period, callback){
                 callback(err);
 
 
-                logger.errror('/ 사용자 제재 error : ', err.message);
-                logger.errror('/---------------------------------------- end -----------------------------------------/');
+                logger.error('/ 사용자 제재 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
             } else {
                 callback();
             }
