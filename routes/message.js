@@ -219,8 +219,8 @@ exports.getMessageList = function(req,res){
     var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     // query string 처리
-    var page = JSON.parse(req.query.page) || 0;
-    var count = JSON.parse(req.query.count) || 10;
+    var page = req.query.page || 0;
+    var count = req.query.count || 10;
 
     // 페이징 관련 계산
     var start = page*count;
