@@ -74,13 +74,16 @@ exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, ms
     // 사용자 별 푸쉬 설정에 따라 제외할 사람 빼기
     var sendUserDeviceIds = [];
     for(var i=0; i<userDeviceIds.length; i++){
-        var pushSetting = userPushSettings[i];
+        var pushSetting = userPushSettings[i].split(',');
         logger.debug('pushSetting', pushSetting);
         // 해당 푸쉬설정이 false이면 해당 사용자 제외
         if ( pushSetting[code] != 0 ){
             sendUserDeviceIds.push(userDeviceIds[i]);
         }
     }
+
+
+
     logger.debug('sendUserDeviceIds', sendUserDeviceIds);
 
     var sender = new gcm.Sender(gcmConfig.apikey);
