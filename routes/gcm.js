@@ -50,10 +50,11 @@ function getUserDeviceID(user_id,  callback) {
 }
 
 // GCM 보내기
-exports.sendMessage = function (userDeviceIds, title, msg, callback ) {
+exports.sendMessage = function (userDeviceId, title, msg, type, callback ) {
     var message = new gcm.Message();
     message.addDataWithKeyValue('wisdona', title);
     message.addDataWithKeyValue('message', msg);
+    message.addDataWithKeyValue('type', type);
     message.collapseKey = 'wisdona';
     message.delayWhileIdle = true;
     message.timeToLive = 3;
@@ -62,7 +63,7 @@ exports.sendMessage = function (userDeviceIds, title, msg, callback ) {
     var sender = new gcm.Sender(gcmConfig.apikey);
 //    var registrationIds = [];
 
-    sender.send(message, userDeviceIds, 4, function(err, result){
+    sender.send(message, userDeviceId, 4, function(err, result){
         if (err){
             console.log('console.log!!!');
             callback(err);
