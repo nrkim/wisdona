@@ -153,6 +153,7 @@ module.exports = function(app,passport) {
     app.post('/users/:user_id/message-groups/:trade_id/create',express.bodyParser(),isLoggedIn,message.createMsg);
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);
     app.get('/users/:user_id/message-groups/unread/list',message.getUnreadMessgeList);//getUnreadMessgeLis t //isLoggedIn,
+    // /users/4/message-groups/unread/list
     app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',isLoggedIn,message.confirmMessage);
 
     // 평가
