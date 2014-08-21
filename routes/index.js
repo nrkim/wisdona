@@ -36,6 +36,7 @@ module.exports = function(app,passport) {
     app.post('/login', function(req, res, next) {
         //console.log('email function !!! ',req.body.email);
         console.log('password is :::', req.body.gcm_registration_id);
+        //app.use(express.bodyParser);
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
                 //console.log('login message :',info.loginMessage);
