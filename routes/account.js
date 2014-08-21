@@ -87,7 +87,7 @@ exports.destroyUserAccount = function(req,res){
     );
 };
 
-// api :
+// api : /users/:user_id/account-settings/show
 exports.getAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
@@ -100,11 +100,10 @@ exports.getAccountSettings = function(req,res){
     var query =
         'SELECT user_id, nickname, image, self_intro, name, phone, address, push_settings, ' +
         'email_auth "email_authentication", ' +
-        '(CASE WHEN sanction_date < NOW() THEN TRUE ELSE FALSE END) sanction_date ' +
+        'DATE_FORMAT(convert_tz(sanction_date , "UTC", "Asia/Seoul"), "%Y-%m-%d %H:%i:%s" ) sanction_date, ' +
+        '(CASE WHEN sanction_date < NOW() THEN TRUE ELSE FALSE END) is_sanction ' +
         'FROM (SELECT * FROM user WHERE sleep_mode = 0) u ' +
         'WHERE user_id = ? ';
-
-    console.log('query  ');
 
     template_list(
         query,
@@ -126,8 +125,8 @@ exports.getAccountSettings = function(req,res){
                             function(str){ return Number(str); });
                     if(result[0].email_authentication) { result[0].email_authentication = true; }
                     else { result[0].email_authentication = false; }
-                    if(result[0].sanction_date) { result[0].sanction_date = true; }
-                    else { result[0].sanction_date = false; }
+                    if(result[0].is_sanction) { result[0].is_sanction = true; }
+                    else { result[0].is_sanction = false; }
                     res.json(trans_json('success', 1, result[0]));
                 }   // 일치하는 결과가 없을 때는 에러
             }
@@ -180,7 +179,6 @@ exports.uploadImage = function (req,res,next){
     form.parse(req, function(err, fields, files) {
         req.body = fields;
 
-        //////// 이미지 파일 아닐 경우 처리 필요 ////////
         async.waterfall([
             function(callback) {
                 var filesArr = _.map(files, function(file) {
@@ -202,7 +200,8 @@ exports.uploadImage = function (req,res,next){
                                 cb(err);//res.json(trans_json(err.message,0));
                             } else {
                                 console.log('Original file(', file.name, ') moved!!!');
-                                req.uploadFile = destPath;
+                                console.log('final file path',path.basename(destPath));
+                                req.uploadFile = path.basename(destPath);
                                 cb();
                             }
                         });
@@ -244,29 +243,30 @@ exports.updateAccountSettings = function(req,res){
 
     var updated = {};
 
-    //updated.nickname = req.body.nick_name           || null;
-    updated.image = req.uploadFile                  || null;
-    updated.self_intro = req.body.self_intro        || null;
-    updated.name = req.body.name                    || null;
-    updated.phone = req.body.phone                  || null;
-    updated.address = req.body.address              || null;
-    updated.push_settings = req.body.push_settings  || null;
+    if (req.uploadFile)         updated.image = req.uploadFile;
+    if (req.body.self_intro)    updated.self_intro = req.body.self_intro;
+    if (req.body.name)          updated.name = req.body.name;
+    if (req.body.phone)         updated.phone = req.body.phone;
+    if (req.body.address)       updated.address = req.body.address;
+    if (req.body.push_settings) updated.push_settings = req.body.push_settings;
 
 
     if(updated.push_settings){
-
         updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
     }
 
     query =
         'UPDATE user SET ? WHERE user_id = ? ';
 
+    console.log('updated',updated);
+
     template_item(
         query,
         [updated,user_id],
         function(err,rows,msg){
-            if (err) res.json(trans_json(msg,0));
-            else res.json(trans_json(msg,1));
+            console.log('rows 정보는 : ',rows);
+            if (err) {res.json(trans_json(msg,0));}
+            else {console.log('야호!!!');res.json(trans_json(msg,1));}
         }
     );
 
