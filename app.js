@@ -19,7 +19,7 @@ var options = {
 };
 
 // 디비 에러시 커넥션이 끊기면서 서버가 죽는 현상을 방지하는 함수
-util_function.handleDisconnect();
+//util_function.handleDisconnect();
 
 require('./config/passport')(passport);
 require('./config/facebook')(passport);
