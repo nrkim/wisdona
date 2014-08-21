@@ -251,8 +251,7 @@ exports.getMessageList = function(req,res){
 
 //api : /users/:user_id/message-groups/unread/list
 exports.getUnreadMessgeList = function(req,res){
-    console.log('!!!!!!!');
-/*
+
     var user_id = req.params.user_id;
     //var user_id = req.session.passport.user;
     //var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
@@ -302,7 +301,7 @@ exports.getUnreadMessgeList = function(req,res){
                 }
             }
         }
-    );*/
+    );
 };
 
 exports.confirmMessage = function(req,res){
