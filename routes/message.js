@@ -249,12 +249,12 @@ exports.getMessageList = function(req,res){
     );
 };
 
-//api : /users/:user_id/message-groups/:trade_id/unread/list
+//api : /users/:user_id/message-groups/unread/list
 exports.getUnreadMessgeList = function(req,res){
 
     var user_id = req.params.user_id;
     //var user_id = req.session.passport.user;
-    var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    //var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     var get_query =
         "SELECT trade_id, message, m.create_date, from_user_id, nickname, image " +

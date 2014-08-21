@@ -153,7 +153,7 @@ module.exports = function(app,passport) {
     app.post('/users/:user_id/message-groups/:trade_id/create',express.bodyParser(),isLoggedIn,message.createMsg);
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);
     app.get('/users/:user_id/message-groups/:trade_id/unread/list',isLoggedIn,message.getUnreadMessgeList);
-    app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',isLoggedIn,message.confirmMessage);
+    app.post('/users/:user_id/message-groups/unread/confirm',isLoggedIn,message.confirmMessage);
 
     // 평가
     app.post('/users/:user_id/reviews/create',isLoggedIn, review.createUserReview);
