@@ -252,14 +252,13 @@ exports.getMessageList = function(req,res){
 //api : /users/:user_id/message-groups/:trade_id/unread/list
 exports.getUnreadMessgeList = function(req,res){
 
-
     var user_id = req.session.passport.user;
     var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     var get_query =
         "SELECT trade_id, message, m.create_date, from_user_id, nickname, image " +
         "FROM user u JOIN message m ON u.user_id = m.from_user_id " +
-        "WHERE to_user_id = ? AND m.is_sended = FALSE ";
+        "WHERE to_user_id = ? AND m.is_sended = 0 ";
 
     var update_query =
         "UPDATE message SET is_sended = TRUE WHERE to_user_id = ? AND is_sended = FALSE";
@@ -267,13 +266,13 @@ exports.getUnreadMessgeList = function(req,res){
 
     template_list(
         get_query,
-        { to_user_id  : user_id},
+        [user_id],
         unread_msg_lst,
         function(err,result,msg){
             if (err) { res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다.",0)); }
             else {
                 if (result.length == 0){
-                    res.json(trans_json("success",1,result));
+                    res.json(trans_json("실패했습니다.",0,result));
                 } else{
                     template_item(
                         update_query,
