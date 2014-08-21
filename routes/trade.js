@@ -162,13 +162,13 @@ exports.sendRequestPost = function(req,res){
 
 
                         // GCM 전송
-                        query = "SELECT gcm_registration_id FROM user WHERE user_id = ?;";
+                        query = "SELECT gcm_registration_id, push_settings FROM user WHERE user_id = ?;";
                         data = [req.params.user_id];
                         connection.query(query, data, function (err, rows, fields) {
                             if (err) {
                                 logger.error('교환 요청 GCM 에러!', err.message);
                             }else{
-                                gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, 0, function (err) {
+                                gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], '위즈도나', req.body.message, 0, function (err) {
                                     // 완료
                                     if(err){
                                         logger.error('교환 요청 GCM error :', err);
@@ -362,13 +362,13 @@ exports.acceptPost = function(req,res){
                             // 배송 완료 시 GCM 전송 / status_id == 2
                             if ( status_id == 2 ){
                                 // GCM 전송
-                                query = "SELECT gcm_registration_id FROM user WHERE user_id = ?;";
+                                query = "SELECT gcm_registration_id, push_settings FROM user WHERE user_id = ?;";
                                 data = [req.body.to_user_id];
                                 connection.query(query, data, function (err, rows, fields) {
                                     if (err) {
                                         logger.error('교환 요청 GCM 에러!', err.message);
                                     } else {
-                                        gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, 0, function (err) {
+                                        gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], '위즈도나', req.body.message, 3, function (err) {
                                             // 완료
                                             if (err) {
                                                 logger.error('교환 수락 GCM error :', err.message);
@@ -419,6 +419,7 @@ exports.cancelPost = function(req,res){
 
     var query;
     var data;
+    var code;
     getConnection(function (connection) {
 
         async.waterfall([
@@ -481,6 +482,7 @@ exports.cancelPost = function(req,res){
                         req.body.to_user_id = rows[0].req_user_id;
                         req.body.message = '기부자가 요청을 철회하였습니다.';
                         trade_status = 92;
+                        code = 4;
                     } else {
                         // 요청자
                         //    6-1. trade의 current_status '취소'로 변경
@@ -488,6 +490,7 @@ exports.cancelPost = function(req,res){
                         req.body.to_user_id = rows[0].user_id;
                         req.body.message = '요청자님이 책을 취소하셨습니다.';
                         trade_status = 91;
+                        code = 1;
                     }
                     req.params.trade_id = rows[0].trade_id;
 
@@ -563,13 +566,13 @@ exports.cancelPost = function(req,res){
                             res.json(getJsonData(1, "success", result));
 
                             // GCM 전송
-                            query = "SELECT gcm_registration_id FROM user WHERE user_id = ?;";
+                            query = "SELECT gcm_registration_id, push_settings FROM user WHERE user_id = ?;";
                             data = [req.body.to_user_id];
                             connection.query(query, data, function (err, rows, fields) {
                                 if (err) {
                                     logger.error('교환 요청 GCM 에러!', err.message);
                                 } else {
-                                    gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, 0, function (err) {
+                                    gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], '위즈도나', req.body.message, code, function (err) {
                                         // 완료
                                         if (err) {
                                             logger.error('교환 취소/철회 GCM error :', err.message);

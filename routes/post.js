@@ -745,49 +745,43 @@ exports.destroyPost = function(req,res) {
             }
         });
     } else {
-        /*
-        var form = new formidable.IncomingForm();
-        form.parse(req, function (err, fields) {
-            req.body = fields;
-            */
-            // 파라미터 체크
-            if (!req.body.post_id) {
-                res.json(getJsonData(0, 'post_id 값이 없습니다.', null));
-            } else {
-                data = [req.body.post_id, req.params.user_id];
-                getConnection(function (connection) {
+        // 파라미터 체크
+        if (!req.body.post_id) {
+            res.json(getJsonData(0, 'post_id 값이 없습니다.', null));
+        } else {
+            data = [req.body.post_id, req.params.user_id];
+            getConnection(function (connection) {
 
-                    destroyPostQuery(connection, req.body.post_id, req.params.user_id, function (err) {
-                        if (err) {
-                            connection.rollback(function () {
-                                connection.release();
-                                res.json(getJsonData(0, err.message, null));
-                            });
+                destroyPostQuery(connection, req.body.post_id, req.params.user_id, function (err) {
+                    if (err) {
+                        connection.rollback(function () {
+                            connection.release();
+                            res.json(getJsonData(0, err.message, null));
+                        });
 
-                            logger.error('/ 게시물 삭제 error : ', err.message);
-                            logger.error('/---------------------------------------- end -----------------------------------------/');
-                        } else {
-                            connection.commit(function (err) {
-                                if (err) {
-                                    connection.rollback(function () {
-                                        connection.release();
-                                        res.json(getJsonData(0, err.message, null));
-                                    });
-                                } else {
+                        logger.error('/ 게시물 삭제 error : ', err.message);
+                        logger.error('/---------------------------------------- end -----------------------------------------/');
+                    } else {
+                        connection.commit(function (err) {
+                            if (err) {
+                                connection.rollback(function () {
                                     connection.release();
-                                    res.json(getJsonData(1, 'success', null));
+                                    res.json(getJsonData(0, err.message, null));
+                                });
+                            } else {
+                                connection.release();
+                                res.json(getJsonData(1, 'success', null));
 
-                                    logger.debug('/ .');
-                                    logger.debug('/ .');
-                                    logger.debug('/ 게시물 삭제 성공!');
-                                    logger.debug('/---------------------------------------- end -----------------------------------------/');
-                                }
-                            });
-                        }
-                    });
+                                logger.debug('/ .');
+                                logger.debug('/ .');
+                                logger.debug('/ 게시물 삭제 성공!');
+                                logger.debug('/---------------------------------------- end -----------------------------------------/');
+                            }
+                        });
+                    }
                 });
-            }
-//        });
+            });
+        }
     }
 };
 
