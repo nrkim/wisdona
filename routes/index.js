@@ -43,9 +43,18 @@ module.exports = function(app,passport) {
                 req.logIn(user, function(err) {
                     if (err) { res.json(trans_json(err.message,0)); } //next(err);
                     else{
-                        req.session.passport.user = user.user_id;
-                        req.json_file = create_user(user.user_id);
-                        next();
+                        template_item(
+                            "UPDATE user SET gcm_registration_id = ? WHERE user_id = ? ",
+                            [req.body.gcm_registration_id,user_id],
+                            function(err,result,msg){
+                                if (err) { res.json(trans_json('로그인에 실패했습니다.',0));}
+                                else {
+                                    req.session.passport.user = user.user_id;
+                                    req.json_file = create_user(user.user_id);
+                                    next();
+                                }
+                            }
+                        );
                     }
                 });
             }

@@ -53,12 +53,6 @@ module.exports = function(passport) {
         },
         function (req, email, password, done) {
 
-/*
-            process.nextTick(function(){
-
-            });
-*/
-
             process.nextTick(function () {
                 connectionPool.getConnection(function (err, connection) {
                     if (err){ console.log(err); return done(err); }
