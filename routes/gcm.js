@@ -25,32 +25,36 @@ exports.updateDeviceId = function(user_id, userDeviceId, callback){
     });
 }
 
-// 유저 Device Id 가져오기
-function getUserDeviceID(user_id,  callback) {
-    connectionPool.getConnection(function(err, connection){
-        if(err){
-            callback(err);
-        }else{
-            var query = 'SELECT gcm_registration_id FROM users WHERE user_id = ?';
-            connection.query(query, [user_id], function(err, rows, fields){
-                if(err){
-                    connection.release();
-                    callback(err);
-                }else{
-                    connection.release();
-                    if ( rows.length ){
-                        callback(null, rows[0].gcm_registration_id);
-                    }else{
-                        callback(new Error('해당 사용자가 없습니다.'));
-                    }
-                }
-            });
-        }
-    });
-}
+//// 유저 Device Id 가져오기
+//function getUserDeviceID(user_id,  callback) {
+//    connectionPool.getConnection(function(err, connection){
+//        if(err){
+//            callback(err);
+//        }else{
+//            var query = 'SELECT gcm_registration_id FROM users WHERE user_id = ?';
+//            connection.query(query, [user_id], function(err, rows, fields){
+//                if(err){
+//                    connection.release();
+//                    callback(err);
+//                }else{
+//                    connection.release();
+//                    if ( rows.length ){
+//                        callback(null, rows[0].gcm_registration_id);
+//                    }else{
+//                        callback(new Error('해당 사용자가 없습니다.'));
+//                    }
+//                }
+//            });
+//        }
+//    });
+//}
 
 // GCM 보내기
 exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, msg, callback ) {
+    var type;
+    if ( code == 2 ) type = 1;
+    else type = 0;
+
     var message = new gcm.Message();
     message.addDataWithKeyValue('wisdona', title);
     message.addDataWithKeyValue('message', msg);
