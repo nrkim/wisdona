@@ -152,7 +152,7 @@ module.exports = function(app,passport) {
     app.post('/users/:user_id/message-groups/destroy',isLoggedIn, message.destroyMessageGroup);
     app.post('/users/:user_id/message-groups/:trade_id/create',express.bodyParser(),isLoggedIn,message.createMsg);
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);
-    app.get('/users/:user_id/message-groups/unreadlist',message.getUnreadMessgeList);//getUnreadMessgeLis t //isLoggedIn,
+    app.get('/users/:user_id/message-groups/unreadlist',isLoggedIn,message.getUnreadMessgeList);//getUnreadMessgeLis t //
     // /users/4/message-groups/unread/list
     app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',isLoggedIn,message.confirmMessage);
 
