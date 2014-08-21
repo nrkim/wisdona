@@ -30,8 +30,7 @@ exports.connection_closure = function(next){
                     },
                     get_query : function(query,params,verify){
                         pool.query(query,params,function(err,rows){
-                            if (err){ verify(err); }
-                            else { verify(null,rows); }
+                            verify(err,rows);
                         });
                     },
                     get_commit : function(err,verify) {

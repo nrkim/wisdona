@@ -19,12 +19,12 @@ var account = require('../routes/account')
 var isLoggedIn = function (req, res, next) {
 
     if (req.isAuthenticated() ){
-        //logger.info('인증에 성공 하였습니다.');
+        logger.info('인증에 성공 하였습니다.');
         return next();
     }
     else {
         //버그가 있을 것 같은 ...
-        console.log('로그아웃');
+        console.log('인증 받지 않았음!!');
         res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
     }
 };
@@ -32,8 +32,8 @@ var isLoggedIn = function (req, res, next) {
 module.exports = function(app,passport) {
 
     // 로그인
-    //express.bodyParser(),
-    app.post('/login', function(req, res, next) {
+    //
+    app.post('/login',express.bodyParser(), function(req, res, next) {
         //console.log('email function !!! ',req.body.email);
         console.log('password is :::', req.body.gcm_registration_id);
         //app.use(express.bodyParser);
@@ -140,7 +140,7 @@ module.exports = function(app,passport) {
     app.get('/users/:user_id/profile/show', account.getUserInfo);
     app.post('/users/destroy', isLoggedIn, account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', isLoggedIn, account.getAccountSettings);
-    app.post('/users/:user_id/account-settings/update', /*account.uploadImage,*/ account.updateAccountSettings);
+    app.post('/users/:user_id/account-settings/update', account.uploadImage, account.updateAccountSettings);
 
     // 사용자
     app.get('/users/:user_id/posts/list', user.getUserPostList);

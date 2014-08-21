@@ -37,8 +37,38 @@ exports.createUserReview = function(req,res){
         [user_id,user_id,comments,point,trade_id],
         function(err,rows,msg){
             if(err) {res.json(trans_json(msg,0));}
-            else {res.json(trans_json(msg,1));}
+            else {
+                template_item(
+                        "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id " +
+                        "WHERE from_user_id = ? and is_sended = 0",
+                    [user_id],
+                    function(err,rows,info){
+                        var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
+                        sendMessage(device_list,"메시지",message,
+                            function(err){
+                                console.log('console!!');
+                                if(err) {console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
+                                else {
+                                    template_item(
+                                        "UPDATE message SET is_sended = TRUE WHERE trade_id = ? and is_sended = FALSE",
+                                        [trade_id],
+                                        function(err,rows){
+                                            if(err) { res.json(trans_json('메시지 전송에 실패했습니다.',0)); }
+                                            else { res.json(trans_json('메시지 전송에 성공했습니다.',1)); }
+                                        }
+                                    );
+                                }
+                            }
+                        );
+                    }
+                );
+                res.json(trans_json(msg,1));
+            }
         }
     );
+
+
+
+
 
 };
