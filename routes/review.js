@@ -62,7 +62,6 @@ exports.createUserReview = function(req,res){
                         );
                     }
                 );
-                res.json(trans_json(msg,1));
             }
         }
     );

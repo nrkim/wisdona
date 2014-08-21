@@ -97,14 +97,14 @@ exports.createMsg = function(req,res){
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
     var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
 
-    console.log('trande_id',trade_id);
-    console.log('message is :',message);
-    console.log('user-id :',user_id);
+    console.log('trande_id      :',trade_id);
+    console.log('message is     :',message);
+    console.log('user-id        :',user_id);
 
     //타입 검사
     if (typeof user_id  != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
     if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
-    if (typeof trade_id != "number") res.json('트레이드 아이디 타입은 숫자여야 합니다',0);
+    if (typeof trade_id != "number") res.json('교환 아이디 타입은 숫자여야 합니다',0);
 
     var insert_query =
         'INSERT INTO message(from_user_id, to_user_id, message, is_read, trade_id, is_sended) ' +
@@ -289,29 +289,37 @@ exports.getMessageList = function(req,res){
 //api : /users/:user_id/message-groups/unread/list
 exports.getUnreadMessgeList = function(req,res){
 
-    var user_id = req.params.user_id;
+    //var user_id = req.params.user_id;
 
-    //var user_id = req.session.passport.user;
-    //var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    var user_id = req.session.passport.user;
+    var trade_id = req.query.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     //console.log('================================================');
     //console.log('getUnreadMessage list user id is : ',user_id);
     //console.log('getUnreadMessage list trade id is : ',trade_id);
 
-
-
     var get_query =
-        'SELECT trade_id, message, m.create_date, from_user_id "user_id", nickname, image ' +
-        'FROM user u JOIN message m ON u.user_id = m.from_user_id ' +
-        'WHERE to_user_id = ? AND m.is_sended = 0 ';
+        "SELECT trade_id, message, m.create_date, from_user_id AS user_id , nickname, image " +
+        "FROM user u JOIN message m ON u.user_id = m.from_user_id " +
+        "WHERE to_user_id = ? AND m.is_read = 0 AND trade_id = ? ";
 
-    var update_query =
-        "UPDATE message SET is_sended = TRUE WHERE to_user_id = ? AND is_sended = FALSE";
-
+//    var update_query =
+//        "UPDATE message SET is_read = TRUE WHERE to_user_id = ? AND is_read = FALSE";
+/*
+    template_item(
+        update_query,
+        [user_id],
+        function(err,rows,msg){
+            console.log('update query is .....',rows );
+            console.log('result is...',result);
+            if(err) { console.log('콘솔로그');res.json(trans_json(msg,0));}
+            else { console.log('콘솔로그 2@@');res.json(trans_json('success',1,result));}
+        }
+    )*/
 
     template_list(
         get_query,
-        [user_id],
+        [user_id,trade_id],
         unread_msg_lst,
         function(err,result,msg){
             //console.log('result is!=========!!!!!1',result);
@@ -325,16 +333,7 @@ exports.getUnreadMessgeList = function(req,res){
                     console.log('not exist')
                     res.json(trans_json("읽은 메시지가 없습니다.",1,result));
                 } else{
-                    template_item(
-                        update_query,
-                        [user_id],
-                        function(err,rows,msg){
-                            console.log('update query is .....',rows );
-                            console.log('result is...',result);
-                            if(err) { console.log('콘솔로그');res.json(trans_json(msg,0));}
-                            else { console.log('콘솔로그 2@@');res.json(trans_json('success',1,result));}
-                        }
-                    )
+                    res.json(trans_json('success',1,result));
                 }
             }
         }

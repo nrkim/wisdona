@@ -106,8 +106,20 @@ module.exports = function(app,passport) {
                     res.json(trans_json('sql 에러입니다 : '+err.message,0));
                 } else{
                     if(user){
-                        req.session.passport.user = user.user_id;
-                        res.json(trans_json("success",1,create_user(user.user_id)));
+                        template_item(
+                            "UPDATE user SET gcm_registration_id = ? WHERE user_id = ? ",
+                            [req.body.gcm_registration_id,user.user_id],
+                            function(err,result,msg){
+                                if (err) { console.log('ldd :',err.message);res.json(trans_json('로그인에 실패했습니다.',0));}
+                                else {
+                                    req.session.passport.user = user.user_id;
+                                    res.json(trans_json("success",1,create_user(user.user_id)));
+                                    //req.session.passport.user = user.user_id;
+                                    //req.json_file = create_user(user.user_id);
+                                    //next();
+                                }
+                            }
+                        );
                     } else{
                         res.json(trans_json(info,2));
                     }
@@ -150,7 +162,7 @@ module.exports = function(app,passport) {
     // 대화
     app.get('/users/:user_id/message-groups/list',isLoggedIn, message.getMessageGroupList);
     app.post('/users/:user_id/message-groups/destroy',isLoggedIn, message.destroyMessageGroup);
-    app.post('/users/:user_id/message-groups/:trade_id/create',express.bodyParser(),isLoggedIn,message.createMsg);
+    app.post('/users/:user_id/message-groups/:trade_id/create',isLoggedIn,message.createMsg);//express.bodyParser()
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);
     app.get('/users/:user_id/message-groups/unreadlist',message.getUnreadMessgeList);//getUnreadMessgeLis t //
     // /users/4/message-groups/unread/list isLoggedIn,
