@@ -97,6 +97,10 @@ exports.createMsg = function(req,res){
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
     var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
 
+    console.log('trande_id',trade_id);
+    console.log('message is :',message);
+    console.log('user-id :',user_id);
+
     //타입 검사
     if (typeof user_id  != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
     if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
@@ -109,9 +113,9 @@ exports.createMsg = function(req,res){
         'JOIN post p ON t.post_id = p.post_id ' +
         'WHERE t.trade_id = ? ';
 
-    var device_query =
-        'SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id ' +
-        'WHERE from_user_id = ? and is_sended = 0';
+//    var device_query =
+//        'SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id ' +
+//        'WHERE from_user_id = ? and is_sended = 0';
 /*
     connection_closure(function(err,connection){
         if(err){ res.json(trans_json('커넥션을 얻는데 실패했습니다 : ',+err,0)); }
@@ -187,7 +191,7 @@ exports.createMsg = function(req,res){
         insert_query,
         [user_id,user_id,message,trade_id],
         function(err,rows,msg){
-            if(err) {res.json(trans_json(msg,0));}
+            if(err) {console.log('insert err'+err.message);res.json(trans_json(msg,0));}
             else {
                 template_item(
                         "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id " +
@@ -209,7 +213,8 @@ exports.createMsg = function(req,res){
                                         }
                                     );
                                 }
-                            });
+                            }
+                        );
                     }
                 );
             }
