@@ -820,7 +820,7 @@ exports.getPostDetail = function(req,res){
         "LEFT JOIN user ru ON t.req_user_id = ru.user_id " +
         "WHERE p.post_id = ?;";
     var data = [post_id];
-    logger.debug(query);
+
     connectionPool.getConnection(function(err, connection) {
         if (err) {
             res.json(getJsonData(0, 'DB 오류', null));
@@ -1182,7 +1182,7 @@ exports.getImage = function(req, res) {
             res.json(getJsonData(404, '해당 이미지가 없습니다', null));
 
             logger.error('/--------------------------------------- start ----------------------------------------/');
-            logger.error('/ 이미지 요청 error : ', err.message);
+            logger.error('/ 이미지 요청 error : ');
             logger.error('/---------------------------------------- end -----------------------------------------/');
         }
     });

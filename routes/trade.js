@@ -161,9 +161,11 @@ exports.sendRequestPost = function(req,res){
                         res.json(getJsonData(1, "success", result));
 
 
+                        // 게시물 작성자 user_id 가져오기
+                        // 해당 유저의 레지스트레이션 아이디 가져오기
                         // GCM 전송
-                        query = "SELECT gcm_registration_id, push_settings FROM user WHERE user_id = ?;";
-                        data = [req.params.user_id];
+                        query = "SELECT gcm_registration_id FROM user WHERE user_id = (SELECT user_id FROM post WHERE post_id = ?);";
+                        data = [req.body.post_id];
                         connection.query(query, data, function (err, rows, fields) {
                             if (err) {
                                 logger.error('교환 요청 GCM 에러!', err.message);
