@@ -229,7 +229,7 @@ function deleteImageQuery(connection, post_image_id, callback) {
 
 function destroyPostQuery(connection, post_id, user_id, callback ){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
-    logger.debug('/ 게시물 삭제 : ', {post_id:post_id, user_id:user_id});
+    logger.debug('/ 게시물 삭제 요청 : ', {post_id:post_id, user_id:user_id});
 
 
     var query = "UPDATE post SET current_status = 1 WHERE post_id = ? and user_id = ?;";
@@ -523,7 +523,7 @@ exports.insertPostQuery = function (req, res) {
                         res.json(getJsonData(1, 'success', null));
                         logger.debug('.');
                         logger.debug('.');
-                        logger.debug('게시물 인설트 성공!');
+                        logger.debug('/ 게시물 인설트 성공!');
                         logger.debug('/---------------------------------------- end -----------------------------------------/');
 
                     }
@@ -533,184 +533,162 @@ exports.insertPostQuery = function (req, res) {
     });
 };
 
+function updatePostQuery(req, res) {
+
+    logger.debug('/--------------------------------------- start ----------------------------------------/');
+    logger.debug('/ 게시물 업데이트 요청 : ', req.body);
+    logger.debug('/ 이미지 파일 : ', Object.keys(req.files));
+    logger.debug('/', req.headers['content-type']);
+
+    var user_id = req.params.user_id,
+        post_id = req.body.post_id,
+        comment = req.body.comment,
+        bookmark_cnt = req.body.bookmark_cnt,
+        book_condition_id = req.body.book_condition_id,
+        destroy_list = req.body.destroy_list;
 
 
-// 포스트 수정
-exports.updatePost = function(req,res){
-    logger.debug(req.headers["content-type"]);
-    //application/x-www-form-urlencoded
-
-    var contentType = req.headers['content-type'];
-
-    if (contentType === 'application/x-www-form-urlencoded' || contentType === 'application/json'){
-        req.files = req.files || {};
-        runUpdate();
-    } else {   // 'multipart/form-data'
-        var form = new formidable.IncomingForm();
-        form.uploadDir = path.normalize(__dirname + '/../tmp/');
-        form.keepExtensions = true;
-
-        form.parse(req, function(err, fields, files) {
-            req.body = fields;
-            req.files = files;
-            runUpdate();
-        });
+    //destroy_list=[];
+    // 파라미터 체크
+    if ( !user_id || !post_id || !comment || !bookmark_cnt || !book_condition_id ){
+        return res.json(getJsonData(0, '값이 없습니다.', null));
     }
 
-    function runUpdate() {
+    // 책갈피 최대 개수 제한
+    if ( bookmark_cnt > 2 || bookmark_cnt < 0 ){
+        return res.json(getJsonData(0, '책갈피는 최소 0개, 최대 2개입니다.', null));
+    }
 
-        logger.debug('/--------------------------------------- start ----------------------------------------/');
-        logger.debug('게시물 업데이트 요청 : ', req.body);
-        logger.debug('이미지 파일 : ', Object.keys(req.files));
+    // 0. post_id로 post_image들 가져오기 SELECT
+    // 1. files {1,2,3,4} 이미지 있는지 없는지 파악
+    // 1-1  있다 : 기존 이미지 삭제 -> 신규 이미지 업로드 -> post_image 로우 UPDATE
+    // 1-2  없다 : 신규 이미지 업로드 -> post_image 로우 INSERT
+    // 2. destroy_list 참고해서 기존 이미지 삭제 -> post_image에 해당 이미지들 DELETE
 
-        var user_id = req.params.user_id,
-            post_id = req.body.post_id,
-            comment = req.body.comment,
-            bookmark_cnt = req.body.bookmark_cnt,
-            book_condition_id = req.body.book_condition_id,
-            destroy_list = req.body.destroy_list;
-
-
-        //destroy_list=[];
-        // 파라미터 체크
-        if ( !user_id || !post_id || !comment || !bookmark_cnt || !book_condition_id ){
-            return res.json(getJsonData(0, '값이 없습니다.', null));
-        }
-
-        // 책갈피 최대 개수 제한
-        if ( bookmark_cnt > 2 || bookmark_cnt < 0 ){
-            return res.json(getJsonData(0, '책갈피는 최소 0개, 최대 2개입니다.', null));
-        }
-
-        // 0. post_id로 post_image들 가져오기 SELECT
-        // 1. files {1,2,3,4} 이미지 있는지 없는지 파악
-        // 1-1  있다 : 기존 이미지 삭제 -> 신규 이미지 업로드 -> post_image 로우 UPDATE
-        // 1-2  없다 : 신규 이미지 업로드 -> post_image 로우 INSERT
-        // 2. destroy_list 참고해서 기존 이미지 삭제 -> post_image에 해당 이미지들 DELETE
-
-        getConnection(function (connection) {
-            async.waterfall([
-                function (callback) {
-                    //console.log( files, destroy_list.length);
-                    var query = "SELECT * FROM post_image WHERE post_id = ?";
-                    var data = [post_id];
-                    connection.query(query, data, function (err, rows, fields) {
-                        if (err) {
-                            callback(err);
-                        }else{
-                            callback(null, rows);
-                        }
-                    });
-                },
-                function (rows, callback) {
-                    // 이미지 있으면 실행
-                    // 없으면 다음 구문 넘김
-                    if ( req.files ){
-                        // files의 이미지 번호가 db에 있으면 변경 없으면 추가
-                        var imageArr = _.map(req.files, function (image, num) {
-                            // 이미 있는 경우 삭제(서버) -> 업로드(서버) -> 쿼리(업데이트)
-                            image.num = num;
-                            if ( num <= rows.length ){
-                                // 기존 이미지 삭제
-                                deleteImage(rows[num-1], function (err) {
-                                    if(err){
-                                        callback(err);
-                                    }
-                                });
-                            }
-                            return image;
-                        });
-
-                        async.each(imageArr, function (image, cb) {
-                            saveImage(image, function (err, uploadFile) {
-                                if (err){
-                                    cb(err);
-                                }else{
-                                    // 기존 이미지 변경은 query UPDATE
-                                    if ( image.num <= rows.length ){
-                                        updateImageQuery(connection, rows[image.num-1].post_image_id, uploadFile, function (err) {
-                                            if (err){
-                                                cb(err);
-                                            }else{
-                                                cb();
-                                            }
-                                        });
-                                    }else{
-                                        // 신규 이미지는 query INSERT
-                                        insertImageQuery(connection, post_id, uploadFile, function (err) {
-                                            if (err){
-                                                cb(err);
-                                            }else{
-                                                cb();
-                                            }
-                                        })
-                                    }
-                                }
-                            });
-                        }, function (err) {
-                            if (err){
-                                callback(err);
-                            }else{
-                                callback(null, rows);
-                            }
-                        })
+    getConnection(function (connection) {
+        async.waterfall([
+            function (callback) {
+                //console.log( files, destroy_list.length);
+                var query = "SELECT * FROM post_image WHERE post_id = ?";
+                var data = [post_id];
+                connection.query(query, data, function (err, rows, fields) {
+                    if (err) {
+                        callback(err);
                     }else{
                         callback(null, rows);
                     }
-                },
-                function (rows, callback) {
-                    if ( destroy_list && destroy_list.length ){
-                        async.each(destroy_list, function (num, cb) {
-                            deleteImage(rows[num], function (err) {
+                });
+            },
+            function (rows, callback) {
+                // 이미지 있으면 실행
+                // 없으면 다음 구문 넘김
+                if ( req.files ){
+                    // files의 이미지 번호가 db에 있으면 변경 없으면 추가
+                    var imageArr = _.map(req.files, function (image, num) {
+                        // 이미 있는 경우 삭제(서버) -> 업로드(서버) -> 쿼리(업데이트)
+                        image.num = num;
+                        if ( num <= rows.length ){
+                            // 기존 이미지 삭제
+                            deleteImage(rows[num-1], function (err) {
                                 if(err){
-                                    cb(err);
+                                    callback(err);
+                                }
+                            });
+                        }
+                        return image;
+                    });
+
+                    async.each(imageArr, function (image, cb) {
+                        saveImage(image, function (err, uploadFile) {
+                            if (err){
+                                cb(err);
+                            }else{
+                                // 기존 이미지 변경은 query UPDATE
+                                if ( image.num <= rows.length ){
+                                    updateImageQuery(connection, rows[image.num-1].post_image_id, uploadFile, function (err) {
+                                        if (err){
+                                            cb(err);
+                                        }else{
+                                            cb();
+                                        }
+                                    });
                                 }else{
-                                    deleteImageQuery(connection, rows[num].post_image_id, function (err) {
-                                        if ( err){
+                                    // 신규 이미지는 query INSERT
+                                    insertImageQuery(connection, post_id, uploadFile, function (err) {
+                                        if (err){
                                             cb(err);
                                         }else{
                                             cb();
                                         }
                                     })
                                 }
-                            });
-                        }, function (err) {
-                            if (err){
-                                callback(err);
-                            }else{
-                                callback();
                             }
-                        })
-                    }else{
-                        callback();
-                    }
-
-                },
-                function (callback) {
-                    var query = "UPDATE post SET ? WHERE post_id = ? and user_id = ?;";
-                    var contents = {comment: comment, bookmark_cnt: bookmark_cnt, book_condition_id: book_condition_id };
-                    var data = [contents, post_id, user_id];
-
-                    connection.query(query, data, function (err, result) {
-
-                        if (err) {
+                        });
+                    }, function (err) {
+                        if (err){
                             callback(err);
                         }else{
-                            if ( !result.affectedRows ) {
-                                callback(new Error("post_id 또는 user_id가 잘못 되었습니다."));
-                            }else{
-                                callback();
-                            }
+                            callback(null, rows);
                         }
-                    });
-                }], function (err) {
+                    })
+                }else{
+                    callback(null, rows);
+                }
+            },
+            function (rows, callback) {
+                if ( destroy_list && destroy_list.length ){
+                    async.each(destroy_list, function (num, cb) {
+                        deleteImage(rows[num], function (err) {
+                            if(err){
+                                cb(err);
+                            }else{
+                                deleteImageQuery(connection, rows[num].post_image_id, function (err) {
+                                    if ( err){
+                                        cb(err);
+                                    }else{
+                                        cb();
+                                    }
+                                })
+                            }
+                        });
+                    }, function (err) {
+                        if (err){
+                            callback(err);
+                        }else{
+                            callback();
+                        }
+                    })
+                }else{
+                    callback();
+                }
+
+            },
+            function (callback) {
+                var query = "UPDATE post SET ? WHERE post_id = ? and user_id = ?;";
+                var contents = {comment: comment, bookmark_cnt: bookmark_cnt, book_condition_id: book_condition_id };
+                var data = [contents, post_id, user_id];
+
+                connection.query(query, data, function (err, result) {
+
+                    if (err) {
+                        callback(err);
+                    }else{
+                        if ( !result.affectedRows ) {
+                            callback(new Error("post_id 또는 user_id가 잘못 되었습니다."));
+                        }else{
+                            callback();
+                        }
+                    }
+                });
+            }],
+            function (err) {
                 if (err) {
                     connection.rollback(function () {
                         connection.release();
                         res.json(getJsonData(0, err.message, null));
                     });
 
-                    logger.error('게시물 인설트 error : ', err.message);
+                    logger.error('/ 게시물 인설트 error : ', err.message);
                     logger.error('/---------------------------------------- end -----------------------------------------/');
 
                 }else{
@@ -724,14 +702,33 @@ exports.updatePost = function(req,res){
                         }else{
                             connection.release();
                             res.json(getJsonData(1, 'success', null));
-                            logger.debug('.');
-                            logger.debug('.');
-                            logger.debug('게시물 업데이트 요청 성공!');
+                            logger.debug('/ .');
+                            logger.debug('/ .');
+                            logger.debug('/ 게시물 업데이트 요청 성공!');
                             logger.debug('/---------------------------------------- end -----------------------------------------/');
                         }
                     });
                 }
-            });
+            }
+        );
+    });
+}
+
+// 포스트 수정
+exports.updatePost = function(req,res){
+
+    if (contentType === 'application/x-www-form-urlencoded' || contentType === 'application/json'){
+        req.files = req.files || {};
+        updatePostQuery(req, res);
+    } else {   // 'multipart/form-data'
+        var form = new formidable.IncomingForm();
+        form.uploadDir = path.normalize(__dirname + '/../tmp/');
+        form.keepExtensions = true;
+
+        form.parse(req, function(err, fields, files) {
+            req.body = fields;
+            req.files = files;
+            updatePostQuery(req, res);
         });
     }
 };
@@ -780,9 +777,9 @@ exports.destroyPost = function(req,res) {
                                     connection.release();
                                     res.json(getJsonData(1, 'success', null));
 
-                                    logger.debug('.');
-                                    logger.debug('.');
-                                    logger.debug('게시물 삭제 성공!');
+                                    logger.debug('/ .');
+                                    logger.debug('/ .');
+                                    logger.debug('/ 게시물 삭제 성공!');
                                     logger.debug('/---------------------------------------- end -----------------------------------------/');
                                 }
                             });
@@ -799,7 +796,7 @@ exports.destroyPost = function(req,res) {
 exports.getPostDetail = function(req,res){
 
     logger.debug('/--------------------------------------- start ----------------------------------------/');
-    logger.debug('게시물 상세정보 요청 : ', req.params.post_id);
+    logger.debug('/ 게시물 상세정보 요청 : ', req.params.post_id);
 
 
     var post_id = req.params.post_id;
@@ -840,7 +837,7 @@ exports.getPostDetail = function(req,res){
                 res.json(getJsonData(0, err.message, null));
 
 
-                logger.error('게시물 상세정보 error : ', err.message);
+                logger.error('/ 게시물 상세정보 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
                 // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
@@ -918,9 +915,9 @@ exports.getPostDetail = function(req,res){
                 connection.release();
                 res.json(getJsonData(1, 'success', result));
 
-                logger.debug('.');
-                logger.debug('.');
-                logger.debug('게시물 상세정보 요청 성공!');
+                logger.debug('/ .');
+                logger.debug('/ .');
+                logger.debug('/ 게시물 상세정보 요청 성공!');
                 logger.debug('/---------------------------------------- end -----------------------------------------/');
             }
         });
@@ -930,7 +927,7 @@ exports.getPostDetail = function(req,res){
 
 exports.getPostList = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
-    logger.debug('게시물 상세정보 요청 : ', {category_id:req.query.category_id, page:req.query.page, count:req.query.count, sort:req.query.sort, theme:req.query.theme});
+    logger.debug('/ 게시물 상세정보 요청 : ', {category_id:req.query.category_id, page:req.query.page, count:req.query.count, sort:req.query.sort, theme:req.query.theme});
 
     var category_id = req.query.category_id;
     var page = req.query.page;
@@ -1023,7 +1020,7 @@ exports.getPostList = function(req,res){
                 res.json(getJsonData(0, err.message, null));
 
 
-                logger.error('게시물 리스트 error : ', err.message);
+                logger.error('/ 게시물 리스트 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
                 var list = [];
@@ -1100,7 +1097,7 @@ exports.searchPosts = function(req,res){
                 res.json(getJsonData(0, err.message, null));
 
 
-                logger.error('게시물 검색 error : ', err.message);
+                logger.error('/ 게시물 검색 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
                 var list = [];
@@ -1154,7 +1151,7 @@ exports.reportPost = function(req,res){
                     res.json(getJsonData(0, err.message, null));
 
                     logger.error('/--------------------------------------- start ----------------------------------------/');
-                    logger.error('게시물 신고 error : ', err.message);
+                    logger.error('/ 게시물 신고 error : ', err.message);
                     logger.error('/---------------------------------------- end -----------------------------------------/');
                 }else{
                     connection.release();
@@ -1191,7 +1188,7 @@ exports.getImage = function(req, res) {
             res.json(getJsonData(404, '해당 이미지가 없습니다', null));
 
             logger.error('/--------------------------------------- start ----------------------------------------/');
-            logger.error('이미지 요청 error : ', err.message);
+            logger.error('/ 이미지 요청 error : ', err.message);
             logger.error('/---------------------------------------- end -----------------------------------------/');
         }
     });

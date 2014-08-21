@@ -50,7 +50,7 @@ function getUserDeviceID(user_id,  callback) {
 }
 
 // GCM 보내기
-exports.sendMessage = function (userDeviceId, title, msg, type, callback ) {
+exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, msg, callback ) {
     var message = new gcm.Message();
     message.addDataWithKeyValue('wisdona', title);
     message.addDataWithKeyValue('message', msg);
@@ -60,10 +60,26 @@ exports.sendMessage = function (userDeviceId, title, msg, type, callback ) {
     message.timeToLive = 3;
    // message.dryRun = true;
 
-    var sender = new gcm.Sender(gcmConfig.apikey);
-//    var registrationIds = [];
+    // 0. 요청
+    // 1. 요청
+    // 2. 평가
+    // 3. 배송완료
+    // 4. 철회
+    // 5. 메시지
 
-    sender.send(message, userDeviceId, 4, function(err, result){
+    // 사용자 별 푸쉬 설정에 따라 제외할 사람 빼기
+    var sendUserDeviceIds = [];
+    for(var i=0; i<userDeviceIds.length; i++){
+        var pushSetting = userPushSettings[i];
+        // 해당 푸쉬설정이 false이면 해당 사용자 제외
+        if ( pushSetting[code] != 0 ){
+            sendUserDeviceIds.push(userDeviceIds[i]);
+        }
+    }
+
+    var sender = new gcm.Sender(gcmConfig.apikey);
+
+    sender.send(message, userDeviceIds, 4, function(err, result){
         if (err){
             console.log('console.log!!!');
             callback(err);

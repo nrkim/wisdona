@@ -192,7 +192,7 @@ exports.sendRequestPost = function(req,res){
 
 exports.acceptPost = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
-    logger.debug('/ 거래 단계별 수락 : ', {user_id:req.params.user_id, post_id : req.body.post_id});
+    logger.debug('/ 거래 단계별 수락 요청 : ', {user_id:req.params.user_id, post_id : req.body.post_id});
 
     // 요청자/기부자 판별
     // 1. 게시물 + trade
@@ -400,7 +400,7 @@ exports.acceptPost = function(req,res){
 
 exports.cancelPost = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
-    logger.debug('/ 교환 취소/철회 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
+    logger.debug('/ 교환 취소/철회 요청 : ', {req_user_id:req.params.user_id, post_id : req.body.post_id});
 
 
     // 1. post + trade SELECT
