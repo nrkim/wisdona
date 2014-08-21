@@ -90,6 +90,7 @@ function deleteImage(row, callback) {
 
 // 웹 서버에 원본, 중간, 썸네일 이미지 저장
 function saveImage(image, callback) {
+    logger.debug('imageFile : ', {path:image.path, size:image.size});
     if (image.size) {
 
         // 파일 이동
@@ -309,7 +310,7 @@ exports.saveImages = function(req,res,next) {
 
 
         // 필수 파라미터에 값 없을 경우
-        if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.genre == null || req.body.name == null || req.body.is_certificate == null) {
+        if (req.body.comment == null || req.body.bookmark_cnt == null || req.body.book_condition_id == null || req.body.name == null || req.body.is_certificate == null) {
             return res.json(getJsonData(0, "파라미터 값이 없습니다.", null));
         }
 
@@ -386,25 +387,30 @@ exports.insertPostQuery = function (req, res) {
                         callback(null, rows[0].book_id);
                     });
                 } else {
-
-
                     async.waterfall([
                         function (cb) {
-                            query = "SELECT genre_id, category_id FROM genre WHERE genre = ?";
-                            data = [req.body.genre];
-                            connection.query(query, data, function (err, rows, fields) {
-                                if (err) {
-                                    cb(err);
-                                }else{
-                                    if ( !rows.length ){
-                                        cb(new Error('장르 정보가 없습니다. > ' + req.body.genre ));
+                            if ( !req.body.genre ){
+                                // 48(장르/기타), 12(카테고리/기타)
+                                cb(null, 48, 12);
+                            }else{
+                                query = "SELECT genre_id, category_id FROM genre WHERE genre = ?";
+                                data = [req.body.genre];
+                                connection.query(query, data, function (err, rows, fields) {
+                                    if (err) {
+                                        cb(err);
                                     }else{
-                                        cb(null, rows);
+                                        if ( !rows.length ){
+                                            // 48(장르/기타), 12(카테고리/기타)
+                                            cb(null, 48, 12);
+                                        }else{
+                                            cb(null, rows[0].genre_id, rows[0].category_id);
+                                        }
                                     }
-                                }
-                            });
+                                });
+                            }
+
                         },
-                        function (rows, cb) {
+                        function (genre_id, category_id, cb) {
                             // 1. 책 등록(name, genre_id, author, translator, publisher, pub_date, isbn, isbn13, book_image_path, list_price)
                             query = "INSERT INTO book SET ?";
                             data = {
@@ -417,13 +423,13 @@ exports.insertPostQuery = function (req, res) {
                                 isbn13: req.body.isbn13 || null,
                                 book_image_path: req.body.book_image_path || null,
                                 list_price: req.body.list_price || null,
-                                genre_id: rows[0].genre_id
+                                genre_id: genre_id
                             };
                             connection.query(query, data, function (err, result) {
                                 if (err) {
                                     cb(err);
                                 }else{
-                                    cb(null, [rows[0].category_id, result.insertId]);
+                                    cb(null, [category_id, result.insertId]);
                                 }
                             });
                         }
@@ -565,7 +571,7 @@ exports.updatePost = function(req,res){
 
         //destroy_list=[];
         // 파라미터 체크
-        if ( !user_id || !post_id || !comment || !bookmark_cnt || !book_condition_id || !destroy_list ){
+        if ( !user_id || !post_id || !comment || !bookmark_cnt || !book_condition_id ){
             return res.json(getJsonData(0, '값이 없습니다.', null));
         }
 
@@ -651,7 +657,7 @@ exports.updatePost = function(req,res){
                     }
                 },
                 function (rows, callback) {
-                    if ( destroy_list.length ){
+                    if ( destroy_list && destroy_list.length ){
                         async.each(destroy_list, function (num, cb) {
                             deleteImage(rows[num], function (err) {
                                 if(err){
@@ -808,7 +814,7 @@ exports.getPostDetail = function(req,res){
     // 쿼리 요청
     var query =
         "SELECT u.user_id, u.nickname, u.image, u.like_total_cnt, u.sad_total_cnt, " +
-        "p.comment, p.bookmark_cnt, p.book_condition_id, " +
+        "p.comment, p.bookmark_cnt, p.book_condition_id, p.is_certificate, " +
         "GROUP_CONCAT(pi.large_image_path) large_image_paths, " +
         "b.title, b.author, b.translator, b.publisher, b.pub_date, g.genre, " +
         "t.trade_id, t.current_status, t.last_update, ru.user_id req_user_id, ru.nickname req_nickname, ru.image req_image " +
@@ -821,6 +827,7 @@ exports.getPostDetail = function(req,res){
         "LEFT JOIN user ru ON t.req_user_id = ru.user_id " +
         "WHERE p.post_id = ?;";
     var data = [post_id];
+    logger.debug(query);
     connectionPool.getConnection(function(err, connection) {
         if (err) {
             res.json(getJsonData(0, 'DB 오류', null));
@@ -836,7 +843,7 @@ exports.getPostDetail = function(req,res){
             }else{
                 // 게시물 작성자 정보 조회 및 [user_id, nickname, profile_image_url, like_cnt, sad_cnt]가져오기
                 // 게시물 거래 정보 조회 [current_status, 요청자 user_id, nick_name, profile_image_url
-
+                logger.debug('이미지 : ', rows[0].large_image_paths);
                 var result = {
                     user : {
                         user_id : rows[0].user_id,
@@ -848,9 +855,9 @@ exports.getPostDetail = function(req,res){
                     post : {
                         comment : rows[0].comment,
                         book_mark_count : rows[0].bookmark_cnt,
-                        book_image_url : rows[0].large_image_paths.split(','),
+                        book_image_url : rows[0].large_image_paths && rows[0].large_image_paths.split(','),
                         book_condition : rows[0].book_condition_id,
-                        is_certificate : rows[0].is_certificate,
+                        is_certificate : Boolean(rows[0].is_certificate),
                         create_date : rows[0].create_date,
                         book : {
                             book_name : rows[0].title,
