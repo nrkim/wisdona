@@ -269,10 +269,11 @@ exports.getUnreadMessgeList = function(req,res){
         [user_id],
         unread_msg_lst,
         function(err,result,msg){
+            console.log('result is!!!!!!1',result);
             if (err) { res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다.",0)); }
             else {
                 if (result.length == 0){
-                    res.json(trans_json("실패했습니다.",0,result));
+                    res.json(trans_json("읽은 메시지가 없습니다.",1,result));
                 } else{
                     template_item(
                         update_query,
