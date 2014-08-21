@@ -83,7 +83,7 @@ exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, ms
 
     var sender = new gcm.Sender(gcmConfig.apikey);
 
-    sender.send(message, userDeviceIds, 4, function(err, result){
+    sender.send(message, sendUserDeviceIds, 4, function(err, result){
         if (err){
             console.log('console.log!!!');
             callback(err);
