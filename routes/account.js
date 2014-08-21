@@ -16,8 +16,11 @@ var template = require('./template')
 
 // 이미지 업로드 관련
 var _ = require('underscore')
+    ,im = require('imagemagick')
+    ,formidable = require('formidable')
     ,fstools = require('fs-tools')
     ,fs = require('fs')
+    ,async = require('async')
     ,path = require('path')
     mime = require('mime');
 
@@ -133,37 +136,103 @@ exports.getAccountSettings = function(req,res){
 };
 
 // api :
+
+/*
+var form = new formidable.IncomingForm();
+form.uploadDir = path.normalize(__dirname + '/../tmp/');
+form.keepExtensions = true;
+
+form.parse(req, function(err, fields, file) {
+    req.body=fields;
+
+    if (file.size) {
+        var baseImageDir = __dirname + '/../images/';
+        var destPath = path.normalize(baseImageDir + path.basename(file.path));
+        fstools.move(file.path, destPath, function(err) {
+            if (err) {
+                console.log('err occured',err.messaage);
+                res.json(trans_json(err.message,0));
+            } else {
+                console.log('Original file(', file.name, ') moved!!!');
+                req.uploadFile = destPath;
+                next();
+            }
+        });
+    } else {
+        fstools.remove(file.path, function(err) {
+            if (err) {
+                res.json(trans_json(err.message,0));
+            } else {
+                console.log('Zero file removed!!!');
+                next();
+            }
+        });
+    }
+});
+*/
+
 exports.uploadImage = function (req,res,next){
 
     var form = new formidable.IncomingForm();
     form.uploadDir = path.normalize(__dirname + '/../tmp/');
     form.keepExtensions = true;
 
-    form.parse(req, function(err, fields, file) {
-        req.body=fields;
+    form.parse(req, function(err, fields, files) {
+        req.body = fields;
 
-        if (file.size) {
-            var baseImageDir = __dirname + '/../images/';
-            var destPath = path.normalize(baseImageDir + path.basename(file.path));
-            fstools.move(file.path, destPath, function(err) {
-                if (err) {
-                    res.json(trans_json(err.message,0));
-                } else {
-                    console.log('Original file(', file.name, ') moved!!!');
-                    req.uploadFile = destPath;
-                    next();
-                }
-            });
-        } else {
-            fstools.remove(file.path, function(err) {
-                if (err) {
-                    res.json(trans_json(err.message,0));
-                } else {
-                    console.log('Zero file removed!!!');
-                    next();
-                }
-            });
-        }
+        //////// 이미지 파일 아닐 경우 처리 필요 ////////
+        async.waterfall([
+            function(callback) {
+                var filesArr = _.map(files, function(file) {
+                    return file;
+                });
+                callback(null, filesArr);
+            },
+            function(filesArr, callback) {
+                req.uploadFiles = [];
+
+                async.each(filesArr, function (file, cb) {
+                    if (file.size) {
+                        var baseImageDir = __dirname + '/../images/';
+                        var destPath = path.normalize(baseImageDir + path.basename(file.path));
+                        fstools.move(file.path, destPath, function (err) {
+                            if (err) {
+                                console.log('err occured', err.messaage);
+                                cb(err);//res.json(trans_json(err.message,0));
+                            } else {
+                                console.log('Original file(', file.name, ') moved!!!');
+                                req.uploadFile = destPath;
+                                cb();
+                            }
+                        });
+                    } else{
+                        fstools.remove(file.path, function(err) {
+                            if (err) {
+                                callback(err);
+                                //res.json(trans_json(err.message,0));
+                            } else {
+                                console.log('Zero file removed!!!');
+                                callback();
+                            }
+                        });
+                    }
+                }, function (err) {
+                    if( err){
+                        callback(err);
+                    }else{
+                        callback();
+                    }
+                });
+
+            }
+        ], function (err) {
+            if (err) {
+                res.json(trans_json(err.message,0));
+            }else{
+                next();
+            }
+        });
+
     });
 };
 
@@ -171,8 +240,6 @@ exports.uploadImage = function (req,res,next){
 exports.updateAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
-
-
 
     var updated = {};
 
