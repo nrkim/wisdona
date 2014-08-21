@@ -138,6 +138,7 @@ module.exports = function(passport) {
                         selectSql,
                         [email],
                         function(err,rows,msg){
+                            console.log()
                             if (err) {
                                 console.log("log2");
                                 connection.release();
