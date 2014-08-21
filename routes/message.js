@@ -270,12 +270,15 @@ exports.getUnreadMessgeList = function(req,res){
         unread_msg_lst,
         function(err,result,msg){
             console.log('result is!=========!!!!!1',result);
+            console.log('query is ',get_query);
             if (err) {
                 console.log('err'+err.message);
                 res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다.",0));
             }
             else {
+                console.log('not err')
                 if (result.length == 0){
+                    console.log('not exist')
                     res.json(trans_json("읽은 메시지가 없습니다.",1,result));
                 } else{
                     template_item(
@@ -283,6 +286,7 @@ exports.getUnreadMessgeList = function(req,res){
                         [user_id],
                         function(err,rows,msg){
                             console.log('update query is .....',rows );
+                            console.log('result is...',result);
                             if(err) { console.log('콘솔로그');res.json(trans_json(msg,0));}
                             else { console.log('콘솔로그 2@@');res.json(trans_json('success',1,result));}
                         }
