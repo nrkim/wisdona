@@ -37,17 +37,17 @@ module.exports = function(app,passport) {
         console.log('password is :::', req.body.password);
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
-                //next(null,false,info.loginMessage);
+                console.log('login message :',info.loginMessage);
                 res.json(trans_json(info.loginMessage,0));
             } else {
                 req.logIn(user, function(err) {
-                    if (err) { res.json(trans_json(err.message,0)); } //next(err);
+                    if (err) { console.log('ldd :',err.message);res.json(trans_json(err.message,0)); } //next(err);
                     else{
                         template_item(
                             "UPDATE user SET gcm_registration_id = ? WHERE user_id = ? ",
-                            [req.body.gcm_registration_id,user_id],
+                            [req.body.gcm_registration_id,user.user_id],
                             function(err,result,msg){
-                                if (err) { res.json(trans_json('로그인에 실패했습니다.',0));}
+                                if (err) { console.log('ldd :',err.message);res.json(trans_json('로그인에 실패했습니다.',0));}
                                 else {
                                     req.session.passport.user = user.user_id;
                                     req.json_file = create_user(user.user_id);
