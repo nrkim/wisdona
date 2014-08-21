@@ -12,7 +12,7 @@ var async = require('async');
 
 // 커넥션 풀 클로저 함수
 // 중첩 쿼리를 사용 하더라도 커넥션을 계속 유지 할 수 있는 함수
-var pool_closure = function(next){
+exports.connection_closure = function(next){
     async.waterfall(
         [
             function (callback){
@@ -29,10 +29,22 @@ var pool_closure = function(next){
                         return pool;
                     },
                     get_query : function(query,params,verify){
-                        result.query(query,params,function(err,rows){
+                        pool.query(query,params,function(err,rows){
                             if (err){ verify(err); }
                             else { verify(null,rows); }
                         });
+                    },
+                    get_commit : function(err,verify) {
+                        if (err) {
+                            pool.rollback(function() {
+                                throw err;
+                            });
+                        }
+                        else { verify(null,rows); }
+                    },
+                    get_transaction : function(err,verify){
+                        if(err) {verify(err);}
+                        else {verify();}
                     },
                     close_conn : function() {
                         pool.release();
@@ -107,13 +119,6 @@ exports.template_item = function(query,params,verify){
     });
 };
 
-
-
-
-
-exports.connection_chain = function(query,params,verify){
-
-};
 
 exports.template_transaction = function(connection, sql, funcs ){
     connection.beginTransaction(function (err) {

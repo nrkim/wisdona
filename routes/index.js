@@ -139,7 +139,7 @@ module.exports = function(app,passport) {
     // 대화
     app.get('/users/:user_id/message-groups/list',isLoggedIn, message.getMessageGroupList);
     app.post('/users/:user_id/message-groups/destroy',isLoggedIn, message.destroyMessageGroup);
-    app.post('/users/:user_id/message-groups/:trade_id/create',isLoggedIn,message.createMsg);
+    app.post('/users/:user_id/message-groups/:trade_id/create',express.bodyParser(),isLoggedIn,message.createMsg);
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);
     app.get('/users/:user_id/message-groups/:trade_id/unread/list',isLoggedIn,message.getUnreadMessgeList);
     app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',isLoggedIn,message.confirmMessage);

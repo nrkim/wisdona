@@ -185,6 +185,9 @@ exports.requestSendEmail = function (req,res){
                     connection.release();
                     res.json(trans_json('비밀번호 재발급 메일 생성에 실패하였습니다.', 0));
                 }
+                else{
+
+                }
 
                 connectionPool.getConnection(function (err, connection) {
                     if (err) {

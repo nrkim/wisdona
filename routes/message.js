@@ -11,7 +11,10 @@ var message_window = json.message_window
     ,template = require('./template')
     ,template_item = template.template_item
     ,template_list = template.template_list
-    ,unread_msg_lst= json.unread_msg_lst;
+    ,unread_msg_lst= json.unread_msg_lst
+    ,connection_closure = template.connection_closure;
+var _ = require('underscore');
+var sendMessage = require('./gcm').sendMessage;
 
 
 // api : /users/:user_id/message-groups/list
@@ -106,7 +109,58 @@ exports.createMsg = function(req,res){
         "JOIN post p ON t.post_id = p.post_id " +
         "WHERE t.trade_id = ? ";
 
+    var device_query =
+        "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.from_user_id " +
+        "WHERE from_user_id = ? and is_sended = 0 ";
+
+
     // 클로저로 바꿀 예정
+
+    /*
+   connection_closure(function(err,connection){
+        if(err){ res.json(trans_json('커넥션을 얻는데 실패했습니다 : ',+err,0)); }
+        else {
+            connection.get_conn();
+            async.waterfall([
+                function(callback){
+                    connection.get_query(
+                        insert_query,
+                        [user_id,user_id,message,trade_id],
+                        function(err,rows,item){
+                            if (err) {callback(err); }
+                            else { callback(null); }
+                        }
+                    )
+                },
+                function(callback){
+                    connection.get_query(
+                        device_query,
+                        [user_id],
+                        function(err,rows,info){
+                            var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
+                            callback(null,device_list)
+
+                        }
+                    )
+                },
+                function(device_list,callback){
+                    sendMessage(device_list,"wisdona",message,
+                        function(err){
+                            console.log('console!!');
+                            if(err) { callback(err); }
+                            //console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
+                            else { callback(null,true);}
+                            //console.log('loglognnbb');res.json(trans_json('메시지 전송에 성공했습니다.',1));}
+                        });
+                }
+            ],function(err,result){
+                if(err) { res.json(trans_json('메시지 전송에 실패했습니다.'+err,0)); }
+                else {res.json(trans_json('메시지 전송에 성공했습니다.',1));}
+            })
+        }
+    });
+*/
+
     template_item(
         query,
         [user_id,user_id,message,trade_id],
@@ -114,11 +168,18 @@ exports.createMsg = function(req,res){
             if(err) {res.json(trans_json(msg,0));}
             else {
                 template_item(
-                    "SELECT to_user_id FROM message m WHERE from_user_id = ? and is_sended = 0",
+                    "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id " +
+                    "WHERE from_user_id = ? and is_sended = 0",
                     [user_id],
                     function(err,rows,info){
-//                        _.map(rows, function(item){ return item.; });
-                        sendMessage([user_id],title,message,function(){
+                        var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
+                        console.log('device list is ::: ',device_list);
+                        console.log('message is .... ',message);
+                        sendMessage(device_list,"메시지",message,
+                            function(err){
+                                console.log('console!!');
+                                if(err) {console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
+                                else {console.log('loglognnbb');res.json(trans_json('메시지 전송에 성공했습니다.',1));}
                         });
                     }
                 );
@@ -220,8 +281,8 @@ exports.getUnreadMessgeList = function(req,res){
                         update_query,
                         [user_id],
                         function(err,rows,msg){
-                            if(err) { res.json(trans_json(msg,0));}
-                            else { res.json(trans_json('success',1,result));}
+                            if(err) { console.log('콘솔로그');res.json(trans_json(msg,0));}
+                            else { console.log('콘솔로그 2@@');res.json(trans_json('success',1,result));}
                         }
                     )
                 }
