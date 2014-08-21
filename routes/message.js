@@ -102,33 +102,35 @@ exports.createMsg = function(req,res){
     if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
     if (typeof trade_id != "number") res.json('트레이드 아이디 타입은 숫자여야 합니다',0);
 
-    var query =
-        "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
-        "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
-        "FROM trade t " +
-        "JOIN post p ON t.post_id = p.post_id " +
-        "WHERE t.trade_id = ? ";
+    var insert_query =
+        'INSERT INTO message(from_user_id, to_user_id, message, is_read, trade_id, is_sended) ' +
+        'SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?, 0, t.trade_id, 0 ' +
+        'FROM trade t ' +
+        'JOIN post p ON t.post_id = p.post_id ' +
+        'WHERE t.trade_id = ? ';
 
     var device_query =
-        "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.from_user_id " +
-        "WHERE from_user_id = ? and is_sended = 0 ";
-
-
-    // 클로저로 바꿀 예정
-
-    /*
-   connection_closure(function(err,connection){
+        'SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id ' +
+        'WHERE from_user_id = ? and is_sended = 0';
+/*
+    connection_closure(function(err,connection){
         if(err){ res.json(trans_json('커넥션을 얻는데 실패했습니다 : ',+err,0)); }
         else {
-            connection.get_conn();
             async.waterfall([
-                function(callback){
+                function (callback){
+                    var query =
+                        'INSERT INTO message(from_user_id, to_user_id, message, is_read, trade_id, is_sended) ' +
+                        'SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?, 0, t.trade_id, 0 ' +
+                        'FROM trade t ' +
+                        'JOIN post p ON t.post_id = p.post_id ' +
+                        'WHERE t.trade_id = ? ';
                     connection.get_query(
-                        insert_query,
+                        query,
                         [user_id,user_id,message,trade_id],
-                        function(err,rows,item){
-                            if (err) {callback(err); }
-                            else { callback(null); }
+                        function(err,rows){
+                            console.log('log1',insert_query);
+                            if (err) {console.log('log2');callback(err); }
+                            else { console.log('log3');callback(null); }
                         }
                     )
                 },
@@ -137,39 +139,59 @@ exports.createMsg = function(req,res){
                         device_query,
                         [user_id],
                         function(err,rows,info){
-                            var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
-                            callback(null,device_list)
-
+                            console.log('log4');
+                            var device_list=_.map(rows, function(item){
+                                return item.gcm_registration_id;
+                            });
+                            console.log('log5');
+                            callback(null,device_list);
                         }
                     )
                 },
                 function(device_list,callback){
-                    sendMessage(device_list,"wisdona",message,
+                    sendMessage(device_list,"wisdona",message,0,
                         function(err){
-                            console.log('console!!');
-                            if(err) { callback(err); }
+                            if(err) { console.log('log7');callback(err); }
                             //console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
-                            else { callback(null,true);}
+                            else { console.log('log8');callback(null);}
                             //console.log('loglognnbb');res.json(trans_json('메시지 전송에 성공했습니다.',1));}
                         });
+                },
+                function(callback){
+                    connection.get_query(
+                        "UPDATE message SET is_sended = TRUE WHERE trade_id = ? and is_sended = FALSE",
+                        [trade_id],
+                        function(err,rows){
+                            if(err) { console.log('log9');callback(err); }
+                            else { console.log('log10');callback(null); }
+                        }
+                    )
                 }
-            ],function(err,result){
-                if(err) { res.json(trans_json('메시지 전송에 실패했습니다.'+err,0)); }
-                else {res.json(trans_json('메시지 전송에 성공했습니다.',1));}
+            ],function(err){
+                if(err) {
+                    console.log('log11',err.message);
+                    connection.close_conn();
+                    res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));
+                }
+                else {
+                    console.log('log12');
+                    connection.close_conn();
+                    res.json(trans_json('메시지 전송에 성공했습니다.',1));
+                }
             })
         }
     });
 */
 
     template_item(
-        query,
+        insert_query,
         [user_id,user_id,message,trade_id],
         function(err,rows,msg){
             if(err) {res.json(trans_json(msg,0));}
             else {
                 template_item(
-                    "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id " +
-                    "WHERE from_user_id = ? and is_sended = 0",
+                        "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id " +
+                        "WHERE from_user_id = ? and is_sended = 0",
                     [user_id],
                     function(err,rows,info){
                         var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
@@ -177,13 +199,23 @@ exports.createMsg = function(req,res){
                             function(err){
                                 console.log('console!!');
                                 if(err) {console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
-                                else {console.log('loglognnbb');res.json(trans_json('메시지 전송에 성공했습니다.',1));}
-                        });
+                                else {
+                                    template_item(
+                                        "UPDATE message SET is_sended = TRUE WHERE trade_id = ? and is_sended = FALSE",
+                                        [trade_id],
+                                        function(err,rows){
+                                            if(err) { res.json(trans_json('메시지 전송에 실패했습니다.',0)); }
+                                            else { res.json(trans_json('메시지 전송에 성공했습니다.',1)); }
+                                        }
+                                    );
+                                }
+                            });
                     }
                 );
             }
         }
     );
+
 }
 
 exports.createMessage = function(req,connection,next){

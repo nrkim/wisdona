@@ -194,6 +194,7 @@ exports.uploadImage = function (req,res,next){
                 async.each(filesArr, function (file, cb) {
                     if (file.size) {
                         var baseImageDir = __dirname + '/../images/';
+                        console.log('baseImageDir');
                         var destPath = path.normalize(baseImageDir + path.basename(file.path));
                         fstools.move(file.path, destPath, function (err) {
                             if (err) {

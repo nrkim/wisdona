@@ -140,7 +140,7 @@ module.exports = function(app,passport) {
     app.get('/users/:user_id/profile/show', account.getUserInfo);
     app.post('/users/destroy', isLoggedIn, account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', isLoggedIn, account.getAccountSettings);
-    app.post('/users/:user_id/account-settings/update', /*account.uploadImage,*/ account.updateAccountSettings);
+    app.post('/users/:user_id/account-settings/update', account.uploadImage, account.updateAccountSettings);
 
     // 사용자
     app.get('/users/:user_id/posts/list', user.getUserPostList);
