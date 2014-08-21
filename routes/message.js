@@ -252,20 +252,21 @@ exports.getMessageList = function(req,res){
 //api : /users/:user_id/message-groups/unread/list
 exports.getUnreadMessgeList = function(req,res){
 
-    //var user_id = req.params.user_id;
-    var user_id = req.session.passport.user;
+    var user_id = req.params.user_id;
+
+    //var user_id = req.session.passport.user;
     //var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
-    console.log('================================================');
-    console.log('getUnreadMessage list user id is : ',user_id);
-    console.log('getUnreadMessage list trade id is : ',trade_id);
+    //console.log('================================================');
+    //console.log('getUnreadMessage list user id is : ',user_id);
+    //console.log('getUnreadMessage list trade id is : ',trade_id);
 
 
 
     var get_query =
-        "SELECT trade_id, message, m.create_date, from_user_id, nickname, image " +
-        "FROM user u JOIN message m ON u.user_id = m.from_user_id " +
-        "WHERE to_user_id = ? AND m.is_sended = 0 ";
+        'SELECT trade_id, message, m.create_date, from_user_id "user_id", nickname, image ' +
+        'FROM user u JOIN message m ON u.user_id = m.from_user_id ' +
+        'WHERE to_user_id = ? AND m.is_sended = 0 ';
 
     var update_query =
         "UPDATE message SET is_sended = TRUE WHERE to_user_id = ? AND is_sended = FALSE";
@@ -283,7 +284,6 @@ exports.getUnreadMessgeList = function(req,res){
                 res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다.",0));
             }
             else {
-                //console.log('not err')
                 if (result.length == 0){
                     console.log('not exist')
                     res.json(trans_json("읽은 메시지가 없습니다.",1,result));
@@ -310,8 +310,8 @@ exports.confirmMessage = function(req,res){
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     var query = "UPDATE message m " +
-        "SET m.is_read = true " +
-        "WHERE m.trade_id = ? AND to_user_id = ? ";
+                "SET m.is_read = true " +
+                "WHERE m.trade_id = ? AND to_user_id = ? ";
 
     template_item(
         query,
