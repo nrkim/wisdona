@@ -173,8 +173,6 @@ exports.createMsg = function(req,res){
                     [user_id],
                     function(err,rows,info){
                         var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
-                        console.log('device list is ::: ',device_list);
-                        console.log('message is .... ',message);
                         sendMessage(device_list,"메시지",message,
                             function(err){
                                 console.log('console!!');

@@ -60,12 +60,14 @@ exports.sendMessage = function (userDeviceId, title, msg, callback ) {
    // message.dryRun = true;
 
     var sender = new gcm.Sender(gcmConfig.apikey);
-    var registrationIds = [];
+//    var registrationIds = [];
 
     sender.send(message, userDeviceId, 4, function(err, result){
         if (err){
+            console.log('console.log!!!');
             callback(err);
         }else{
+            console.log('result is ...',result);
             callback();
         }
     });
