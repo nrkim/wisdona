@@ -89,7 +89,7 @@ exports.getAccountSettings = function(req,res){
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
-    //console.log('account settings user_id :   ',user_id);
+    console.log('account settings user_id :   ',user_id);
 
 
     // 페이스북 계정 정보
@@ -100,6 +100,8 @@ exports.getAccountSettings = function(req,res){
         '(CASE WHEN sanction_date < NOW() THEN TRUE ELSE FALSE END) sanction_date ' +
         'FROM (SELECT * FROM user WHERE sleep_mode = 0) u ' +
         'WHERE user_id = ? ';
+
+    console.log('query  ');
 
     template_list(
         query,
@@ -114,6 +116,7 @@ exports.getAccountSettings = function(req,res){
                     res.json(trans_json(msg,0));
                 }
                 else {
+                    console.log('what;;;;');
                     console.log('res2 : ',result);
                     result[0].push_settings =
                         _.map(result[0].push_settings.split(','),
