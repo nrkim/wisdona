@@ -168,7 +168,7 @@ exports.sendRequestPost = function(req,res){
                             if (err) {
                                 logger.error('교환 요청 GCM 에러!', err.message);
                             }else{
-                                gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, function (err) {
+                                gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, 0, function (err) {
                                     // 완료
                                     if(err){
                                         logger.error('교환 요청 GCM error :', err);
@@ -218,7 +218,12 @@ exports.acceptPost = function(req,res){
                             callback(err);
                         }else{
                             if ( rows ){
-                                callback(null, rows);
+                                if ( rows[0].current_status == 5){
+                                    callback(new Error('해당 거래는 종료되었습니다.'));
+                                }else{
+                                    callback(null, rows);
+                                }
+
                             }else{
                                 callback(new Error("게시물 데이터가 없습니다."));
                             }
@@ -226,7 +231,7 @@ exports.acceptPost = function(req,res){
                     });
                 },
                 function (rows, callback) {
-
+                    console.log(rows);
                     // 다음 거래 단계 파악
                     var status_id;
                     if ( req.params.user_id == rows[0].user_id ){
@@ -239,12 +244,12 @@ exports.acceptPost = function(req,res){
                                 req.body.message = "책을 발송하였습니다.";
                                 break;
                             case 2 :
-                                // 배송완료
+                                // 평가완료(기부자)
                                 status_id = 3;
                                 //req.body.message = "평가를 완료 했습니다.";
                                 break;
                             case 4 :
-                                // 수령완료 & 평가완료(요청자)
+                                // 완료
                                 status_id = 5;
                                 //req.body.message = "평가를 완료 했습니다.";
                                 break;
@@ -257,12 +262,12 @@ exports.acceptPost = function(req,res){
                         // 요청자
                         switch (rows[0].current_status) {
                             case 2 :
-                                // 배송완료
+                                // 수취 및 평가완료(요청자)
                                 status_id = 4;
                                 //req.body.message = "수취 확인 및 평과 완료.";
                                 break;
                             case 3 :
-                                // 평가완료(기부자)
+                                // 완료
                                 status_id = 5;
                                 //req.body.message = "수취 확인 및 평과 완료.";
                                 break;
@@ -307,6 +312,23 @@ exports.acceptPost = function(req,res){
                             }else{
                                 cb();
                             }
+                        },
+                        function (cb) {
+                            if ( status_id == 4 ){
+                                // 기부자에게 책갈피 제공
+                                query = "UPDATE user SET bookmark_total_cnt = bookmark_total_cnt + 1 WHERE user_id = ?;";
+                                data = [req.body.to_user_id];
+
+                                connection.query(query, data, function (err, result) {
+                                    if (err) {
+                                        cb(err);
+                                    }else{
+                                        cb();
+                                    }
+                                });
+                            }else{
+                                cb();
+                            }
                         }
                     ], function (err) {
                         if (err) {
@@ -346,7 +368,7 @@ exports.acceptPost = function(req,res){
                                     if (err) {
                                         logger.error('교환 요청 GCM 에러!', err.message);
                                     } else {
-                                        gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, function (err) {
+                                        gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, 0, function (err) {
                                             // 완료
                                             if (err) {
                                                 logger.error('교환 수락 GCM error :', err.message);
@@ -395,7 +417,8 @@ exports.cancelPost = function(req,res){
     //    6-1. trade의 current_status '취소'로 변경
     //    6-2. trade_log에 기록
 
-
+    var query;
+    var data;
     getConnection(function (connection) {
 
         async.waterfall([
@@ -404,7 +427,7 @@ exports.cancelPost = function(req,res){
                         "SELECT p.user_id, t.trade_id, t.req_user_id, t.current_status " +
                         "FROM post p JOIN trade t ON p.post_id = t.post_id " +
                         "WHERE p.post_id = ? and t.current_status NOT IN(92, 91);";
-                    var data = req.body.post_id;
+                    data = req.body.post_id;
                     connection.query(query, data, function (err, rows, fields) {
                         if (err) {
                             callback(err);
@@ -414,7 +437,7 @@ exports.cancelPost = function(req,res){
                             } else {
                                 // 배송이후이면 에러 처리
                                 if (rows[0].current_status != 1) {
-                                    callback(new Error("현재 단계에서는 취소를 할 수 없습니다."));
+                                    callback(new Error("현재 단계에서는 취소를 할 수 없거나 거래가 종료되었습니다."));
                                 } else if ( req.params.user_id != rows[0].user_id && req.params.user_id != rows[0].req_user_id ){
                                     callback(new Error("user_id가 잘못 되었습니다."));
 
@@ -426,107 +449,96 @@ exports.cancelPost = function(req,res){
                     });
                 },
                 function (rows, callback) {
-                    // 게시물 삭제로 변경
-
-                    req.body.connection = connection;
-                    // req.body.post_id =  fields.post_id;
-                    req.body.callback = function (err) {
-                        if (err) {
-                            callback(err)
-                        }else{
-                            callback(null, rows);
-                        }
-                    };
-
-                    post.destroyPost(req, res);
+                    // 게시물 삭제
+                    if (rows[0].user_id == req.params.user_id) {
+                        req.body.connection = connection;
+                        // req.body.post_id =  fields.post_id;
+                        req.body.callback = function (err) {
+                            if (err) {
+                                callback(err)
+                            }else{
+                                callback(null, rows);
+                            }
+                        };
+                        post.destroyPost(req, res);
+                    }else{
+                        callback(null, rows);
+                    }
                 },
                 function (rows, callback) {
-                    req.params.trade_id = rows[0].trade_id;
+
+                    logger.debug('rows[0].user_id', rows[0].user_id);
+                    logger.debug('req.params.user_id', req.params.user_id);
+                    var trade_status;
                     // 기부자
                     if (rows[0].user_id == req.params.user_id) {
+                        console.log('이리로 들어왔따고?');
                         //    5-1. trade의 current_status '철회'로 변경
                         //    5-2. trade_log에 기록
                         //    5-3. 게시물 삭제 처리(UPDATE)
                         //    5-4. 사용자 제재 처리(user UPDATE, sanction_log INSERT)
                         //    5-4. 특수 : 프로모션 해당 게시물일 경우 책갈피 회수(없으면 패스)
                         req.body.to_user_id = rows[0].req_user_id;
-                        async.parallel([
-                            function (cb) {
-                                // 거래 단계 변경
-                                updateTrade(connection, rows[0].trade_id, 92, function (err) {
-                                    if (err) {
-                                        cb(err);
-                                    } else {
-                                        cb();
-                                    }
-                                });
-                            },
-                            function (cb) {
-                                // 거래 기록 추가(기부자 철회)
-                                insertTradeLog(connection, rows[0].trade_id, 92, function (err) {
-                                    if (err) {
-                                        cb(err);
-                                    } else {
-                                        cb();
-                                    }
-                                });
-                            },
-                            function (cb) {
-                                req.body.message = '기부자가 요청을 철회하였습니다.';
-                                message.createMessage(req, connection, function (err, result) {
-                                    if(err) cb(err);
-                                    else cb();
-                                });
-                            }
-                        ], function (err) {
-                            if (err) {
-                                callback(err);
-                            } else {
-
-                                callback();
-                            }
-                        });
+                        req.body.message = '기부자가 요청을 철회하였습니다.';
+                        trade_status = 92;
                     } else {
                         // 요청자
                         //    6-1. trade의 current_status '취소'로 변경
                         //    6-2. trade_log에 기록
                         req.body.to_user_id = rows[0].user_id;
-                        async.parallel([
-                            function (cb) {
-                                // 거래 단계 변경
-                                updateTrade(connection, rows[0].trade_id, 91, function (err) {
-                                    if (err) {
-                                        cb(err);
-                                    } else {
-                                        cb();
-                                    }
-                                });
-                            },
-                            function (cb) {
-                                // 거래 기록 추가(기부자 철회)
-                                insertTradeLog(connection, rows[0].trade_id, 91, function (err) {
-                                    if (err) {
-                                        cb(err);
-                                    } else {
-                                        cb();
-                                    }
-                                });
-                            },
-                            function (cb) {
-                                req.body.message = '요청자님이 책을 취소하셨습니다.';
-                                message.createMessage(req, connection, function (err, result) {
-                                    if(err) cb(err);
-                                    else cb();
-                                });
-                            }
-                        ], function (err) {
-                            if (err) {
-                                callback(err);
-                            } else {
-                                callback();
-                            }
-                        });
+                        req.body.message = '요청자님이 책을 취소하셨습니다.';
+                        trade_status = 91;
                     }
+                    req.params.trade_id = rows[0].trade_id;
+
+                    async.parallel([
+                        function (cb) {
+                            // 책갈피 요청자에게 반납
+                            query = "UPDATE user SET bookmark_total_cnt = bookmark_total_cnt + 1 WHERE user_id = ?;";
+                            data = [rows[0].req_user_id];
+
+                            connection.query(query, data, function (err, result) {
+                                if (err) {
+                                    cb(err);
+                                }else{
+                                    cb();
+                                }
+                            });
+                        },
+                        function (cb) {
+                            // 거래 단계 변경
+                            updateTrade(connection, rows[0].trade_id, trade_status, function (err) {
+                                if (err) {
+                                    cb(err);
+                                } else {
+                                    cb();
+                                }
+                            });
+                        },
+                        function (cb) {
+                            // 거래 기록 추가
+                            insertTradeLog(connection, rows[0].trade_id, trade_status, function (err) {
+                                if (err) {
+                                    cb(err);
+                                } else {
+                                    cb();
+                                }
+                            });
+                        },
+                        function (cb) {
+                            message.createMessage(req, connection, function (err, result) {
+                                if(err) cb(err);
+                                else cb();
+                            });
+                        }
+                    ], function (err) {
+                        if (err) {
+                            callback(err);
+                        } else {
+
+                            callback();
+                        }
+                    });
                 }],
             function (err) {
                 if (err) {
@@ -557,7 +569,7 @@ exports.cancelPost = function(req,res){
                                 if (err) {
                                     logger.error('교환 요청 GCM 에러!', err.message);
                                 } else {
-                                    gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, function (err) {
+                                    gcm.sendMessage([rows[0].gcm_registration_id], '위즈도나', req.body.message, 0, function (err) {
                                         // 완료
                                         if (err) {
                                             logger.error('교환 취소/철회 GCM error :', err.message);

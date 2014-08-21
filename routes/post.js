@@ -253,11 +253,13 @@ function destroyPostQuery(connection, post_id, user_id, callback ){
                                 }else{
                                     // 제제 대상 게시물
                                     if ( is_sanction ){
+
                                         var cause = '철회';
                                         sanction.addSanction(connection, user_id, cause, 30, function (err) {
                                             if(err){
                                                 cb(err);
                                             }else{
+                                                logger.debug('/ 기부자 30일 제재 처리');
                                                 cb();
                                             }
                                         })
