@@ -216,7 +216,7 @@ exports.getMessageList = function(req,res){
 
     //parameter로 받은 사용자 아이디
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
-    var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     // query string 처리
     var page = JSON.parse(req.query.page) || 0;
