@@ -56,7 +56,7 @@ exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, ms
     else type = 0;
 
     var message = new gcm.Message();
-    message.addDataWithKeyValue('wisdona', title);
+    message.addDataWithKeyValue('title', title);
     message.addDataWithKeyValue('message', msg);
     message.addDataWithKeyValue('type', type);
     message.collapseKey = 'wisdona';
