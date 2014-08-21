@@ -32,7 +32,8 @@ var isLoggedIn = function (req, res, next) {
 module.exports = function(app,passport) {
 
     // 로그인
-    app.post('/login', express.bodyParser(),function(req, res, next) {
+    //express.bodyParser(),
+    app.post('/login', function(req, res, next) {
         //console.log('email function !!! ',req.body.email);
         console.log('password is :::', req.body.gcm_registration_id);
         passport.authenticate('local-login', function(err, user, info) {
