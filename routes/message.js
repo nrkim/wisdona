@@ -264,19 +264,21 @@ exports.getUnreadMessgeList = function(req,res){
         "UPDATE message SET is_sended = TRUE WHERE to_user_id = ? AND is_sended = FALSE";
 
 
+    console.log('getUnreadMessage list user id is : ',user_id);
+    console.log('getUnreadMessage list trade id is : ',trade_id);
     template_list(
         get_query,
         [user_id],
         unread_msg_lst,
         function(err,result,msg){
-            console.log('result is!=========!!!!!1',result);
+            //console.log('result is!=========!!!!!1',result);
             console.log('query is ',get_query);
             if (err) {
-                console.log('err'+err.message);
+                console.log('err     : '+err.message);
                 res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다.",0));
             }
             else {
-                console.log('not err')
+                //console.log('not err')
                 if (result.length == 0){
                     console.log('not exist')
                     res.json(trans_json("읽은 메시지가 없습니다.",1,result));

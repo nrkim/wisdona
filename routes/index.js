@@ -33,11 +33,11 @@ module.exports = function(app,passport) {
 
     // 로그인
     app.post('/login', express.bodyParser(),function(req, res, next) {
-        console.log('email function !!! ',req.body.email);
-        console.log('password is :::', req.body.password);
+        //console.log('email function !!! ',req.body.email);
+        //console.log('password is :::', req.body.password);
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
-                console.log('login message :',info.loginMessage);
+                //console.log('login message :',info.loginMessage);
                 res.json(trans_json(info.loginMessage,0));
             } else {
                 req.logIn(user, function(err) {

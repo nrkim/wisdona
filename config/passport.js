@@ -15,9 +15,9 @@ module.exports = function(passport) {
 
     // 세션 얻기
     passport.serializeUser(function (user, done) {
-        console.log('passport.serializeUser ====> ', user);
+        //console.log('passport.serializeUser ====> ', user);
 
-        console.log("user id???", user.user_id);
+        //console.log("user id???", user.user_id);
         done(null, user.user_id);
     });
 
@@ -27,18 +27,18 @@ module.exports = function(passport) {
             if (err) {
                 return done(err);
             }
-            console.log("deserializeUser : ", id);
+            //console.log("deserializeUser : ", id);
             var selectSql = 'SELECT user_id, email, password, nickname FROM user WHERE user_id = ?';
             connection.query(selectSql, [id], function (err, rows, fields) {
                 if (err) {
-                    console.log('db error!!');
+                    //console.log('db error!!');
                     connection.release();
                     return done(null, false, {'deserializeUser': 'deserialize에 실패 했습니다.'});
                 }
                 else {
                     var user = rows[0];
                     connection.release();
-                    console.log('passport.deserializeUser ====> ', user);
+                    //console.log('passport.deserializeUser ====> ', user);
                     return done(null, user);
                 }
             });
@@ -60,25 +60,25 @@ module.exports = function(passport) {
                     var selectSql = 'SELECT user_id, email, nickname  FROM user WHERE (email = ? or nickname = ?) and sleep_mode = 0';
                     connection.query(selectSql, [email, req.body.nickname], function (err, rows, fields) {
                         if (err) {
-                            console.log('err1');
+                            //console.log('err1');
                             connection.release();
                             return done(err);
                         }
                         if (rows.length) {
-                            console.log('err2');
+                            //console.log('err2');
                             connection.release();
                             return done(null, false,duplication_check(rows,req.body.nickname, email));
                         }
                         else {
-                            console.log('err3');
+                            //console.log('err3');
                             create_password(password, function (err, hashPass) {
                                 if (err) {
-                                    console.log('err4');
+                                    //console.log('err4');
                                     connection.release();
                                     return done(err);
                                 }
                                 else {
-                                    console.log('err5');
+                                    //console.log('err5');
                                     var user = {};
                                     user.email = email;
                                     user.password = hashPass;
@@ -87,16 +87,16 @@ module.exports = function(passport) {
                                         'like_total_cnt,sad_total_cnt,sleep_mode,create_date)' +
                                         'VALUES(?,?,?,0,0,0,0,now())';
 
-                                    console.log('err6');
+                                    //console.log('err6');
                                     template_item(
                                         insertSql,
                                         [user.email, user.password, req.body.nickname],
                                         function (err, rows, info) {
-                                            console.log('err7');
-                                            if (err) {console.log('err8'); return done(err);}
+                                            //console.log('err7');
+                                            if (err) {return done(err);}
                                             else {
-                                                console.log('rows ',rows);
-                                                console.log('rows : insertId', rows.insertId);
+                                                //console.log('rows ',rows);
+                                                //console.log('rows : insertId', rows.insertId);
                                                 user.user_id = rows.insertId;
                                                 return done(null, user);
                                             }

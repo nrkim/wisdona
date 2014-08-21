@@ -94,25 +94,25 @@ exports.template_list = function(query,params,get_json,verify){
 };
 
 exports.template_item = function(query,params,verify){
-    console.log('query',query);
-    console.log('params',params);
+    //console.log('query',query);
+    //console.log('params',params);
     connectionPool.getConnection(function (err, connection) {
         if (err) {
-            console.log('데이터베이스 연결 오류');
+            //console.log('데이터베이스 연결 오류');
             verify(err,false,'데이터베이스 연결오류 입니다.');
         }
         connection.query(query, params, function (err, rows) {
             if (err) {
-                console.log('query');
-                console.log(err.message);
+                //console.log('query');
+                //console.log(err.message);
                 connection.release();
                 verify(err,false,'sql쿼리 오류입니다.');
             }
             else{
-                console.log('commit 성공');
+                //console.log('commit 성공');
                 connection.commit();
                 connection.release();
-                console.log('rows is ...',rows);
+                //console.log('rows is ...',rows);
                 verify(null,rows,'success');
             }
         });
