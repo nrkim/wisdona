@@ -33,18 +33,6 @@ exports.connection_closure = function(next){
                             verify(err,rows);
                         });
                     },
-                    get_commit : function(err,verify) {
-                        if (err) {
-                            pool.rollback(function() {
-                                throw err;
-                            });
-                        }
-                        else { verify(null,rows); }
-                    },
-                    get_transaction : function(err,verify){
-                        if(err) {verify(err);}
-                        else {verify();}
-                    },
                     close_conn : function() {
                         pool.release();
                     }
@@ -93,25 +81,18 @@ exports.template_list = function(query,params,get_json,verify){
 };
 
 exports.template_item = function(query,params,verify){
-    //console.log('query',query);
-    //console.log('params',params);
     connectionPool.getConnection(function (err, connection) {
         if (err) {
-            //console.log('데이터베이스 연결 오류');
             verify(err,false,'데이터베이스 연결오류 입니다.');
         }
         connection.query(query, params, function (err, rows) {
             if (err) {
-                //console.log('query');
-                //console.log(err.message);
                 connection.release();
                 verify(err,false,'sql쿼리 오류입니다.'+err.message);
             }
             else{
-                //console.log('commit 성공');
                 connection.commit();
                 connection.release();
-                //console.log('rows is ...',rows);
                 verify(null,rows,'success');
             }
         });

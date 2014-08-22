@@ -21,9 +21,12 @@ var sendMessage = require('./gcm').sendMessage;
 // api : /users/:user_id/message-groups/list
 exports.getMessageGroupList = function(req,res){
 
+    logger.debug('/--------------------------------------- getMessageGroupList ----------------------------------------/');
+    logger.debug('session : ',req.session.passport.user);
+    logger.debug('query : ',{page : req.query.page, count : req.query.count});
+
     //parameter로 받은 사용자 아이디
     var user_id = req.session.passport.user;
-    //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     // query string 처리
     var page = req.query.page || 0;
@@ -33,19 +36,13 @@ exports.getMessageGroupList = function(req,res){
     var start = page*count;
 
     //타입 체크
-    if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
-    if (typeof user_id != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
-    if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
-
-    //다시 한번 보기
-    // 메시지 그룹의 리스트를 가져오는 쿼리문
-    // 해당 거래의 메시지를 가저옴
-    // do_show = 0인 메시지를 삭제한 모습을 구현 해야함
-
-
-    var query =
-        "select m.trade_id, (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END), " +
-        "nickname, image, m.trade_id, title, message, be_message_cnt, m.create_date " +
+    if (typeof user_id != "number") { res.json('유저 아이디 타입은 숫자여야 합니다.',0); }
+    else if (typeof user_id != "number") { res.json('페이지 타입은 숫자여야 합니다.',0); }
+    else if (typeof count   != "number") { res.json('카운트 타입은 숫자여야 합니다',0); }
+    else{
+        var query =
+            "select m.trade_id, (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END), " +
+            "nickname, image, m.trade_id, title, message, be_message_cnt, m.create_date " +
             "from ( " +
             "select trade_id as trade_id, from_user_id as from_user_id, to_user_id as to_user_id, message as message, create_date as create_date " +
             "from message m join (select max(create_date) AS max_date " +
@@ -61,28 +58,31 @@ exports.getMessageGroupList = function(req,res){
             "(CASE WHEN req_user_id = ? THEN be_show_group ELSE do_show_group END) = 1 " +
             "order by m.create_date desc limit ?, ? ";
 
-    //sample 예제 to_user_id =5, 1, 10
-    template_list(
-        query,
-        [user_id,user_id,user_id,user_id,user_id,start,count],
-        message_list,
-        function(err,result,msg){
-            if(err) {res.json(trans_json(msg,0));}
-            if(result) {res.json(trans_json(msg,1,result));}
-            else { res.json(trans_json(msg,1));}
-        }
-    );
+        //sample 예제 to_user_id =5, 1, 10
+        template_list(
+            query,
+            [user_id,user_id,user_id,user_id,user_id,start,count],
+            message_list,
+            function(err,result,msg){
+                if(err) {res.json(trans_json(msg,0));}
+                else {
+                    if(result) {res.json(trans_json(msg,1,result));}
+                    else { res.json(trans_json(msg,1));}
+                }
+            }
+        );
+    }
 
 };
 
 exports.destroyMessageGroup = function(req,res){
 
+    logger.debug('/--------------------------------------- destroyMessageGroup ----------------------------------------/');
+    logger.debug('session : ',{user_id : req.session.passport.user});
+    logger.debug('body : ',req.body);
+
     var user_id = req.session.passport.user;
-    //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
     var trade_id_list = req.body.trade_id_list || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
-
-    //console.log('trade_id_list',trade_id_list);
-
 
     var query = "UPDATE trade t JOIN post p ON p.post_id = t.post_id " +
         "SET be_show_group = (CASE WHEN req_user_id = ? THEN false ELSE true END), " +
@@ -123,18 +123,20 @@ exports.destroyMessageGroup = function(req,res){
 // api : /users/:user_id/message-groups/:trade_id/create
 exports.createMsg = function(req,res){
 
+    logger.debug('/--------------------------------------- createMsg ----------------------------------------/');
+    logger.debug('session : ',{user_id : req.session.passport.user});
+    logger.debug('body : ',req.body);
+    logger.debug('params : ',{trade_id : req.params.trade_id});
+
+    //파라미터
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
     var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
 
-    console.log('trande_id      :',trade_id);
-    console.log('message is     :',message);
-    console.log('user-id        :',user_id);
-
     //타입 검사
-    if (typeof user_id  != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
-    if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
-    if (typeof trade_id != "number") res.json('교환 아이디 타입은 숫자여야 합니다',0);
+    if (typeof user_id  != "number") { res.json('유저 아이디 타입은 숫자여야 합니다.',0); }
+    if (typeof message  != "string") { res.json('메시지 타입은 문자열여야 합니다.',0); }
+    if (typeof trade_id != "number") { res.json('교환 아이디 타입은 숫자여야 합니다',0); }
 
 
     connection_closure(function(err,connection){
@@ -165,8 +167,6 @@ exports.createMsg = function(req,res){
                     connection.get_query(
                         'SELECT to_user_id, gcm_registration_id, push_settings FROM user u JOIN message m ON u.user_id = m.to_user_id '+
                         'WHERE m.message_id = ? ',
-                        //'SELECT to_user_id, gcm_registration_id, push_settings FROM user u JOIN message m ON u.user_id = m.to_user_id ' +
-                        //'WHERE from_user_id = ? and trade_id = ? group by to_user_id ',
                         [message_id],
                         function(err,rows,info){
                             console.log('log4');
@@ -236,6 +236,11 @@ exports.createMessage = function(req,connection,next){
 
 exports.getMessageList = function(req,res){
 
+    logger.debug('/--------------------------------------- getMessageGroupList ----------------------------------------/');
+    logger.debug('session : ',{user_id : req.session.passport.user});
+    logger.debug('params : ',{trade_id :req.params.trade_id});
+    logger.debug('query : ',{page : req.query.page, count : req.query.count});
+
     //parameter로 받은 사용자 아이디
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
@@ -246,6 +251,7 @@ exports.getMessageList = function(req,res){
 
     // 페이징 관련 계산
     var start = page*count;
+
 
     //타입 체크
     if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
@@ -274,48 +280,42 @@ exports.getMessageList = function(req,res){
 //api : /users/:user_id/message-groups/unreadlist
 exports.getUnreadMessgeList = function(req,res){
 
-    //var user_id = req.params.user_id;
+    logger.debug('/--------------------------------------- getUnreadMessgeList ----------------------------------------/');
+    logger.debug('session : ',{user_id : req.session.passport.user});
 
     var user_id = req.session.passport.user;
-    //var trade_id = req.query.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
-
-    console.log('================================================');
-    console.log('getUnreadMessage list user id is : ',user_id);
-    //console.log('getUnreadMessage list trade id is : ',trade_id);
 
     var get_query =
         "SELECT trade_id, message, m.create_date AS create_date, from_user_id AS user_id , nickname, image " +
         "FROM user u JOIN message m ON u.user_id = m.from_user_id " +
         "WHERE to_user_id = ? AND m.is_sended = 0 ";
 
-//    var update_query =
-//        "UPDATE message SET is_read = TRUE WHERE to_user_id = ? AND is_read = FALSE";
-
     template_list(
         get_query,
         [user_id],
         unread_msg_lst,
         function(err,result,msg){
-            console.log('result is!=========!!!!!1',result);
-            console.log('query is ',get_query);
             if (err) {
-                console.log('err     : '+err.message);
+                logger.error('select message error',err.message);
                 res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다."+err.message,0));
             }
             else {
                 if (result.length == 0){
-                    console.log('not exist')
                     res.json(trans_json("읽지 않은 메시지가 없습니다.",1,result));
                 } else{
                     template_item(
                         "UPDATE message SET is_sended = TRUE WHERE to_user_id = ? and is_sended = FALSE",
                         [user_id],
                         function(err,rows){
-                            if(err) { console.log('log9',err.message);res.json(trans_json(err.message,0)); }
-                            else { console.log('log10');res.json(trans_json('success',1,result)); }
+                            if(err) {
+                                logger.error('update message error',err.message);
+                                res.json(trans_json(err.message,0));
+                            }
+                            else {
+                                res.json(trans_json('success',1,result));
+                            }
                         }
                     );
-                    //res.json(trans_json('success',1,result));
                 }
             }
         }
@@ -323,6 +323,10 @@ exports.getUnreadMessgeList = function(req,res){
 };
 
 exports.confirmMessage = function(req,res){
+
+    logger.debug('/--------------------------------------- getUnreadMessgeList ----------------------------------------/');
+    logger.debug('session : ',{user_id : req.session.passport.user});
+    logger.debug('params : ',{trade_id : req.params.trade_id});
 
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
     var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));

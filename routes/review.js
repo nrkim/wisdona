@@ -38,7 +38,7 @@ exports.createUserReview = function(req,res){
             }
             else {
                 async.waterfall([
-                    function (callback) {
+                    function saveMessage(callback) {
                         connection.get_query(
                             query,
                             [user_id, user_id, comments, point, trade_id],
@@ -48,11 +48,11 @@ exports.createUserReview = function(req,res){
                             }
                         )
                     },
-                    function (callback) {
+                    function getDeviceId(callback) {
                         connection.get_query(
-                                "SELECT to_user_id, gcm_registration_id FROM user u JOIN message m ON u.user_id = m.to_user_id " +
-                                "JOIN trade t ON t.trade_id = m.trade_id JOIN post p ON p.post_id = t.post_id " +
-                                "WHERE from_user_id = ? AND t.req_user_id = from_user_id ",
+                            "SELECT to_user_id, gcm_registration_id FROM user u JOIN message m ON u.user_id = m.to_user_id " +
+                            "JOIN trade t ON t.trade_id = m.trade_id JOIN post p ON p.post_id = t.post_id " +
+                            "WHERE from_user_id = ? AND t.req_user_id = from_user_id ",
                             [user_id],
                             function (err, rows) {
                                 var device_list = _.map(rows, function (item) {
@@ -66,7 +66,7 @@ exports.createUserReview = function(req,res){
                             }
                         )
                     },
-                    function (device_list, push_settings_arr, callback) {
+                    function sendGCM(device_list, push_settings_arr, callback) {
                         sendMessage(device_list, push_settings_arr, "wisdona", comments, 2,
                             function (err) {
                                 if (err) { callback(err); }
@@ -74,12 +74,12 @@ exports.createUserReview = function(req,res){
                             }
                         );
                     }
-                ], function (err) {
+                ], function (err){
                     if (err) {
                         connection.close_conn();
                         res.json(trans_json('메시지 전송에 실패했습니다.' + err, 0));
                     }
-                    else {
+                    else{
                         connection.close_conn();
                         res.json(trans_json('메시지 전송에 성공했습니다.', 1));
                     }
