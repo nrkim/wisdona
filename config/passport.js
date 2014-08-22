@@ -15,9 +15,6 @@ module.exports = function(passport) {
 
     // 세션 얻기
     passport.serializeUser(function (user, done) {
-        //console.log('passport.serializeUser ====> ', user);
-
-        //console.log("user id???", user.user_id);
         done(null, user.user_id);
     });
 
@@ -27,18 +24,15 @@ module.exports = function(passport) {
             if (err) {
                 return done(err);
             }
-            //console.log("deserializeUser : ", id);
             var selectSql = 'SELECT user_id, email, password, nickname FROM user WHERE user_id = ?';
             connection.query(selectSql, [id], function (err, rows, fields) {
                 if (err) {
-                    //console.log('db error!!');
                     connection.release();
                     return done(null, false, {'deserializeUser': 'deserialize에 실패 했습니다.'});
                 }
                 else {
                     var user = rows[0];
                     connection.release();
-                    //console.log('passport.deserializeUser ====> ', user);
                     return done(null, user);
                 }
             });
@@ -60,25 +54,20 @@ module.exports = function(passport) {
                     var selectSql = 'SELECT user_id, email, nickname  FROM user WHERE (email = ? or nickname = ?) and sleep_mode = 0';
                     connection.query(selectSql, [email, req.body.nickname], function (err, rows, fields) {
                         if (err) {
-                            //console.log('err1');
                             connection.release();
                             return done(err);
                         }
                         if (rows.length) {
-                            //console.log('err2');
                             connection.release();
                             return done(null, false,duplication_check(rows,req.body.nickname, email));
                         }
                         else {
-                            //console.log('err3');
                             create_password(password, function (err, hashPass) {
                                 if (err) {
-                                    //console.log('err4');
                                     connection.release();
                                     return done(err);
                                 }
                                 else {
-                                    //console.log('err5');
                                     var user = {};
                                     user.email = email;
                                     user.password = hashPass;
@@ -87,16 +76,12 @@ module.exports = function(passport) {
                                         'like_total_cnt,sad_total_cnt,sleep_mode,create_date)' +
                                         'VALUES(?,?,?,0,0,0,0,now())';
 
-                                    //console.log('err6');
                                     template_item(
                                         insertSql,
                                         [user.email, user.password, req.body.nickname],
                                         function (err, rows, info) {
-                                            //console.log('err7');
                                             if (err) {return done(err);}
                                             else {
-                                                //console.log('rows ',rows);
-                                                //console.log('rows : insertId', rows.insertId);
                                                 user.user_id = rows.insertId;
                                                 return done(null, user);
                                             }
@@ -126,33 +111,25 @@ module.exports = function(passport) {
                         console.log('err1');
                         return done(err);
                     }
-                    console.log('err3');
                     var selectSql = 'SELECT user_id, email, password FROM user WHERE email = ? and sleep_mode = 0';
                     template_item(
                         selectSql,
                         [email],
                         function(err,rows,msg){
-                            console.log()
                             if (err) {
-                                console.log("log2");
                                 connection.release();
                                 return done(err);
                             }
                             if (!rows.length) {
-                                console.log('log4');
                                 connection.release();
                                 return done(null, false, {'loginMessage' : '존재하지 않는 사용자 입니다.'});
                             }
-                            console.log('err54');
                             var user = rows[0];
                             connection.release();
                             bcrypt.compare(password, user.password, function(err, result) {
                                 if (!result){
-                                    console.log('errfff');
                                     return done(null, false, {'loginMessage' : '비밀번호가 틀렸습니다.'});
                                 }
-                                console.log('err1dsdfsdf');
-                                console.log('bcrypt.compare ====> ', user.password, '(', user,')');
                                 return done(null, user);
                             });
                         }

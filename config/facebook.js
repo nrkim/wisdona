@@ -18,7 +18,6 @@ module.exports = function(passport) {
             if (err) {
                 return done(err);
             }
-            console('deserialize!!!');
             var selectSql = 'SELECT user_id, facebook_id, facebook_token, email, ' +
                 'image FROM user WHERE user_id = ?';
 
@@ -147,10 +146,8 @@ module.exports = function(passport) {
             process.nextTick(function() {
                 connectionPool.getConnection(function(err, connection) {
                     if (err) {
-                        console.log('log0');
                         return done(err);
                     }
-                    console.log(profile);
 
                     var facebookPhoto = "https://graph.facebook.com/v2.1/me/picture?access_token=" + accessToken;
                     var selectSql =  'SELECT user_id, facebook_id, facebook_token, nickname ' +
@@ -158,7 +155,6 @@ module.exports = function(passport) {
 
                     connection.query(selectSql, [profile.id], function(err, rows, fields) {
                         if (err) {
-                            console.log('log1');
                             connection.release();
                             return done(err);
                         }
@@ -173,18 +169,15 @@ module.exports = function(passport) {
                                 var updateSql = 'UPDATE user SET facebook_token = ?, image = ? WHERE facebook_id = ?';
                                 connection.query(updateSql, [accessToken, facebookPhoto, profile.id], function(err, result) {
                                     if (err) {
-                                        console.log('err 1');
                                         connection.release();
                                         return done(err);
                                     }
                                     else {
-                                        console.log('not err 1');
                                         connection.release();
                                         return done(null, user);
                                     }
                                 });
                             } else {
-                                console.log('not err 2');
                                 connection.release();
                                 return done(null, user);
                             }

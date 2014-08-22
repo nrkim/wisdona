@@ -22,9 +22,9 @@ var request = require('request');
 
 
 exports.registerLocal = function(req,res){
-    console.log('nickname : ',req.body.nickname);
-    console.log('registration id : ',req.body.gcm_registration_id);
-    console.log('user : ',req.session.passport.user);
+    logger.debug('/--------------------------------------- getMessageGroupList ----------------------------------------/');
+    logger.debug('session : ',req.session.passport.user);
+    logger.debug('body : ', req.body);
 
     template_item(
         "UPDATE user SET nickname = ?, gcm_registration_id  = ?, email_auth = true WHERE user_id = ?",
@@ -49,11 +49,9 @@ exports.registerLocal = function(req,res){
 
 exports.login = function(req,res){
     if (req.session.passport.user) {
-        console.log('session.passport is ',req.session.passport.user);
         req.session.save(function() {
             console.log(req.session);
         });
-        //req.session.passport.user = req.user.user_id;
         res.json(trans_json(req.signup_msg,1,create_user(req.user.user_id)));
     } else {
         res.json(trans_json(req.signup_msg,0));
@@ -62,6 +60,8 @@ exports.login = function(req,res){
 
 
 exports.facebookLogout = function(req,res){
+    logger.debug('/--------------------------------------- facebookLogout ----------------------------------------/');
+
     request(
         {
             url: "https://graph.facebook.com/v2.1/me/permissions?access_token=" + req.user.facebookToken,
@@ -79,28 +79,10 @@ exports.facebookLogout = function(req,res){
 };
 
 
-exports.requestActivationEmail = function(req,res){
-    var data = {
-        "code": 1,
-        "message": "success",
-        "result" : null
-    };
-
-    res.json(data);
-};
-
-exports.requestSendEmail = function(req,res){
-
-    var data = {
-        "code": 1,
-        "message": "success",
-        "result" : null
-    };
-    res.json(data);
-};
-
 // logout 은 일반적으로 get??
 exports.logout = function(req,res){
+    logger.debug('/--------------------------------------- logout ----------------------------------------/');
+
     req.logout();
     if (!req.session.passport.user) {
         console.log('성공!!');
@@ -115,19 +97,13 @@ exports.logout = function(req,res){
 // api : /activation-email/:authkey
 exports.activationEmail = function(req,res){
 
+    logger.debug('/--------------------------------------- activationEmail ----------------------------------------/');
+    logger.debug('params : ', {authkey : req.params.authkey});
+
     var authkey = req.params.authkey || res.send('인증 토큰을 입력하지 않았습니다.');
-    console.log('authkey....',authkey);
 
     if(typeof authkey != "string") res.send('인증토큰 타입은 문자열 타입이어야 합니다.');
 
-    console.log('wow!!')
-
-
-    connection_closure(function(err,connection){
-
-    });
-
-/*
     template_item(
        "SELECT email, auth_token FROM email_auth WHERE ?",
         {auth_token : authkey},
@@ -150,21 +126,18 @@ exports.activationEmail = function(req,res){
                 }
             }
         }
-    );*/
+    );
 };
 
 exports.updatePassword = function(req,res){
 
-    console.log(fields);
+    logger.debug('/--------------------------------------- updatePassword ----------------------------------------/');
+    logger.debug('session : ',req.session.passport.user);
+    logger.debug('body : ', req.body);
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃되었습니다. 다시 로그인 해주세요.", 0));
     var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.",0));
     var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));
-
-
-    console.log('user id : ',user_id);
-    console.log("old password is : ",old_password);
-    console.log("new password is : ",new_password);
 
     connectionPool.getConnection(function(err, connection) {
         if (err) {

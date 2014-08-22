@@ -24,7 +24,7 @@ var isLoggedIn = function (req, res, next) {
     }
     else {
         //버그가 있을 것 같은 ...
-        console.log('인증 받지 않았음!!');
+        logger.info('인증 받지 않았습니다.');
         res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
     }
 };
@@ -34,12 +34,8 @@ module.exports = function(app,passport) {
     // 로그인
     //
     app.post('/login',express.bodyParser(), function(req, res, next) {
-        //console.log('email function !!! ',req.body.email);
-        console.log('password is :::', req.body.gcm_registration_id);
-        //app.use(express.bodyParser);
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
-                //console.log('login message :',info.loginMessage);
                 res.json(trans_json(info.loginMessage,0));
             } else {
                 req.logIn(user, function(err) {
@@ -71,25 +67,20 @@ module.exports = function(app,passport) {
                 [req.body.nickname],
                 function (err, rows, msg) {
                     if (err){
-                        console.log('facebook err 1 ',err.message);
                         res.json(trans_json(err.message,0));
-                    }////next(err);
+                    }
                     if (rows.length == 0) {
                         passport.authenticate('facebook-signup', function(err, user, info) {
                             if(user){
-                                console.log('json file !! ',user.user_id);
                                 req.json_file = create_user(user.user_id);
                                 req.session.passport.user = user.user_id;
                                 next();
-                            }  //  next(null,true,'로그인에 성공하였습니다.');//res.json(trans_json('success!!',1));
+                            }
                             else{
-                                //console.log('json file failed !! ',user.user_id);
                                 res.json(trans_json(msg,0));
-                            }   //next(null,false,'로그인에 실패 했습니다.')
+                            }
                         })(req, res, next);
                     } else {
-                        console.log('닉네임 중복!!! !! ',user.user_id);
-                        //next(null,false,'닉네임이 중복됩니다.');
                         res.json(trans_json('닉네임이 중복됩니다.',0));
                     }
                 }
@@ -100,9 +91,7 @@ module.exports = function(app,passport) {
     app.post('/facebook-login',
         express.bodyParser(),
         function(req, res, next) {
-            console.log('facebook-login......');//{scope : ['email']},
             passport.authenticate('facebook-login', function(err, user, info) {
-                console.log('log??????');
                 if (err){
                     res.json(trans_json('sql 에러입니다 : '+err.message,0));
                 } else{
@@ -163,7 +152,6 @@ module.exports = function(app,passport) {
     app.post('/users/:user_id/message-groups/:trade_id/create',isLoggedIn,message.createMsg);//express.bodyParser()
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);
     app.get('/users/:user_id/message-groups/unreadlist',message.getUnreadMessgeList);//getUnreadMessgeLis t //
-    // /users/4/message-groups/unread/list isLoggedIn,
     app.post('/users/:user_id/message-groups/:trade_id/unread/confirm',isLoggedIn,message.confirmMessage);
 
     // 평가
