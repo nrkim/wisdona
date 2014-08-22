@@ -209,9 +209,6 @@ exports.uploadImage = function (req,res,next){
 // api : /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
 
-
-
-
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     var updated = {};
@@ -224,7 +221,7 @@ exports.updateAccountSettings = function(req,res){
     if (req.body.push_settings) updated.push_settings = req.body.push_settings;
 
     console.log(user_id);
-    console.log(req.body.address);
+    console.log('addresss is       ',req.body.address);
     console.log('updated is ',updated);
 
     if(updated.push_settings){
@@ -234,6 +231,7 @@ exports.updateAccountSettings = function(req,res){
     query =
         'UPDATE user SET ? WHERE user_id = ? ';
 
+    console.log('push_settings    : ',updated.push_settings);
     console.log('updated',updated);
 
     template_item(
@@ -241,7 +239,7 @@ exports.updateAccountSettings = function(req,res){
         [updated,user_id],
         function(err,rows,msg){
             console.log('rows 정보는 : ',rows);
-            if (err) {res.json(trans_json(msg,0));}
+            if (err) {console.log('err is ',err.message);res.json(trans_json(msg,0));}
             else {console.log('야호!!!');res.json(trans_json(msg,1));}
         }
     );

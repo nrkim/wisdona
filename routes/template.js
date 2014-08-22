@@ -105,7 +105,7 @@ exports.template_item = function(query,params,verify){
                 //console.log('query');
                 //console.log(err.message);
                 connection.release();
-                verify(err,false,'sql쿼리 오류입니다.');
+                verify(err,false,'sql쿼리 오류입니다.'+err.message);
             }
             else{
                 //console.log('commit 성공');
@@ -116,6 +116,68 @@ exports.template_item = function(query,params,verify){
             }
         });
     });
+};
+
+
+exports.transaction_closure = function(connection, sql, funcs ) {
+    async.waterfall(
+        [
+            function (callback) {
+                connectionPool.getConnection(function (err, connection) {
+                    if (err) {
+                        callback(err);
+                    }
+                    else {
+                        connection.beginTransaction(function (err) {
+                            if (err) {
+                                callback(err);
+                            }
+                            else {
+                                callback(null, connection);
+                            }
+                        });
+                    }
+                });
+            }
+        ], function (err, pool) {
+            if (err) {
+                next(err);
+            }
+            else {
+                next(null, {
+                    get_conn: function () {
+                        return pool;
+                    },
+                    get_query: function (query, params, verify) {
+                        pool.query(query, params, function (err, rows) {
+                            verify(err, rows);
+                        });
+                    },
+                    get_commit: function (err, verify) {
+                        if (err) {
+                            pool.rollback(function () {
+                                throw err;
+                            });
+                        }
+                        else {
+                            verify(null, rows);
+                        }
+                    },
+                    get_transaction: function (err, verify) {
+                        if (err) {
+                            verify(err);
+                        }
+                        else {
+                            verify();
+                        }
+                    },
+                    close_conn: function () {
+                        pool.release();
+                    }
+                });
+            }
+        }
+    );
 };
 
 

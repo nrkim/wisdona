@@ -10,7 +10,6 @@ var trans_json = json.trans_json
 // api : /users/:user_id/reviews/create
 exports.createUserReview = function(req,res){
 
-
     var user_id  = req.session.passport.user  || res.json(trans_json("아이디를 입력하지 않았습니다.",0));
 
     var trade_id = req.body.trade_id || res.json(trans_json("아이디를 입력하지 않았습니다.",0));
@@ -31,7 +30,26 @@ exports.createUserReview = function(req,res){
         "FROM trade t " +
         "JOIN post p ON t.post_id = p.post_id " +
         "WHERE t.trade_id = ? ";
+/*
+    connection_closure(function(err,connection){
+        async.waterfall([
+           function (callback){
+               query,
+               [user_id,user_id,comments,point,trade_id],
+               function(err,rows,msg){
+                   if(err) { callback(err); }
+                   else { callback(null,); }
+               }
+           },
+           function (){
 
+           },
+           function (){
+
+           }
+        ], )
+    });
+*/
     template_item(
         query,
         [user_id,user_id,comments,point,trade_id],
@@ -39,14 +57,18 @@ exports.createUserReview = function(req,res){
             if(err) {res.json(trans_json(msg,0));}
             else {
                 template_item(
-                        "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id " +
-                        "WHERE from_user_id = ? and is_sended = 0",
+                    "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id " +
+                    "JOIN trade t ON t.trade_id = m.trade_id JOIN p.post_id = t.post_id WHERE " +
+                    "from_user_id = ? AND is_sended = 0 AND p.user_id = from_user_id ",
                     [user_id],
                     function(err,rows,info){
                         var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
-                        sendMessage(device_list,"메시지",message,
+                        var push_settings_arr = _.map(rows, function(item) {
+                            return item.push_settings
+                        });
+                        // code, title, msg, callback)
+                        sendMessage(device_list,push_settings_arr,5,"메시지",message,
                             function(err){
-                                console.log('console!!');
                                 if(err) {console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
                                 else {
                                     template_item(

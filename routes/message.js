@@ -12,7 +12,8 @@ var message_window = json.message_window
     ,template_item = template.template_item
     ,template_list = template.template_list
     ,unread_msg_lst= json.unread_msg_lst
-    ,connection_closure = template.connection_closure;
+    ,connection_closure = template.connection_closure
+    ,transaction_closure = template.transaction_closure;
 var _ = require('underscore');
 var sendMessage = require('./gcm').sendMessage;
 
@@ -41,21 +42,29 @@ exports.getMessageGroupList = function(req,res){
     // 해당 거래의 메시지를 가저옴
     // do_show = 0인 메시지를 삭제한 모습을 구현 해야함
 
+
     var query =
-        "SELECT m.from_user_id, nickname, image, m.trade_id, title, message, be_message_cnt, m.create_date " +
-        "FROM (SELECT * FROM user WHERE sleep_mode = 0) u JOIN message m ON m.from_user_id = u.user_id " +
+        "select m.trade_id, (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END), " +
+        "nickname, image, m.trade_id, title, message, be_message_cnt, m.create_date " +
+            "from ( " +
+            "select trade_id as trade_id, from_user_id as from_user_id, to_user_id as to_user_id, message as message, create_date as create_date " +
+            "from message m join (select max(create_date) AS max_date " +
+            "from message " +
+            "group by trade_id ) d " +
+            "where m.create_date = d.max_date " +
+            ") m " +
+            "JOIN user u ON u.user_id = (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) " +
             "JOIN trade t ON m.trade_id = t.trade_id " +
-            "JOIN post p ON t.post_id = p.post_id " +
-            "JOIN book b ON p.book_id = b.book_id " +
-            "INNER JOIN ( SELECT max(create_date) AS max_date " +
-            "FROM message GROUP BY from_user_id ) d " +
-            "WHERE m.to_user_id = ? AND m.create_date  = d.max_date " +
-            "GROUP BY t.trade_id LIMIT ?, ? ";
+            "JOIN post p ON p.post_id = t.post_id " +
+            "JOIN book b ON b.book_id = p.book_id " +
+            "where (m.from_user_id = ? or m.to_user_id = ?) and " +
+            "(CASE WHEN req_user_id = ? THEN be_show_group ELSE do_show_group END) = 1 " +
+            "order by m.create_date desc limit ?, ? ";
 
     //sample 예제 to_user_id =5, 1, 10
     template_list(
         query,
-        [user_id,start,count],
+        [user_id,user_id,user_id,user_id,user_id,start,count],
         message_list,
         function(err,result,msg){
             if(err) {res.json(trans_json(msg,0));}
@@ -70,7 +79,7 @@ exports.destroyMessageGroup = function(req,res){
 
     var user_id = req.session.passport.user;
     //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
-    var trade_id = req.body.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
+    var trade_id_list = req.body.trade_id_list || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
 
     console.log('trade id is ',trade_id);
     console.log('user_id is ',user_id);
@@ -80,6 +89,37 @@ exports.destroyMessageGroup = function(req,res){
         "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
         "WHERE trade_id = ?";
 
+
+    transaction_closure(function(err,connection){
+        if (err){res.json(trans_json('데이터 베이스 커넥션 오류입니다.',0));}
+        else{
+            async.each(trade_id_list, function( trade_id, callback) {
+                connection.get_conn(
+                    query,
+                    [user_id,user_id,trade_id],
+                    function(err,rows,msg){
+                        if(err) {callback(err);}
+                        else {callback(null)}
+                    }
+                )
+            }, function(err){
+                if (err) {
+                    connection.rollback(function () {
+                        res.json(trans_json('롤백 작업에 실패하였습니다',0));
+                    });
+                }
+                connection.commit(function (err) {
+                    if (err) {
+                        connection.rollback(function () {
+                            res.json(trans_json('커밋 작업에 실패하였습니다',0));
+                        });
+                    }
+                    else {res.json(trans_json('success',1));}
+                });
+            });
+        }
+    });
+/*
     template_item(
         query,
         [user_id,user_id,trade_id],
@@ -87,7 +127,7 @@ exports.destroyMessageGroup = function(req,res){
             if(err) {res.json(trans_json(msg,0));}
             else {res.json(trans_json(msg,1));}
         }
-    );
+    );*/
 };
 
 // api : /users/:user_id/message-groups/:trade_id/create
@@ -124,24 +164,30 @@ exports.createMsg = function(req,res){
                         function(err,rows){
                            // console.log('log1',insert_query);
                             if (err) {console.log('log2');callback(err); }
-                            else { console.log('log3');callback(null); }
+                            else {
+                                var message_id =rows.insertId;
+                                console.log('log3');callback(null,message_id);
+                            }
                         }
                     )
                 },
-                function getDeviceId (callback){            // 디바이스 아이디 추출
+                function getDeviceId (message_id,callback){            // 디바이스 아이디 추출
                     connection.get_query(
-                        'SELECT to_user_id, gcm_registration_id, push_settings FROM user u JOIN message m ON u.user_id = m.to_user_id ' +
-                        'WHERE from_user_id = ? and trade_id = ? group by to_user_id ',
-                        [user_id,trade_id],
+                        'SELECT to_user_id, gcm_registration_id, push_settings FROM user u JOIN message m ON u.user_id = m.to_user_id '+
+                        'WHERE m.message_id = ? ',
+                        //'SELECT to_user_id, gcm_registration_id, push_settings FROM user u JOIN message m ON u.user_id = m.to_user_id ' +
+                        //'WHERE from_user_id = ? and trade_id = ? group by to_user_id ',
+                        [message_id],
                         function(err,rows,info){
                             console.log('log4');
                             var device_list=_.map(rows, function(item){
                                 return item.gcm_registration_id;
                             });
+                            console.log('device_list',device_list);
                             var push_settings_arr = _.map(rows, function(item) {
                                 return item.push_settings
                             });
-                            console.log('log5');
+                            console.log('push ',push_settings_arr);
                             callback(null,device_list,push_settings_arr);
                         }
                     )
@@ -169,45 +215,6 @@ exports.createMsg = function(req,res){
             })
         }
     });
-
-/*
-    template_item(
-        insert_query,
-        [user_id,user_id,message,trade_id],
-        function(err,rows,msg){
-            if(err) {console.log('insert err'+err.message);res.json(trans_json(msg,0));}
-            else {
-                template_item(
-                        "SELECT to_user_id, gcm_registration_id, push_settings FROM message m JOIN user u ON u.user_id = m.to_user_id " +
-                        "WHERE from_user_id = ? and is_sended = 0",
-                    [user_id],
-                    function(err,rows,info){
-                        var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
-                        var push_settings_arr = _.map(rows, function(item) {
-                            return item.push_settings
-                        });
-                        // code, title, msg, callback)
-                        sendMessage(device_list,push_settings_arr,5,"메시지",message,
-                            function(err){
-                                console.log('console!!');
-                                if(err) {console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
-                                else {
-                                    template_item(
-                                        "UPDATE message SET is_sended = TRUE WHERE trade_id = ? and is_sended = FALSE",
-                                        [trade_id],
-                                        function(err,rows){
-                                            if(err) { res.json(trans_json('메시지 전송에 실패했습니다.',0)); }
-                                            else { res.json(trans_json('메시지 전송에 성공했습니다.',1)); }
-                                        }
-                                    );
-                                }
-                            }
-                        );
-                    }
-                );
-            }
-        }
-    );*/
 
 };
 
@@ -274,7 +281,7 @@ exports.getMessageList = function(req,res){
     );
 };
 
-//api : /users/:user_id/message-groups/unread/list
+//api : /users/:user_id/message-groups/unreadlist
 exports.getUnreadMessgeList = function(req,res){
 
     //var user_id = req.params.user_id;
@@ -287,30 +294,19 @@ exports.getUnreadMessgeList = function(req,res){
     //console.log('getUnreadMessage list trade id is : ',trade_id);
 
     var get_query =
-        "SELECT trade_id, message, m.create_date, from_user_id AS user_id , nickname, image " +
+        "SELECT trade_id, message, m.create_date AS create_date, from_user_id AS user_id , nickname, image " +
         "FROM user u JOIN message m ON u.user_id = m.from_user_id " +
         "WHERE to_user_id = ? AND m.is_sended = 0 ";
 
 //    var update_query =
 //        "UPDATE message SET is_read = TRUE WHERE to_user_id = ? AND is_read = FALSE";
-/*
-    template_item(
-        update_query,
-        [user_id],
-        function(err,rows,msg){
-            console.log('update query is .....',rows );
-            console.log('result is...',result);
-            if(err) { console.log('콘솔로그');res.json(trans_json(msg,0));}
-            else { console.log('콘솔로그 2@@');res.json(trans_json('success',1,result));}
-        }
-    )*/
 
     template_list(
         get_query,
         [user_id],
         unread_msg_lst,
         function(err,result,msg){
-            //console.log('result is!=========!!!!!1',result);
+            console.log('result is!=========!!!!!1',result);
             console.log('query is ',get_query);
             if (err) {
                 console.log('err     : '+err.message);
@@ -319,14 +315,14 @@ exports.getUnreadMessgeList = function(req,res){
             else {
                 if (result.length == 0){
                     console.log('not exist')
-                    res.json(trans_json("읽은 메시지가 없습니다.",1,result));
+                    res.json(trans_json("읽지 않은 메시지가 없습니다.",1,result));
                 } else{
                     template_item(
-                        "UPDATE message SET is_sended = TRUE WHERE trade_id = ? and is_sended = FALSE",
-                        [trade_id],
+                        "UPDATE message SET is_sended = TRUE WHERE to_user_id = ? and is_sended = FALSE",
+                        [user_id],
                         function(err,rows){
-                            if(err) { console.log('log9');callback(err); }
-                            else { console.log('log10');callback(null); }
+                            if(err) { console.log('log9',err.message);res.json(trans_json(err.message,0)); }
+                            else { console.log('log10');res.json(trans_json('success',1,result)); }
                         }
                     );
                     //res.json(trans_json('success',1,result));
