@@ -96,6 +96,7 @@ module.exports = function(app,passport) {
             );
         },login.registerLocal);
 
+
     app.post('/facebook-login',
         express.bodyParser(),
         function(req, res, next) {
@@ -114,9 +115,6 @@ module.exports = function(app,passport) {
                                 else {
                                     req.session.passport.user = user.user_id;
                                     res.json(trans_json("success",1,create_user(user.user_id)));
-                                    //req.session.passport.user = user.user_id;
-                                    //req.json_file = create_user(user.user_id);
-                                    //next();
                                 }
                             }
                         );
@@ -129,7 +127,7 @@ module.exports = function(app,passport) {
 
     app.post('/facebook-logout',login.facebookLogout);
 
-    app.post('/users/:user_id/account-settings/password/update', login.updatePassword);
+    app.post('/users/:user_id/account-settings/password/update', express.bodyParser(),login.updatePassword);
     app.get('/request-activation-email/:user_id', send_email.requestActivationEmail);
     app.post('/request-send-email', send_email.requestSendEmail);
     app.post('/logout', isLoggedIn,login.logout);

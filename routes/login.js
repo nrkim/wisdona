@@ -13,8 +13,8 @@ var trans_json = json.trans_json
     ,template_item = template.template_item
     ,create_password = template.create_password
     ,create_user = json.create_user
-    ,updateDeviceId = gcm.updateDeviceId;
-
+    ,updateDeviceId = gcm.updateDeviceId
+    ,connection_closure = template.connection_closure;
 var create_hash = template.create_hash;
 var async = require('async');
 var request = require('request');
@@ -47,31 +47,6 @@ exports.registerLocal = function(req,res){
     );
 };
 
-/*
-exports.registerDevice = funciton(req,res){
-    updateDeviceId (
-        req.session.passport.user,
-        req.body.gcm_registration_id,
-        function(err){
-            if (err){
-                res.json(trans_json('로그인에 실패했습니다.',0));
-            }
-            else {
-                res.json(trans_json('페이스북 로그인에 성공했습니다.',1));
-            }
-     });
-}
-*/
-/*
-exports.facebookLogin = function(req,res){
-	if (req.user) {
-        //req.session = req.user;
-        res.json(trans_json("success",1));
-	} else {
-		res.json(trans_json(,0));
-	}
-};
-*/
 exports.login = function(req,res){
     if (req.session.passport.user) {
         console.log('session.passport is ',req.session.passport.user);
@@ -97,7 +72,7 @@ exports.facebookLogout = function(req,res){
                 res.json(trans_json(err.message + '로그아웃에 실패하였습니다.',0));
             } else {
                 req.logout();
-                res.json(trans_json('로그아웃 하였습니다.',0));
+                res.json(trans_json('로그아웃 하였습니다.',1));
             }
         }
     );
@@ -147,6 +122,12 @@ exports.activationEmail = function(req,res){
 
     console.log('wow!!')
 
+
+    connection_closure(function(err,connection){
+
+    });
+
+/*
     template_item(
        "SELECT email, auth_token FROM email_auth WHERE ?",
         {auth_token : authkey},
@@ -169,7 +150,7 @@ exports.activationEmail = function(req,res){
                 }
             }
         }
-    );
+    );*/
 };
 
 exports.updatePassword = function(req,res){

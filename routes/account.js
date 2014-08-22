@@ -17,7 +17,6 @@ var template = require('./template')
 // 이미지 업로드 관련
 var _ = require('underscore')
     ,im = require('imagemagick')
-    ,formidable = require('formidable')
     ,fstools = require('fs-tools')
     ,fs = require('fs')
     ,async = require('async')
@@ -56,16 +55,15 @@ exports.getUserInfo = function(req,res){
         [user_id],
         user_info,
         function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json('success',1,result[0]));     //반드시 하나의 결과만 나와야 함
-            else res.json(trans_json(msg,0));                           // 일치하는 결과가 없을 때는 에러 처리
+            if(err) {res.json(trans_json(msg,0))};
+            if(result) {res.json(trans_json('success',1,result[0]));}     //반드시 하나의 결과만 나와야 함
+            else {res.json(trans_json(msg,0));}                           // 일치하는 결과가 없을 때는 에러 처리
         }
     );
 };
 
 // api :
 exports.destroyUserAccount = function(req,res){
-
 
     //계정 삭제시 휴면 계정
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
@@ -134,110 +132,85 @@ exports.getAccountSettings = function(req,res){
     );
 };
 
-// api :
-
-/*
-var form = new formidable.IncomingForm();
-form.uploadDir = path.normalize(__dirname + '/../tmp/');
-form.keepExtensions = true;
-
-form.parse(req, function(err, fields, file) {
-    req.body=fields;
-
-    if (file.size) {
-        var baseImageDir = __dirname + '/../images/';
-        var destPath = path.normalize(baseImageDir + path.basename(file.path));
-        fstools.move(file.path, destPath, function(err) {
-            if (err) {
-                console.log('err occured',err.messaage);
-                res.json(trans_json(err.message,0));
-            } else {
-                console.log('Original file(', file.name, ') moved!!!');
-                req.uploadFile = destPath;
-                next();
-            }
-        });
+exports.uploadImage = function (req,res,next){
+    var contentType = req.headers['content-type'];
+    if (contentType === 'application/x-www-form-urlencoded' || contentType === 'application/json'){
+        next();
+        console.log('a;lkdjflakjsdflkjasdlkfjasdlkfja;sldkjfa;lkdsjfalskdjf');
     } else {
-        fstools.remove(file.path, function(err) {
-            if (err) {
-                res.json(trans_json(err.message,0));
-            } else {
-                console.log('Zero file removed!!!');
-                next();
-            }
+        console.log('formidable');
+        var formidable = require('formidable');
+        var form = new formidable.IncomingForm();
+        form.uploadDir = path.normalize(__dirname + '/../tmp/');
+        form.keepExtensions = true;
+
+        form.parse(req, function(err, fields, files) {
+            req.body = fields;
+
+            async.waterfall([
+                function(callback) {
+                    var filesArr = _.map(files, function(file) {
+                        return file;
+                    });
+                    callback(null, filesArr);
+                },
+                function(filesArr, callback) {
+                    req.uploadFiles = [];
+
+                    async.each(filesArr, function (file, cb) {
+                        if (file.size) {
+                            var baseImageDir = __dirname + '/../images/';
+                            console.log('baseImageDir');
+                            var destPath = path.normalize(baseImageDir + path.basename(file.path));
+                            fstools.move(file.path, destPath, function (err) {
+                                if (err) {
+                                    console.log('err occured', err.messaage);
+                                    cb(err);//res.json(trans_json(err.message,0));
+                                } else {
+                                    console.log('Original file(', file.name, ') moved!!!');
+                                    console.log('final file path',path.basename(destPath));
+                                    req.uploadFile = path.basename(destPath);
+                                    cb();
+                                }
+                            });
+                        } else{
+                            fstools.remove(file.path, function(err) {
+                                if (err) {
+                                    callback(err);
+                                    //res.json(trans_json(err.message,0));
+                                } else {
+                                    console.log('Zero file removed!!!');
+                                    callback();
+                                }
+                            });
+                        }
+                    }, function (err) {
+                        if( err){
+                            callback(err);
+                        }else{
+                            callback();
+                        }
+                    });
+
+                }
+            ], function (err) {
+                if (err) {
+                    res.json(trans_json(err.message,0));
+                }else{
+                    next();
+                }
+            });
         });
     }
-});
-*/
 
-exports.uploadImage = function (req,res,next){
 
-    var form = new formidable.IncomingForm();
-    form.uploadDir = path.normalize(__dirname + '/../tmp/');
-    form.keepExtensions = true;
-
-    form.parse(req, function(err, fields, files) {
-        req.body = fields;
-
-        async.waterfall([
-            function(callback) {
-                var filesArr = _.map(files, function(file) {
-                    return file;
-                });
-                callback(null, filesArr);
-            },
-            function(filesArr, callback) {
-                req.uploadFiles = [];
-
-                async.each(filesArr, function (file, cb) {
-                    if (file.size) {
-                        var baseImageDir = __dirname + '/../images/';
-                        console.log('baseImageDir');
-                        var destPath = path.normalize(baseImageDir + path.basename(file.path));
-                        fstools.move(file.path, destPath, function (err) {
-                            if (err) {
-                                console.log('err occured', err.messaage);
-                                cb(err);//res.json(trans_json(err.message,0));
-                            } else {
-                                console.log('Original file(', file.name, ') moved!!!');
-                                console.log('final file path',path.basename(destPath));
-                                req.uploadFile = path.basename(destPath);
-                                cb();
-                            }
-                        });
-                    } else{
-                        fstools.remove(file.path, function(err) {
-                            if (err) {
-                                callback(err);
-                                //res.json(trans_json(err.message,0));
-                            } else {
-                                console.log('Zero file removed!!!');
-                                callback();
-                            }
-                        });
-                    }
-                }, function (err) {
-                    if( err){
-                        callback(err);
-                    }else{
-                        callback();
-                    }
-                });
-
-            }
-        ], function (err) {
-            if (err) {
-                res.json(trans_json(err.message,0));
-            }else{
-                next();
-            }
-        });
-
-    });
 };
 
 // api : /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
+
+
+
 
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
@@ -250,6 +223,9 @@ exports.updateAccountSettings = function(req,res){
     if (req.body.address)       updated.address = req.body.address;
     if (req.body.push_settings) updated.push_settings = req.body.push_settings;
 
+    console.log(user_id);
+    console.log(req.body.address);
+    console.log('updated is ',updated);
 
     if(updated.push_settings){
         updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');

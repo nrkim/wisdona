@@ -106,22 +106,12 @@ exports.createMsg = function(req,res){
     if (typeof message  != "string") res.json('메시지 타입은 문자열여야 합니다.',0);
     if (typeof trade_id != "number") res.json('교환 아이디 타입은 숫자여야 합니다',0);
 
-    var insert_query =
-        'INSERT INTO message(from_user_id, to_user_id, message, is_read, trade_id, is_sended) ' +
-        'SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?, 0, t.trade_id, 0 ' +
-        'FROM trade t ' +
-        'JOIN post p ON t.post_id = p.post_id ' +
-        'WHERE t.trade_id = ? ';
 
-//    var device_query =
-//        'SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id ' +
-//        'WHERE from_user_id = ? and is_sended = 0';
-/*
     connection_closure(function(err,connection){
         if(err){ res.json(trans_json('커넥션을 얻는데 실패했습니다 : ',+err,0)); }
         else {
             async.waterfall([
-                function (callback){
+                function saveMessage(callback){             // 메시지 저장
                     var query =
                         'INSERT INTO message(from_user_id, to_user_id, message, is_read, trade_id, is_sended) ' +
                         'SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?, 0, t.trade_id, 0 ' +
@@ -132,61 +122,55 @@ exports.createMsg = function(req,res){
                         query,
                         [user_id,user_id,message,trade_id],
                         function(err,rows){
-                            console.log('log1',insert_query);
+                           // console.log('log1',insert_query);
                             if (err) {console.log('log2');callback(err); }
                             else { console.log('log3');callback(null); }
                         }
                     )
                 },
-                function(callback){
+                function getDeviceId (callback){            // 디바이스 아이디 추출
                     connection.get_query(
-                        device_query,
-                        [user_id],
+                        'SELECT to_user_id, gcm_registration_id, push_settings FROM user u JOIN message m ON u.user_id = m.to_user_id ' +
+                        'WHERE from_user_id = ? and trade_id = ? group by to_user_id ',
+                        [user_id,trade_id],
                         function(err,rows,info){
                             console.log('log4');
                             var device_list=_.map(rows, function(item){
                                 return item.gcm_registration_id;
                             });
+                            var push_settings_arr = _.map(rows, function(item) {
+                                return item.push_settings
+                            });
                             console.log('log5');
-                            callback(null,device_list);
+                            callback(null,device_list,push_settings_arr);
                         }
                     )
                 },
-                function(device_list,callback){
-                    sendMessage(device_list,"wisdona",message,0,
+                function sendGCM (device_list, push_settings_arr, callback){       //GCM 보내는 함수
+                    sendMessage(device_list,push_settings_arr,"wisdona",message,5,
                         function(err){
                             if(err) { console.log('log7');callback(err); }
                             //console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
                             else { console.log('log8');callback(null);}
                             //console.log('loglognnbb');res.json(trans_json('메시지 전송에 성공했습니다.',1));}
                         });
-                },
-                function(callback){
-                    connection.get_query(
-                        "UPDATE message SET is_sended = TRUE WHERE trade_id = ? and is_sended = FALSE",
-                        [trade_id],
-                        function(err,rows){
-                            if(err) { console.log('log9');callback(err); }
-                            else { console.log('log10');callback(null); }
-                        }
-                    )
                 }
             ],function(err){
                 if(err) {
-                    console.log('log11',err.message);
+                    //console.log('log11',err.message);
                     connection.close_conn();
                     res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));
                 }
                 else {
-                    console.log('log12');
+                    //console.log('log12');
                     connection.close_conn();
                     res.json(trans_json('메시지 전송에 성공했습니다.',1));
                 }
             })
         }
     });
-*/
 
+/*
     template_item(
         insert_query,
         [user_id,user_id,message,trade_id],
@@ -194,12 +178,16 @@ exports.createMsg = function(req,res){
             if(err) {console.log('insert err'+err.message);res.json(trans_json(msg,0));}
             else {
                 template_item(
-                        "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id " +
+                        "SELECT to_user_id, gcm_registration_id, push_settings FROM message m JOIN user u ON u.user_id = m.to_user_id " +
                         "WHERE from_user_id = ? and is_sended = 0",
                     [user_id],
                     function(err,rows,info){
                         var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
-                        sendMessage(device_list,"메시지",message,
+                        var push_settings_arr = _.map(rows, function(item) {
+                            return item.push_settings
+                        });
+                        // code, title, msg, callback)
+                        sendMessage(device_list,push_settings_arr,5,"메시지",message,
                             function(err){
                                 console.log('console!!');
                                 if(err) {console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
@@ -219,9 +207,9 @@ exports.createMsg = function(req,res){
                 );
             }
         }
-    );
+    );*/
 
-}
+};
 
 exports.createMessage = function(req,connection,next){
 
@@ -232,21 +220,21 @@ exports.createMessage = function(req,connection,next){
 
     //타입 검사
     if (typeof user_id  != "number") { next(new Error('유저 아이디 타입은 숫자여야 합니다.'));}
-    else if (typeof message  != "string") { next(new Error('메시지 타입은 문자열여야 합니다.'));}
-    else if (typeof trade_id != "number") { next(new Error('트레이드 아이디 타입은 숫자여야 합니다'));}
-    else{
-        var query =
-            "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
-            "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
-            "FROM trade t " +
-            "JOIN post p ON t.post_id = p.post_id " +
-            "WHERE t.trade_id = ? ";
+    if (typeof message  != "string") { next(new Error('메시지 타입은 문자열여야 합니다.'));}
+    if (typeof trade_id != "number") { next(new Error('트레이드 아이디 타입은 숫자여야 합니다'));}
 
-        connection.query(query,[user_id,user_id,message,trade_id],function(err,rows){
-            if (err){ next(err); }
-            else { next(null,rows) }
-        });
-    }
+    var query =
+        "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
+        "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
+        "FROM trade t " +
+        "JOIN post p ON t.post_id = p.post_id " +
+        "WHERE t.trade_id = ? ";
+
+    connection.query(query,[user_id,user_id,message,trade_id],function(err,rows){
+        if (err){ next(err); }
+        else { next(null,rows) }
+    });
+
 };
 
 exports.getMessageList = function(req,res){
@@ -292,16 +280,16 @@ exports.getUnreadMessgeList = function(req,res){
     //var user_id = req.params.user_id;
 
     var user_id = req.session.passport.user;
-    var trade_id = req.query.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    //var trade_id = req.query.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
-    //console.log('================================================');
-    //console.log('getUnreadMessage list user id is : ',user_id);
+    console.log('================================================');
+    console.log('getUnreadMessage list user id is : ',user_id);
     //console.log('getUnreadMessage list trade id is : ',trade_id);
 
     var get_query =
         "SELECT trade_id, message, m.create_date, from_user_id AS user_id , nickname, image " +
         "FROM user u JOIN message m ON u.user_id = m.from_user_id " +
-        "WHERE to_user_id = ? AND m.is_read = 0 AND trade_id = ? ";
+        "WHERE to_user_id = ? AND m.is_sended = 0 ";
 
 //    var update_query =
 //        "UPDATE message SET is_read = TRUE WHERE to_user_id = ? AND is_read = FALSE";
@@ -319,21 +307,29 @@ exports.getUnreadMessgeList = function(req,res){
 
     template_list(
         get_query,
-        [user_id,trade_id],
+        [user_id],
         unread_msg_lst,
         function(err,result,msg){
             //console.log('result is!=========!!!!!1',result);
             console.log('query is ',get_query);
             if (err) {
                 console.log('err     : '+err.message);
-                res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다.",0));
+                res.json(trans_json("읽지 않은 메시지를 찾는 과정에서 에러가 일어났습니다."+err.message,0));
             }
             else {
                 if (result.length == 0){
                     console.log('not exist')
                     res.json(trans_json("읽은 메시지가 없습니다.",1,result));
                 } else{
-                    res.json(trans_json('success',1,result));
+                    template_item(
+                        "UPDATE message SET is_sended = TRUE WHERE trade_id = ? and is_sended = FALSE",
+                        [trade_id],
+                        function(err,rows){
+                            if(err) { console.log('log9');callback(err); }
+                            else { console.log('log10');callback(null); }
+                        }
+                    );
+                    //res.json(trans_json('success',1,result));
                 }
             }
         }
