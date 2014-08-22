@@ -119,7 +119,7 @@ exports.template_item = function(query,params,verify){
 };
 
 
-exports.transaction_closure = function(connection, sql, funcs ) {
+exports.transaction_closure = function(next) {
     async.waterfall(
         [
             function (callback) {
@@ -150,26 +150,29 @@ exports.transaction_closure = function(connection, sql, funcs ) {
                     },
                     get_query: function (query, params, verify) {
                         pool.query(query, params, function (err, rows) {
+                            console.log('rows... is ',rows);
                             verify(err, rows);
                         });
                     },
-                    get_commit: function (err, verify) {
-                        if (err) {
-                            pool.rollback(function () {
-                                throw err;
-                            });
-                        }
-                        else {
-                            verify(null, rows);
-                        }
+                    get_commit: function (verify) {
+                        pool.commit(function(err){
+                            if (err) {
+                                pool.rollback(function () {
+                                    verify(err);
+                                });
+                            }
+                            else {
+                                verify();
+                            }
+                        });
+                    },
+                    get_rollback : function(error_fun){
+                        pool.rollback(function () {
+                            error_fun('롤백작업에 실패하였습니다.');
+                        });
                     },
                     get_transaction: function (err, verify) {
-                        if (err) {
-                            verify(err);
-                        }
-                        else {
-                            verify();
-                        }
+                        verify(err);
                     },
                     close_conn: function () {
                         pool.release();
@@ -193,7 +196,7 @@ exports.template_transaction = function(connection, sql, funcs ){
                     verify(err,'롤백 작업에 실패하였습니다');
                 });
             }
-            p.connection.commit(function (err) {
+            connection.commit(function (err) {
                 if (err) {
                     connection.rollback(function () {
                         verify(err,'커밋 작업에 실패하였습니다');

@@ -26,8 +26,8 @@ exports.getMessageGroupList = function(req,res){
     //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     // query string 처리
-    var page = JSON.parse(req.query.page) || 0;
-    var count = JSON.parse(req.query.count) || 10;
+    var page = req.query.page || 0;
+    var count = req.query.count || 10;
 
     // 페이징 관련 계산
     var start = page*count;
@@ -81,53 +81,43 @@ exports.destroyMessageGroup = function(req,res){
     //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
     var trade_id_list = req.body.trade_id_list || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0)) ;
 
-    console.log('trade id is ',trade_id);
-    console.log('user_id is ',user_id);
+    //console.log('trade_id_list',trade_id_list);
+
 
     var query = "UPDATE trade t JOIN post p ON p.post_id = t.post_id " +
         "SET be_show_group = (CASE WHEN req_user_id = ? THEN false ELSE true END), " +
         "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
         "WHERE trade_id = ?";
 
-
     transaction_closure(function(err,connection){
         if (err){res.json(trans_json('데이터 베이스 커넥션 오류입니다.',0));}
         else{
             async.each(trade_id_list, function( trade_id, callback) {
+                console.log(trade_id);
                 connection.get_conn(
                     query,
                     [user_id,user_id,trade_id],
                     function(err,rows,msg){
-                        if(err) {callback(err);}
-                        else {callback(null)}
+                        if(err) {console.log('err is ....',err.message);callback(err);}
+                        else {console.log('rows is !!',rows);callback(null)}
                     }
                 )
             }, function(err){
                 if (err) {
-                    connection.rollback(function () {
-                        res.json(trans_json('롤백 작업에 실패하였습니다',0));
+                    connection.get_rollback(function(err_msg){
+                       console.log('get rollback',err_msg);
+                       connection.close_conn();
+                       res.json(trans_json(err_msg,0));
+                    });
+                } else {
+                    connection.get_commit(function (err) {
+                        if (err) { connection.close_conn();console.log('get rollback',err.message);res.json(trans_json('커밋 작업에 실패하였습니다',0)); }
+                        else {console.log('success..');connection.close_conn();res.json(trans_json('success',1));}
                     });
                 }
-                connection.commit(function (err) {
-                    if (err) {
-                        connection.rollback(function () {
-                            res.json(trans_json('커밋 작업에 실패하였습니다',0));
-                        });
-                    }
-                    else {res.json(trans_json('success',1));}
-                });
             });
         }
     });
-/*
-    template_item(
-        query,
-        [user_id,user_id,trade_id],
-        function(err,rows,msg){
-            if(err) {res.json(trans_json(msg,0));}
-            else {res.json(trans_json(msg,1));}
-        }
-    );*/
 };
 
 // api : /users/:user_id/message-groups/:trade_id/create

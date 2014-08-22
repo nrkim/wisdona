@@ -159,7 +159,7 @@ exports.uploadImage = function (req,res,next){
 
                     async.each(filesArr, function (file, cb) {
                         if (file.size) {
-                            var baseImageDir = __dirname + '/../images/';
+                            var baseImageDir = __dirname + '/../images/profile';
                             console.log('baseImageDir');
                             var destPath = path.normalize(baseImageDir + path.basename(file.path));
                             fstools.move(file.path, destPath, function (err) {
@@ -167,6 +167,20 @@ exports.uploadImage = function (req,res,next){
                                     console.log('err occured', err.messaage);
                                     cb(err);//res.json(trans_json(err.message,0));
                                 } else {
+/*
+                                    im.resize({
+                                        srcPath: destPath,
+                                        dstPath: largePath,
+                                        width:   720
+                                    }, function(err, stdout, stderr) {
+                                        if (err) {
+                                            cb(err);
+                                        } else {
+                                            cb();
+                                        }
+                                    });
+
+*/
                                     console.log('Original file(', file.name, ') moved!!!');
                                     console.log('final file path',path.basename(destPath));
                                     req.uploadFile = path.basename(destPath);
