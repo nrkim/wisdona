@@ -5,7 +5,8 @@
 var json = require('./json');
 var trans_json = json.trans_json
     ,template = require('./template')
-    ,template_item = template.template_item;
+    ,template_item = template.template_item
+    ,connection_closure = template.connection_closure;
 
 // api : /users/:user_id/reviews/create
 exports.createUserReview = function(req,res){
@@ -31,6 +32,62 @@ exports.createUserReview = function(req,res){
             "JOIN post p ON t.post_id = p.post_id " +
             "WHERE t.trade_id = ? ";
 
+        connection_closure(function (err, connection) {
+            if (err) {
+                res.json(trans_json(msg, 0));
+            }
+            else {
+                async.waterfall([
+                    function (callback) {
+                        connection.get_query(
+                            query,
+                            [user_id, user_id, comments, point, trade_id],
+                            function (err, rows) {
+                                if (err) { callback(err); }
+                                else { callback(null); }
+                            }
+                        )
+                    },
+                    function (callback) {
+                        connection.get_query(
+                                "SELECT to_user_id, gcm_registration_id FROM user u JOIN message m ON u.user_id = m.to_user_id " +
+                                "JOIN trade t ON t.trade_id = m.trade_id JOIN post p ON p.post_id = t.post_id " +
+                                "WHERE from_user_id = ? AND t.req_user_id = from_user_id ",
+                            [user_id],
+                            function (err, rows) {
+                                var device_list = _.map(rows, function (item) {
+                                    return item.gcm_registration_id;
+                                });
+                                var push_settings_arr = _.map(rows, function (item) {
+                                    return item.push_settings
+                                });
+                                // code, title, msg, callback)          //리뷰 리스트 일 때는 message 는 ~ 로 하면 될 듯
+                                callback(null, device_list, push_settings_arr);
+                            }
+                        )
+                    },
+                    function (device_list, push_settings_arr, callback) {
+                        sendMessage(device_list, push_settings_arr, "wisdona", comments, 2,
+                            function (err) {
+                                if (err) { callback(err); }
+                                else { callback(null); }
+                            }
+                        );
+                    }
+                ], function (err) {
+                    if (err) {
+                        connection.close_conn();
+                        res.json(trans_json('메시지 전송에 실패했습니다.' + err, 0));
+                    }
+                    else {
+                        connection.close_conn();
+                        res.json(trans_json('메시지 전송에 성공했습니다.', 1));
+                    }
+                });
+            }
+        });
+    }
+/*
         template_item(
             query,
             [user_id,user_id,comments,point,trade_id],
@@ -38,29 +95,20 @@ exports.createUserReview = function(req,res){
                 if(err) {res.json(trans_json(msg,0));}
                 else {
                     template_item(
-                            "SELECT to_user_id, gcm_registration_id FROM message m JOIN user u ON u.user_id = m.to_user_id " +
-                            "JOIN trade t ON t.trade_id = m.trade_id JOIN p.post_id = t.post_id WHERE " +
-                            "from_user_id = ? AND is_sended = 0 AND p.user_id = from_user_id ",
+                        "SELECT to_user_id, gcm_registration_id FROM user u JOIN message m ON u.user_id = m.to_user_id " +
+                        "JOIN trade t ON t.trade_id = m.trade_id JOIN post p ON p.post_id = t.post_id " +
+                        "WHERE from_user_id = ? AND t.req_user_id = from_user_id ",
                         [user_id],
                         function(err,rows,info){
                             var device_list=_.map(rows, function(item){ return item.gcm_registration_id; });
                             var push_settings_arr = _.map(rows, function(item) {
                                 return item.push_settings
                             });
-                            // code, title, msg, callback)
-                            sendMessage(device_list,push_settings_arr,5,"메시지",message,
+                            // code, title, msg, callback)          //리뷰 리스트 일 때는 message 는 ~ 로 하면 될 듯
+                            sendMessage(device_list,push_settings_arr,"wisdona",comments,2,
                                 function(err){
                                     if(err) {console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
-                                    else {
-                                        template_item(
-                                            "UPDATE message SET is_sended = TRUE WHERE trade_id = ? and is_sended = FALSE",
-                                            [trade_id],
-                                            function(err,rows){
-                                                if(err) { res.json(trans_json('메시지 전송에 실패했습니다.',0)); }
-                                                else { res.json(trans_json('메시지 전송에 성공했습니다.',1)); }
-                                            }
-                                        );
-                                    }
+                                    else { res.json(trans_json('메시지 전송에 성공했습니다.',1)); }
                                 }
                             );
                         }
@@ -68,34 +116,9 @@ exports.createUserReview = function(req,res){
                 }
             }
         );
-
-
     }
-
-
-/*
-    connection_closure(function(err,connection){
-        async.waterfall([
-           function (callback){
-               query,
-               [user_id,user_id,comments,point,trade_id],
-               function(err,rows,msg){
-                   if(err) { callback(err); }
-                   else { callback(null,); }
-               }
-           },
-           function (){
-
-           },
-           function (){
-
-           }
-        ], )
-    });
 */
 
-
-
-
-
+/*
+*/
 };
