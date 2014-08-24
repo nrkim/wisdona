@@ -1,6 +1,8 @@
 /**
- * Created by onam on 2014. 8. 25..
+ * Created by onam on 2014. 7. 29..
+ * email : nicekon@gmail.com
  */
+
 var fs = require('fs'),
     async = require('async'),
     path = require('path'),

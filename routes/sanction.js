@@ -1,3 +1,7 @@
+/**
+ * Created by onam on 2014. 7. 29..
+ * email : nicekon@gmail.com
+ */
 var async = require('async');
 var logger = require('../config/logger');
 

@@ -1,6 +1,8 @@
 /**
- * Created by onam on 2014. 8. 11..
+ * Created by onam on 2014. 7. 29..
+ * email : nicekon@gmail.com
  */
+
 var gcm = require('node-gcm'),
     gcmConfig = require('../config/gcm'),
     async = require('async'),
