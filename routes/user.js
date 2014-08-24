@@ -19,8 +19,8 @@ exports.getUserPostList = function(req,res){
     console.log(user_id);
 
     // query string 처리
-    var page = JSON.parse(req.query.page) || 0;
-    var count = JSON.parse(req.query.count) || 10;
+    var page = Number(req.query.page) || 0;
+    var count = Number(req.query.count) || 10;
 
     // 페이징 관련 계산
     var start = page*count;

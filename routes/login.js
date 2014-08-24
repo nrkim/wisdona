@@ -16,7 +16,7 @@ var trans_json = json.trans_json
     ,updateDeviceId = gcm.updateDeviceId
     ,connection_closure = template.connection_closure
     ,logger = require('../config/logger');
-var async = require('async');
+//var async = require('async');
 var request = require('request');
 
 
@@ -83,8 +83,10 @@ exports.facebookLogout = function(req,res){
 exports.logout = function(req,res){
     logger.debug('/--------------------------------------- logout ----------------------------------------/');
 
+    //req.session.destroy();
+    req.logout();
     req.session.destroy();
-    if (!req.session.passport.user) {
+    if (!req.isAuthenticated())  {
         console.log('성공!!');
         res.json(trans_json("success", 1));
     }
