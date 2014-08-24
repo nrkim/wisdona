@@ -223,7 +223,7 @@ exports.acceptPost = function(req,res){
 
                     // 게시물 + 거래 테이블 조회
                     query =
-                        "SELECT p.user_id, t.trade_id, t.req_user_id, t.current_status " +
+                        "SELECT p.user_id, p.book_id, t.trade_id, t.req_user_id, t.current_status " +
                         "FROM post p JOIN trade t ON p.post_id = t.post_id " +
                         "WHERE p.post_id = ? and t.current_status NOT IN(92, 91);";
                     data = [req.body.post_id];
@@ -331,6 +331,23 @@ exports.acceptPost = function(req,res){
                                 // 기부자에게 책갈피 제공
                                 query = "UPDATE user SET bookmark_total_cnt = bookmark_total_cnt + 1 WHERE user_id = ?;";
                                 data = [req.body.to_user_id];
+
+                                connection.query(query, data, function (err, result) {
+                                    if (err) {
+                                        cb(err);
+                                    }else{
+                                        cb();
+                                    }
+                                });
+                            }else{
+                                cb();
+                            }
+                        },
+                        function (cb) {
+                            if ( status_id == 4 ){
+                                // 기부자에게 책갈피 제공
+                                query = "UPDATE book SET trade_count = trade_count + 1 WHERE book_id = ?;";
+                                data = [rows[0].book_id];
 
                                 connection.query(query, data, function (err, result) {
                                     if (err) {

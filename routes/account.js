@@ -21,7 +21,7 @@ var _ = require('underscore')
     ,fs = require('fs')
     ,async = require('async')
     ,path = require('path')
-    mime = require('mime');
+mime = require('mime');
 
 var baseImageDir = __dirname + '/../images/profile/';
 
@@ -159,14 +159,14 @@ exports.uploadImage = function (req,res,next){
                     async.each(filesArr, function (file, cb) {
                         if (file.size) {
 
-                            var destPath = path.normalize(baseImageDir + "original/" + "o_p_" + path.basename(file.path));
+                            var destPath = path.normalize(baseImageDir + "original/" + "po_" + path.basename(file.path));
                             fstools.move(file.path, destPath, function (err) {
                                 if (err) {
                                     cb(err);//res.json(trans_json(err.message,0));
                                 } else {
 
-                                    var largePath = path.normalize(baseImageDir + "large/" + "l_p_" + path.basename(file.path));
-                                    var thumbPath = path.normalize(baseImageDir + "thumbs/" + "t_p_" + path.basename(file.path));
+                                    var largePath = path.normalize(baseImageDir + "large/" + "pl_" + path.basename(file.path));
+                                    var thumbPath = path.normalize(baseImageDir + "thumbs/" + "pt_" + path.basename(file.path));
 
                                     async.series([
                                             function (cb2) {
@@ -372,4 +372,3 @@ function deleteImage(row, callback) {
         }
     });
 }
-

@@ -842,7 +842,7 @@ exports.getPostDetail = function(req,res){
                     user : {
                         user_id : rows[0].user_id,
                         nick_name : rows[0].nickname,
-                        profile_image_url : rows[0].image
+                        profile_image_url : rows[0].thumb_image
                     },
                     post : {
                         comment : rows[0].comment,
@@ -1166,16 +1166,17 @@ exports.getImage = function(req, res) {
         imageType = "large/";
     }else if(req.params.imagepath.indexOf("t_") != -1){
         imageType = "thumbs/";
-    }else if(req.params.imagepath.indexOf("l_p_") != -1){
+    }else if(req.params.imagepath.indexOf("pl_") != -1){
         imageType = "profile/large/";
     }else{
-        imageType = "profile/thumb/";
+        imageType = "profile/thumbs/";
     }
 
 
     var mimeType = mime.lookup(req.params.imagepath);
 
     var filepath = path.normalize(baseImageDir + imageType + req.params.imagepath);
+    logger.debug('filepath', filepath);
     fs.exists(filepath, function (exists) {
         if (exists) {
             res.set('Content-Type', mimeType);
