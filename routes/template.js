@@ -369,11 +369,11 @@ exports.create_hash = function (password,operation){
             if (err) {
                 result(err);
                 connection.release();
-                return res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
+                operation('암호화된 비밀번호 생성에 실패하였습니다.'); //res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
             }
             else{
                 console.log('password is',hashPass);
-                return hashPass;
+                operation(null,hashPass);
             }
         });
 }

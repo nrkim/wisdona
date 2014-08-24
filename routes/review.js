@@ -48,6 +48,7 @@ exports.createUserReview = function(req,res){
                         query,
                         [user_id, user_id, comments, point, trade_id],
                         function (err, rows) {
+                            console.log('save message is review list row is =====> ',rows);
                             if (err) { callback(err); }
                             else { callback(null); }
                         }
@@ -74,7 +75,7 @@ exports.createUserReview = function(req,res){
                     )
                 },
                 function sendGCM(device_list, push_settings_arr, callback) {
-                    sendMessage(device_list, push_settings_arr, "wisdona", comments, 2,
+                    sendMessage(device_list, push_settings_arr, 2, "wisdona", comments,
                         function (err) {
                             if (err) { callback(err); }
                             else { callback(null); }
@@ -84,35 +85,42 @@ exports.createUserReview = function(req,res){
             ], function (err){
                 if (err) {
                     connection.close_conn();
-                    res.json(trans_json('라뷰 등록에 실패했습니다.' + err.message, 0));
+                    res.json(trans_json('라뷰 등록에 실패했습니다.' + err, 0));
                 }
                 else{
                     console.log('trade id : ',trade_id);
-                    connection.close_conn();
-                    template_item(
+                    //connection.close_conn();
+                    connection.query(
                         "select req_user_id, p.user_id " +
                         "from trade t " +
                         "join post p on p.post_id = t.post_id " +
                         "where trade_id = ?",
                         [trade_id],
                         function(err,rows){
-                            if(err) {res.json(trans_json('리뷰 등록에 실패 했습니다. '+err.message,0));}
+                            if(err) {
+                                console.log('리뷰등록 마지막 ',err);
+                                connection.close_conn();
+                                res.json(trans_json('리뷰 등록에 실패 했습니다. '+err.message,0));
+                            }
                             else {
                                 console.log(rows);
                                 //var json = { message : comments, trade_id : trade_id};
                                 if(rows[0].req_user_id === user_id){            //요청자일 경우
                                     if (point === 1){
                                         console.log('point ==!!1');
+                                        connection.close_conn();
                                         res.json(trans_json('success', 1,
                                         { message : '기부자님을 좋아합니다.', trade_id : trade_id}));
                                     }
                                     else {
                                         console.log('point ==!!0');
+                                        connection.close_conn();
                                         res.json(trans_json('success', 1,
                                         { message : '기부자님에게 서운해 합니다.', trade_id : trade_id}));
                                     }
                                 } else {                                        //기부자일 경우
                                     console.log('point ==!!기부자');
+                                    connection.close_conn();
                                     res.json(trans_json('success',1,{message : '담벼락에 글을 남겼습니다.'}));
                                 }
                             }
