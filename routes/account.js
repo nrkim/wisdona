@@ -23,6 +23,7 @@ var _ = require('underscore')
     ,path = require('path')
     mime = require('mime');
 
+var baseImageDir = __dirname + '/../images/profile/';
 
 // api: /users/:user_id/profile/show
 exports.getUserInfo = function(req,res){
@@ -136,9 +137,7 @@ exports.uploadImage = function (req,res,next){
     var contentType = req.headers['content-type'];
     if (contentType === 'application/x-www-form-urlencoded' || contentType === 'application/json'){
         next();
-        console.log('a;lkdjflakjsdflkjasdlkfjasdlkfja;sldkjfa;lkdsjfalskdjf');
     } else {
-        console.log('formidable');
         var formidable = require('formidable');
         var form = new formidable.IncomingForm();
         form.uploadDir = path.normalize(__dirname + '/../tmp/');
@@ -159,42 +158,69 @@ exports.uploadImage = function (req,res,next){
 
                     async.each(filesArr, function (file, cb) {
                         if (file.size) {
-                            var baseImageDir = __dirname + '/../images/profile';
-                            console.log('baseImageDir');
-                            var destPath = path.normalize(baseImageDir + path.basename(file.path));
+
+                            var destPath = path.normalize(baseImageDir + "original/" + "o_p_" + path.basename(file.path));
                             fstools.move(file.path, destPath, function (err) {
                                 if (err) {
-                                    console.log('err occured', err.messaage);
                                     cb(err);//res.json(trans_json(err.message,0));
                                 } else {
-/*
-                                    im.resize({
-                                        srcPath: destPath,
-                                        dstPath: largePath,
-                                        width:   720
-                                    }, function(err, stdout, stderr) {
-                                        if (err) {
-                                            cb(err);
-                                        } else {
-                                            cb();
-                                        }
-                                    });
 
-*/
-                                    console.log('Original file(', file.name, ') moved!!!');
-                                    console.log('final file path',path.basename(destPath));
-                                    req.uploadFile = path.basename(destPath);
-                                    cb();
+                                    var largePath = path.normalize(baseImageDir + "large/" + "l_p_" + path.basename(file.path));
+                                    var thumbPath = path.normalize(baseImageDir + "thumbs/" + "t_p_" + path.basename(file.path));
+
+                                    async.series([
+                                            function (cb2) {
+                                                im.resize({
+                                                    srcPath: destPath,
+                                                    dstPath: largePath,
+                                                    width:   230
+                                                }, function(err, stdout, stderr) {
+                                                    if (err) {
+                                                        cb2(err);
+                                                    } else {
+                                                        cb2();
+                                                    }
+                                                });
+                                            },
+                                            function (cb2) {
+                                                im.resize({
+                                                    srcPath: largePath,
+                                                    dstPath: thumbPath,
+                                                    width:   80
+                                                }, function(err, stdout, stderr) {
+                                                    if (err) {
+                                                        cb2(err);
+                                                    } else {
+                                                        cb2();
+                                                    }
+                                                });
+                                            }
+                                        ],
+                                        function (err, results) {
+                                            if ( err ){
+                                                callback(err);
+                                            }else{
+                                                // 경로 저장
+                                                var uploadFile = {
+                                                    originalPath : destPath,
+                                                    largePath : largePath,
+                                                    thumbPath : thumbPath
+                                                };
+                                                req.uploadFile = uploadFile;
+                                                cb();
+                                            }
+                                        }
+                                    );
                                 }
                             });
                         } else{
                             fstools.remove(file.path, function(err) {
                                 if (err) {
-                                    callback(err);
+                                    cb(err);
                                     //res.json(trans_json(err.message,0));
                                 } else {
                                     console.log('Zero file removed!!!');
-                                    callback();
+                                    cb();
                                 }
                             });
                         }
@@ -216,18 +242,54 @@ exports.uploadImage = function (req,res,next){
             });
         });
     }
+};
 
 
+// 업데이트 전에 지워야 될 이미지 체크
+// 있으면 req.oldFile에 저장
+exports.checkOldImage = function(req, res, next){
+
+    var query =
+        'SELECT image, thumb_image FROM user WHERE user_id = ? ';
+
+    if (req.uploadFile){
+        connectionPool.getConnection(function (err, connection) {
+            if (err) {
+                verify(err,false,'데이터베이스 연결오류 입니다.');
+            }
+            connection.query(query, req.session.passport.user, function (err, rows) {
+                if (err) {
+                    connection.release();
+                    verify(err,false,'sql쿼리 오류입니다.'+err.message);
+                }
+                else{
+
+                    connection.release();
+                    if ( rows[0].image != null ){
+                        req.oldFile = {
+                            largePath : rows[0].image,
+                            thumbPath : rows[0].thumb_image
+                        };
+                    }
+                    next();
+
+                }
+            });
+        });
+    }else{
+        next();
+    }
 };
 
 // api : /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
-
+    console.log('머지?');
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     var updated = {};
 
-    if (req.uploadFile)         updated.image = req.uploadFile;
+    if (req.uploadFile)         updated.image = path.basename(req.uploadFile.largePath);
+    if (req.uploadFile)         updated.thumb_image = path.basename(req.uploadFile.thumbPath);
     if (req.body.self_intro)    updated.self_intro = req.body.self_intro;
     if (req.body.name)          updated.name = req.body.name;
     if (req.body.phone)         updated.phone = req.body.phone;
@@ -242,6 +304,7 @@ exports.updateAccountSettings = function(req,res){
         updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
     }
 
+
     query =
         'UPDATE user SET ? WHERE user_id = ? ';
 
@@ -253,9 +316,60 @@ exports.updateAccountSettings = function(req,res){
         [updated,user_id],
         function(err,rows,msg){
             console.log('rows 정보는 : ',rows);
-            if (err) {console.log('err is ',err.message);res.json(trans_json(msg,0));}
-            else {console.log('야호!!!');res.json(trans_json(msg,1));}
+            if (err) {
+                console.log('err is ',err.message);
+                res.json(trans_json(msg,0));
+            } else {
+                console.log('req.oldFile', req.oldFile);
+                if (req.oldFile){
+                    deleteImage(req.oldFile, function (err) {
+                        if (err) res.json(trans_json(msg,0));
+                        else res.json(trans_json(msg,1));
+                    })
+                }else{
+                    res.json(trans_json(msg,1));
+                }
+            }
         }
     );
-
 };
+
+
+// 웹 서버에 기존 이미지 삭제
+function deleteImage(row, callback) {
+    var fileNames = [
+        row.largePath,
+        row.thumbPath
+    ];
+
+    async.each(fileNames, function(fileName, cb) {
+
+        // 파일 패스 설정
+        var path = baseImageDir;
+        if ( fileName.indexOf("l_p_") != -1){
+            path = path + "large/";
+        }else{
+            path = path + "thumbs/";
+        }
+
+        // 삭제할 파일패스로 해당 파일 삭제
+        path = path + fileName;
+        fstools.remove(path, function (err) {
+            if (err) {
+                cb(err);
+            } else {
+                cb();
+            }
+        });
+    }, function (err) {
+        if ( err ){
+            callback(err);
+
+            logger.error('서버 이미지 삭제 error : ', err.message);
+            logger.error('/---------------------------------------- end -----------------------------------------/');
+        }else{
+            callback(null);
+        }
+    });
+}
+

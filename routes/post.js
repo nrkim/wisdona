@@ -84,8 +84,6 @@ function deleteImage(row, callback) {
             callback(null);
         }
     });
-
-
 }
 
 // 웹 서버에 원본, 중간, 썸네일 이미지 저장
@@ -366,7 +364,7 @@ exports.insertPostQuery = function (req, res) {
         async.waterfall([
             function (callback) {
                 // 1. isbn, isbn13 검색
-                var query = "SELECT book_id FROM book WHERE isbn = ? or isbn13 = ?";
+                var query = "SELECT book_id, category_id FROM book b JOIN genre g ON b.genre_id = g.genre_id WHERE isbn = ? or isbn13 = ?";
                 var data = [req.body.isbn, req.body.isbn13];
                 connection.query(query, data, function (err, rows, fields) {
                     if (err) {
@@ -386,7 +384,7 @@ exports.insertPostQuery = function (req, res) {
                         if (err) {
                             callback(err);
                         }
-                        callback(null, rows[0].book_id);
+                        callback(null, rows[0].category_id, rows[0].book_id );
                     });
                 } else {
                     async.waterfall([
@@ -448,7 +446,8 @@ exports.insertPostQuery = function (req, res) {
             function (category_id, book_id, callback) {
                 query = "INSERT INTO post (comment, bookmark_cnt, user_id, book_id, category_id, book_condition_id, is_certificate) VALUES(?, ?, ?, ?, ?, ?, ?)";
 
-                data = [req.body.comment, req.body.bookmark_cnt, req.params.user_id, book_id, category_id, req.body.book_condition_id, req.body.is_certificate, req.body.genre_id];
+                data = [req.body.comment, req.body.bookmark_cnt, req.params.user_id, book_id, category_id, req.body.book_condition_id, req.body.is_certificate];
+                logger.debug('dddd', data);
                 connection.query(query, data, function (err, result) {
                     if (err) {
                         callback(err);
@@ -528,7 +527,6 @@ exports.insertPostQuery = function (req, res) {
                         logger.debug('.');
                         logger.debug('/ 게시물 인설트 성공!');
                         logger.debug('/---------------------------------------- end -----------------------------------------/');
-
                     }
                 });
             }
@@ -843,14 +841,12 @@ exports.getPostDetail = function(req,res){
                 var result = {
                     user : {
                         user_id : rows[0].user_id,
-                        nick_name : rows[0].nick_name,
-                        profile_image_url : rows[0].image,
-                        like_cnt : rows[0].like_total_cnt,
-                        sad_cnt : rows[0].sad_total_cnt
+                        nick_name : rows[0].nickname,
+                        profile_image_url : rows[0].image
                     },
                     post : {
                         comment : rows[0].comment,
-                        book_mark_count : rows[0].bookmark_cnt,
+                        bookmark_count : rows[0].bookmark_cnt,
                         book_image_url : rows[0].large_image_paths && rows[0].large_image_paths.split(','),
                         book_condition : rows[0].book_condition_id,
                         is_certificate : Boolean(rows[0].is_certificate),
@@ -924,7 +920,7 @@ exports.getPostDetail = function(req,res){
 
 exports.getPostList = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
-    logger.debug('/ 게시물 상세정보 요청 : ', {category_id:req.query.category_id, page:req.query.page, count:req.query.count, sort:req.query.sort, theme:req.query.theme});
+    logger.debug('/ 게시물 리스트 요청 : ', {category_id:req.query.category_id, page:req.query.page, count:req.query.count, sort:req.query.sort, theme:req.query.theme});
 
     var category_id = req.query.category_id;
     var page = req.query.page;
@@ -1163,14 +1159,19 @@ exports.reportPost = function(req,res){
 exports.getImage = function(req, res) {
 
     // 파일 패스 설정
-    var imageType = baseImageDir;
+    var imageType;
     if ( req.params.imagepath.indexOf("o_") != -1){
         imageType = "original/";
     }else if(req.params.imagepath.indexOf("l_") != -1) {
         imageType = "large/";
-    }else{
+    }else if(req.params.imagepath.indexOf("t_") != -1){
         imageType = "thumbs/";
+    }else if(req.params.imagepath.indexOf("l_p_") != -1){
+        imageType = "profile/large/";
+    }else{
+        imageType = "profile/thumb/";
     }
+
 
     var mimeType = mime.lookup(req.params.imagepath);
 
@@ -1184,9 +1185,9 @@ exports.getImage = function(req, res) {
 
             res.json(getJsonData(404, '해당 이미지가 없습니다', null));
 
-            logger.error('/--------------------------------------- start ----------------------------------------/');
-            logger.error('/ 이미지 요청 error : ', req.params.imagepath);
-            logger.error('/---------------------------------------- end -----------------------------------------/');
+//            logger.error('/--------------------------------------- start ----------------------------------------/');
+//            logger.error('/ 이미지 요청 error : ', req.params.imagepath);
+//            logger.error('/---------------------------------------- end -----------------------------------------/');
         }
     });
 }

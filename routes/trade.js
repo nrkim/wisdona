@@ -121,17 +121,28 @@ exports.sendRequestPost = function(req,res){
                         })
                     },
                     function (cb) {
-                        req.params.trade_id = trade_id;
-                        req.body.message = req.params.user_id + '님이 책을 요청하셨습니다.';
-                        // 메시지 전송
-                        message.createMessage(req, connection, function (err, result) {
-                            if(err) cb(err);
-                            else cb();
+
+                        query = "SELECT nickname, name, phone, address FROM user WHERE user_id = ?;";
+                        data = [req.params.user_id];
+                        connection.query(query, data, function (err, rows, fields) {
+                            if (err) {
+                                logger.error('교환 요청 GCM 에러!', err.message);
+                            } else {
+                                req.body.message = rows[0].nickname + '님이 책을 요청하셨습니다.\n\n이름: ' + rows[0].name + '\n연락처: ' + rows[0].phone + '\n주소:' + rows[0].address;
+                                req.params.trade_id = trade_id;
+                                // 메시지 전송
+                                message.createMessage(req, connection, function (err, result) {
+                                    if(err) cb(err);
+                                    else cb();
+                                });
+
+                            }
                         });
+
                     }
                 ], function (err) {
                     if(err) callback(err);
-                    else callback();
+                    else callback(null);
                 })
             }
         ], function (err) {
@@ -157,7 +168,7 @@ exports.sendRequestPost = function(req,res){
                     }else{
                         connection.release();
 
-                        var result = {message:req.body.message};
+                        var result = {message:req.body.message, trade_id:req.params.trade_id};
                         res.json(getJsonData(1, "success", result));
 
 
@@ -234,11 +245,10 @@ exports.acceptPost = function(req,res){
                     });
                 },
                 function (rows, callback) {
-                    console.log(rows);
                     // 다음 거래 단계 파악
                     var status_id;
                     if ( req.params.user_id == rows[0].user_id ){
-                        req.body.to_user_id = req.params.user_id;
+                        req.body.to_user_id = rows[0].req_user_id;
                         // 기부자
                         switch (rows[0].current_status) {
                             case 1 :
@@ -261,7 +271,7 @@ exports.acceptPost = function(req,res){
                                 break;
                         }
                     }else if ( req.params.user_id == rows[0].req_user_id ) {
-                        req.body.to_user_id = rows[0].req_user_id;
+                        req.body.to_user_id = req.params.user_id;
                         // 요청자
                         switch (rows[0].current_status) {
                             case 2 :
@@ -371,6 +381,7 @@ exports.acceptPost = function(req,res){
                                     if (err) {
                                         logger.error('교환 요청 GCM 에러!', err.message);
                                     } else {
+
                                         gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], '위즈도나', req.body.message, 3, function (err) {
                                             // 완료
                                             if (err) {
@@ -381,7 +392,7 @@ exports.acceptPost = function(req,res){
                                         });
                                     }
                                 });
-                                result = {message:req.body.message};
+                                result = {message:req.body.message, trade_id:req.params.trade_id};
                             }else{
                                 result = null;
                             }
@@ -565,7 +576,7 @@ exports.cancelPost = function(req,res){
                         }else{
                             connection.release();
 
-                            var result = {message:req.body.message};
+                            var result = {message:req.body.message, trade_id:req.params.trade_id};
                             res.json(getJsonData(1, "success", result));
 
                             // GCM 전송

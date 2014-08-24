@@ -70,7 +70,7 @@ exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, ms
     // 3. 배송완료
     // 4. 철회
     // 5. 메시지
-    logger.debug('userPushSettings', userPushSettings);
+
     // 사용자 별 푸쉬 설정에 따라 제외할 사람 빼기
     var sendUserDeviceIds = [];
     for(var i=0; i<userDeviceIds.length; i++){
@@ -83,17 +83,14 @@ exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, ms
     }
 
 
-
-    logger.debug('sendUserDeviceIds', sendUserDeviceIds);
-
     var sender = new gcm.Sender(gcmConfig.apikey);
 
     sender.send(message, sendUserDeviceIds, 4, function(err, result){
         if (err){
-            console.log('console.log!!!');
+            logger.error('GCM Error!!',result);
             callback(err);
         }else{
-            console.log('result is ...',result);
+            logger.debug('GCM Success!!',result);
             callback();
         }
     });
