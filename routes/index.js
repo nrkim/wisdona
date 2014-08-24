@@ -146,8 +146,8 @@ module.exports = function(app,passport) {
     app.get('/users/:user_id/reviews/list', user.getReviewList);
     app.get('/users/:user_id/req-posts/list',isLoggedIn, user.getRequestPostList);
 
-    // 대화
-    app.get('/users/:user_id/message-groups/list',isLoggedIn, message.getMessageGroupList);
+    // 대화isLoggedIn,
+    app.get('/users/:user_id/message-groups/list',message.getMessageGroupList);
     app.post('/users/:user_id/message-groups/destroy',isLoggedIn, message.destroyMessageGroup);
     app.post('/users/:user_id/message-groups/:trade_id/create',isLoggedIn,message.createMsg);//express.bodyParser()
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);

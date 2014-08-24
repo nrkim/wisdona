@@ -160,8 +160,6 @@ exports.requestSendEmail = function (req,res){
         // 먼저 insert 먼저 하고 transporting 하도록 template 수정 필요.
         // 해시 함수를 이용한 패스워드 생성 함수 필요
 
-        console.log('requestActivationEmail!!');
-
         async.waterfall([
                 function generateSalt(callback) {
                     var rounds = 10;

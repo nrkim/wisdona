@@ -12,7 +12,6 @@ var json = require("./json")
 // api : /users/:user_id/posts/list
 exports.getUserPostList = function(req,res){
     //parameter로 받은 사용자 아이디
-
     var user_id = req.session.passport.user ;
 
     //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
@@ -31,8 +30,6 @@ exports.getUserPostList = function(req,res){
     if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
     if (typeof page    != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
     if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
-
-    console.log('trans_list!!');
 
     var query =
         "SELECT post_id, book_image_path, title, author, translator, publisher, pub_date, " +
@@ -67,8 +64,6 @@ exports.getReviewList = function(req,res){
 
     // 페이징 관련 계산
     var start = page*count;
-
-    console.log('user_id, page, count',user_id, page, count);
 
     //타입 체크
     if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
@@ -119,8 +114,6 @@ exports.getRequestPostList = function(req,res){
     if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
     if (typeof page    != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
     if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
-
-    console.log('user_id, page, count',user_id, page,count);
 
     var query =
         "SELECT t.post_id, book_image_path, title, author, translator, publisher, " +
