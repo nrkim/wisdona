@@ -29,6 +29,8 @@ var isLoggedIn = function (req, res, next) {
         res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
     }
 };
+//ㄴㄴㄴ
+
 
 module.exports = function(app,passport) {
 
