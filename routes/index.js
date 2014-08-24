@@ -15,17 +15,18 @@ var account = require('../routes/account')
     ,create_user = require('../routes/json').create_user
     ,send_email = require('../routes/send_email')
     ,template_item = require('../routes/template').template_item
+    ,file_manager = require('./fileManager');
     ,logger = require('../config/logger');
 
 var isLoggedIn = function (req, res, next) {
 
     if (req.isAuthenticated() ){
-        //logger.info('인증에 성공 하였습니다.');
+        logger.info('인증에 성공 하였습니다.');
         return next();
     }
     else {
         //버그가 있을 것 같은 ...
-        //logger.info('인증 받지 않았습니다.');
+        logger.info('인증 받지 않았습니다.');
         res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
     }
 };
@@ -39,33 +40,18 @@ module.exports = function(app,passport) {
             if (user === false) {
                 res.json(trans_json(info.loginMessage,0));
             } else {
-                console.log('login started .....');
                 req.logIn(user, function(err) {
-                    if (err) {
-                        console.log('login err...',err);
-                        console.log('ldd :',err.message);
-                        res.json(trans_json(err.message,0));
-                    } //next(err);
+                    if (err) { console.log('ldd :',err.message);res.json(trans_json(err.message,0)); } //next(err);
                     else{
-                        console.log('login is good ...');
                         template_item(
                             "UPDATE user SET gcm_registration_id = ? WHERE user_id = ? ",
                             [req.body.gcm_registration_id,user.user_id],
                             function(err,result,msg){
-                                if (err) {
-                                    console.log('what is ....',req.body.gcm_registration_id);
-                                    console.log('ldd :',err.message);
-                                    res.json(trans_json('로그인에 실패했습니다.',0));
-                                }
+                                if (err) { console.log('ldd :',err.message);res.json(trans_json('로그인에 실패했습니다.',0));}
                                 else {
-                                    console.log('successful login');
                                     req.session.passport.user = user.user_id;
-                                    //req.json_file = create_user(user.user_id);
-                                    //next();
-                                    console.log('create_user is ',create_user(user.user_id));
-                                    res.json(trans_json('로그인에 성공했습니다.',1,
-                                        create_user(user.user_id))
-                                    );
+                                    req.json_file = create_user(user.user_id);
+                                    next();
                                 }
                             }
                         );
@@ -73,7 +59,7 @@ module.exports = function(app,passport) {
                 });
             }
         })(req, res, next);
-    });
+    },login.registerLocal);
 
     app.post('/facebook-signup',
         express.bodyParser(),
@@ -155,7 +141,7 @@ module.exports = function(app,passport) {
     app.get('/users/:user_id/profile/show', account.getUserInfo);
     app.post('/users/destroy', isLoggedIn, account.destroyUserAccount);
     app.get('/users/:user_id/account-settings/show', isLoggedIn, account.getAccountSettings);
-    app.post('/users/:user_id/account-settings/update', account.uploadImage, account.updateAccountSettings);
+    app.post('/users/:user_id/account-settings/update', account.uploadImage, account.checkOldImage, account.updateAccountSettings);
 
     // 사용자
     app.get('/users/:user_id/posts/list', user.getUserPostList);
@@ -163,7 +149,7 @@ module.exports = function(app,passport) {
     app.get('/users/:user_id/req-posts/list',isLoggedIn, user.getRequestPostList);
 
     // 대화
-    app.get('/users/:user_id/message-groups/list',isLoggedIn,message.getMessageGroupList);
+    app.get('/users/:user_id/message-groups/list',isLoggedIn, message.getMessageGroupList);
     app.post('/users/:user_id/message-groups/destroy',isLoggedIn, message.destroyMessageGroup);
     app.post('/users/:user_id/message-groups/:trade_id/create',isLoggedIn,message.createMsg);//express.bodyParser()
     app.get('/users/:user_id/message-groups/:trade_id/list',isLoggedIn, message.getMessageList);
@@ -181,7 +167,7 @@ module.exports = function(app,passport) {
     app.get('/posts/list', post.getPostList);
     app.get('/posts/search', post.searchPosts);
     app.post('/users/:user_id/posts/report',isLoggedIn, post.reportPost);
-    app.get('/images/:imagepath', post.getImage);
+
 
     // 교환
     app.post('/users/:user_id/posts/send-request',isLoggedIn, trade.sendRequestPost);
@@ -200,6 +186,9 @@ module.exports = function(app,passport) {
     app.get('/news', other.getNewsList);
     app.get('/faq', other.getFaqList);
 
-    // GCM
+    // 파일 관련
+    app.get('/images/:imagepath', file_manager.getImage);
+
+
 
 };
