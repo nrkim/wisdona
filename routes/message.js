@@ -155,6 +155,7 @@ exports.createMsg = function(req,res){
                         'FROM trade t ' +
                         'JOIN post p ON t.post_id = p.post_id ' +
                         'WHERE t.trade_id = ? ';
+                    logger.debug('user_id,user_id,message,trade_id', user_id,user_id,message,trade_id);
                     connection.get_query(
                         query,
                         [user_id,user_id,message,trade_id],

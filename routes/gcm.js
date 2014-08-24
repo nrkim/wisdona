@@ -3,7 +3,9 @@
  */
 var gcm = require('node-gcm'),
     gcmConfig = require('../config/gcm'),
-    async = require('async');
+    async = require('async'),
+    logger = require('../config/logger');
+
 
 // 유저 Device Id 업데이트
 exports.updateDeviceId = function(user_id, userDeviceId, callback){

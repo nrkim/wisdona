@@ -4,7 +4,8 @@
 var async = require('async');
 var message = require('./message');
 var post = require('./post');
-var gcm = require('./gcm');;
+var gcm = require('./gcm');
+var logger = require('../config/logger');
 
 // 출력 JSON
 function getJsonData( code, message, result ){

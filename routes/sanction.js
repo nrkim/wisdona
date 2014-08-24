@@ -1,5 +1,5 @@
 var async = require('async');
-
+var logger = require('../config/logger');
 
 // post_id로 trade검색 후 요청한 상태이면 제재 처리 (거래 정보 없거나 있는 경우 요청전, 수취완료, 완료 상태는 패스)
 // 프로모션 체크 : 기록이 있는 게시물이면 기록 및 책갈피 회수(회수 책갈피 없으면 제재)
