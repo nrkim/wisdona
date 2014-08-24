@@ -12,7 +12,6 @@ var json = require("./json")
 // api : /users/:user_id/posts/list
 exports.getUserPostList = function(req,res){
     //parameter로 받은 사용자 아이디
-
     var user_id = req.session.passport.user ;
 
     //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
@@ -32,12 +31,10 @@ exports.getUserPostList = function(req,res){
     if (typeof page    != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
     if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
 
-    console.log('trans_list!!');
-
     var query =
         "SELECT post_id, book_image_path, title, author, translator, publisher, pub_date, " +
         "bookmark_cnt FROM post p JOIN book b ON p.book_id = b.book_id " +
-        "WHERE p.user_id = ? LIMIT ?, ?";
+        "WHERE p.user_id = ? ORDER BY p.create_date DESC LIMIT ?, ?";
 
     template_list(
         query,
@@ -68,8 +65,6 @@ exports.getReviewList = function(req,res){
     // 페이징 관련 계산
     var start = page*count;
 
-    console.log('user_id, page, count',user_id, page, count);
-
     //타입 체크
     if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
     if (typeof user_id != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
@@ -84,7 +79,7 @@ exports.getReviewList = function(req,res){
             "JOIN post p ON t.post_id = p.post_id " +
             "JOIN book b ON b.book_id = p.book_id " +
             "JOIN user u  ON r.from_user_id = u.user_id " +
-            "WHERE r.to_user_id = ? LIMIT ?, ? ";
+            "WHERE r.to_user_id = ? ORDER BY r.create_date DESC LIMIT ?, ? ";
     // 테스트 쿼리 : user_id  = 4
 
 
@@ -120,13 +115,11 @@ exports.getRequestPostList = function(req,res){
     if (typeof page    != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
     if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
 
-    console.log('user_id, page, count',user_id, page,count);
-
     var query =
         "SELECT t.post_id, book_image_path, title, author, translator, publisher, " +
         "pub_date, bookmark_cnt, p.current_status FROM trade t JOIN post p ON t.post_id = p.post_id " +
         "JOIN book b ON p.book_id = b.book_id " +
-        "WHERE t.req_user_id = ? LIMIT ?, ?";
+        "WHERE t.req_user_id = ? ORDER BY p.create_date DESC LIMIT ?, ?";
 
     template_list(
         query,

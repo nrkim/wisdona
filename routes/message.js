@@ -27,51 +27,52 @@ exports.getMessageGroupList = function(req,res){
 
     //parameter로 받은 사용자 아이디
     var user_id = req.session.passport.user;
+    //var user_id = Number(req.params.user_id);
+    console.log('user_id ',user_id);
 
     // query string 처리
-    var page = req.query.page || 0;
-    var count = req.query.count || 10;
+    var page = Number(req.query.page) || 0;
+    var count = Number(req.query.count) || 10;
 
     // 페이징 관련 계산
     var start = page*count;
 
     //타입 체크
     if (typeof user_id != "number") { res.json('유저 아이디 타입은 숫자여야 합니다.',0); }
-    else if (typeof user_id != "number") { res.json('페이지 타입은 숫자여야 합니다.',0); }
-    else if (typeof count   != "number") { res.json('카운트 타입은 숫자여야 합니다',0); }
-    else{
-        var query =
-            "select m.trade_id, (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END), " +
-            "nickname, image, m.trade_id, title, message, be_message_cnt, m.create_date " +
-            "from ( " +
-            "select trade_id as trade_id, from_user_id as from_user_id, to_user_id as to_user_id, message as message, create_date as create_date " +
-            "from message m join (select max(create_date) AS max_date " +
-            "from message " +
-            "group by trade_id ) d " +
-            "where m.create_date = d.max_date " +
-            ") m " +
-            "JOIN user u ON u.user_id = (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) " +
-            "JOIN trade t ON m.trade_id = t.trade_id " +
-            "JOIN post p ON p.post_id = t.post_id " +
-            "JOIN book b ON b.book_id = p.book_id " +
-            "where (m.from_user_id = ? or m.to_user_id = ?) and " +
-            "(CASE WHEN req_user_id = ? THEN be_show_group ELSE do_show_group END) = 1 " +
-            "order by m.create_date desc limit ?, ? ";
+    if (typeof user_id != "number") { res.json('페이지 타입은 숫자여야 합니다.',0); }
+    if (typeof count   != "number") { res.json('카운트 타입은 숫자여야 합니다',0); }
 
-        //sample 예제 to_user_id =5, 1, 10
-        template_list(
-            query,
-            [user_id,user_id,user_id,user_id,user_id,start,count],
-            message_list,
-            function(err,result,msg){
-                if(err) {res.json(trans_json(msg,0));}
+    var query =
+        "select m.trade_id, (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) from_user_id, " +
+        "nickname, image, m.trade_id, title, message, m.be_message_cnt, m.create_date from ( select trade_id as trade_id, " +
+        "from_user_id as from_user_id, to_user_id as to_user_id, message as message, create_date as create_date, d.be_message_cnt " +
+        "as be_message_cnt from message m join (select max(create_date) AS max_date, SUM(CASE WHEN to_user_id = ? AND " +
+        "is_read = 0 then 1 ELSE 0 END) " +
+        "as be_message_cnt from message group by trade_id ) d where m.create_date = d.max_date) m " +
+        "JOIN user u ON u.user_id = (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) " +
+        "JOIN trade t ON m.trade_id = t.trade_id JOIN post p ON p.post_id = t.post_id JOIN book b ON b.book_id = p.book_id " +
+        "where (m.from_user_id = ? or m.to_user_id = ?) and (CASE WHEN req_user_id = ? THEN be_show_group ELSE do_show_group END) = 1 " +
+        "order by m.create_date desc limit ?, ? ";
+
+
+    template_list(
+        query,
+        [user_id,user_id,user_id,user_id,user_id,user_id,start,count],
+        message_list,
+        function(err,result,msg){
+            if(err) {
+                res.json(trans_json(msg,0));
+            }
+            else {
+                if(result) {
+                    res.json(trans_json(msg,1,result));
+                }
                 else {
-                    if(result) {res.json(trans_json(msg,1,result));}
-                    else { res.json(trans_json(msg,1));}
+                    res.json(trans_json(msg,1));
                 }
             }
-        );
-    }
+        }
+    );
 
 };
 
@@ -93,26 +94,30 @@ exports.destroyMessageGroup = function(req,res){
         if (err){res.json(trans_json('데이터 베이스 커넥션 오류입니다.',0));}
         else{
             async.each(trade_id_list, function( trade_id, callback) {
-                console.log(trade_id);
-                connection.get_conn(
+                connection.get_query(
                     query,
                     [user_id,user_id,trade_id],
                     function(err,rows,msg){
-                        if(err) {console.log('err is ....',err.message);callback(err);}
-                        else {console.log('rows is !!',rows);callback(null)}
+                        if(err) { callback(err); }
+                        else { callback(null) }
                     }
                 )
             }, function(err){
                 if (err) {
                     connection.get_rollback(function(err_msg){
-                       console.log('get rollback',err_msg);
                        connection.close_conn();
                        res.json(trans_json(err_msg,0));
                     });
                 } else {
                     connection.get_commit(function (err) {
-                        if (err) { connection.close_conn();console.log('get rollback',err.message);res.json(trans_json('커밋 작업에 실패하였습니다',0)); }
-                        else {console.log('success..');connection.close_conn();res.json(trans_json('success',1));}
+                        if (err) {
+                            connection.close_conn();
+                            res.json(trans_json('커밋 작업에 실패하였습니다',0));
+                        }
+                        else {
+                            connection.close_conn();
+                            res.json(trans_json('success',1));
+                        }
                     });
                 }
             });
@@ -183,7 +188,8 @@ exports.createMsg = function(req,res){
                     )
                 },
                 function sendGCM (device_list, push_settings_arr, callback){       //GCM 보내는 함수
-                    sendMessage(device_list,push_settings_arr,"wisdona",message,5,
+                    //userDeviceIds, userPushSettings, code, title, msg, callback ) {
+                    sendMessage(device_list,push_settings_arr,5,"wisdona",message,
                         function(err){
                             if(err) { console.log('log7');callback(err); }
                             //console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
@@ -193,6 +199,7 @@ exports.createMsg = function(req,res){
                 }
             ],function(err){
                 if(err) {
+
                     //console.log('log11',err.message);
                     connection.close_conn();
                     res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));
@@ -212,7 +219,7 @@ exports.createMessage = function(req,connection,next){
 
     // 파라미터
     var user_id = req.session.passport.user;
-    var trade_id = JSON.parse(req.params.trade_id) || next(new Error("거래 아이디를 입력하지 않았습니다."));
+    var trade_id = Number(req.params.trade_id) || next(new Error("거래 아이디를 입력하지 않았습니다."));
     var message = req.body.message   || next(new Error("메시지를 입력하지 않았습니다."));
 
     //타입 검사
@@ -236,7 +243,7 @@ exports.createMessage = function(req,connection,next){
 
 exports.getMessageList = function(req,res){
 
-    logger.debug('/--------------------------------------- getMessageGroupList ----------------------------------------/');
+    logger.debug('/--------------------------------------- getMessageList ----------------------------------------/');
     logger.debug('session : ',{user_id : req.session.passport.user});
     logger.debug('params : ',{trade_id :req.params.trade_id});
     logger.debug('query : ',{page : req.query.page, count : req.query.count});
@@ -246,12 +253,11 @@ exports.getMessageList = function(req,res){
     var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     // query string 처리
-    var page = req.query.page || 0;
-    var count = req.query.count || 10;
+    var page = Number(req.query.page) || 0;
+    var count = Number(req.query.count) || 10;
 
     // 페이징 관련 계산
     var start = page*count;
-
 
     //타입 체크
     if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
@@ -270,9 +276,11 @@ exports.getMessageList = function(req,res){
         [trade_id,start,count],
         message_window,
         function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json(msg,1,result));
-            else res.json(trans_json(msg,1));
+            if(err) { res.json(trans_json(msg,0)); }
+            else {
+                if(result) res.json(trans_json(msg,1,result));
+                else res.json(trans_json(msg,1));
+            }
         }
     );
 };
@@ -286,9 +294,10 @@ exports.getUnreadMessgeList = function(req,res){
     var user_id = req.session.passport.user;
 
     var get_query =
-        "SELECT trade_id, message, m.create_date AS create_date, from_user_id AS user_id , nickname, image " +
-        "FROM user u JOIN message m ON u.user_id = m.from_user_id " +
-        "WHERE to_user_id = ? AND m.is_sended = 0 ";
+        'SELECT trade_id, message, DATE_FORMAT(convert_tz(m.create_date , "UTC", "Asia/Seoul"), "%Y-%m-%d %H:%i" ) AS create_date, ' +
+        'from_user_id AS user_id , nickname, image ' +
+        'FROM user u JOIN message m ON u.user_id = m.from_user_id ' +
+        'WHERE to_user_id = ? AND m.is_sended = 0 ';
 
     template_list(
         get_query,
@@ -324,7 +333,7 @@ exports.getUnreadMessgeList = function(req,res){
 
 exports.confirmMessage = function(req,res){
 
-    logger.debug('/--------------------------------------- getUnreadMessgeList ----------------------------------------/');
+    logger.debug('/--------------------------------------- confirmMessage ----------------------------------------/');
     logger.debug('session : ',{user_id : req.session.passport.user});
     logger.debug('params : ',{trade_id : req.params.trade_id});
 

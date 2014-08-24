@@ -296,10 +296,6 @@ exports.updateAccountSettings = function(req,res){
     if (req.body.address)       updated.address = req.body.address;
     if (req.body.push_settings) updated.push_settings = req.body.push_settings;
 
-    console.log(user_id);
-    console.log('addresss is       ',req.body.address);
-    console.log('updated is ',updated);
-
     if(updated.push_settings){
         updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
     }

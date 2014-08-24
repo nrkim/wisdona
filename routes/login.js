@@ -22,7 +22,7 @@ var request = require('request');
 
 
 exports.registerLocal = function(req,res){
-    logger.debug('/--------------------------------------- getMessageGroupList ----------------------------------------/');
+    logger.debug('/--------------------------------------- registerLocal ----------------------------------------/');
     logger.debug('session : ',req.session.passport.user);
     logger.debug('body : ', req.body);
 

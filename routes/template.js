@@ -46,10 +46,14 @@ exports.connection_closure = function(next){
 exports.template_list = function(query,params,get_json,verify){
     connectionPool.getConnection(function (err, connection) {
         if (err) {
+            console.log('connection err is ..',err.message);
             verify(err,false,"데이터 베이스 연결 오류 입니다.");
         } else {
             connection.query(query, params, function (err, rows) {
+                console.log('query is ...',query);
+                console.log('template rows...',rows);
                 if (err) {
+                    console.log('query err is ..',err.message);
                     connection.release();
                     verify(err,false,'sql 쿼리 오류입니다.');
                 }
@@ -365,11 +369,11 @@ exports.create_hash = function (password,operation){
             if (err) {
                 result(err);
                 connection.release();
-                return res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
+                operation('암호화된 비밀번호 생성에 실패하였습니다.'); //res.json(trans_json('암호화된 비밀번호 생성에 실패하였습니다.', 0));
             }
             else{
                 console.log('password is',hashPass);
-                return hashPass;
+                operation(null,hashPass);
             }
         });
 }
