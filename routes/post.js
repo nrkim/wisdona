@@ -1166,7 +1166,7 @@ exports.getImage = function(req, res) {
         imageType = "large/";
     }else if(req.params.imagepath.indexOf("t_") != -1){
         imageType = "thumbs/";
-    }else if(req.params.imagepath.indexOf("pl_") != -1){
+    }else if(req.params.imagepath.indexOf("lp_") != -1){
         imageType = "profile/large/";
     }else{
         imageType = "profile/thumbs/";
