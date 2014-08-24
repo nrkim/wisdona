@@ -14,7 +14,7 @@ var message_window = json.message_window
     ,unread_msg_lst= json.unread_msg_lst
     ,connection_closure = template.connection_closure
     ,transaction_closure = template.transaction_closure
-    ,logger = require('../config/logger.js');
+    ,logger = require('../config/logger');
 var _ = require('underscore');
 var sendMessage = require('./gcm').sendMessage;
 
@@ -44,16 +44,16 @@ exports.getMessageGroupList = function(req,res){
     if (typeof count   != "number") { res.json('카운트 타입은 숫자여야 합니다',0); }
 
     var query =
-        "select m.trade_id, (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) from_user_id, " +
-        "nickname, image, m.trade_id, title, message, m.be_message_cnt, m.create_date from ( select trade_id as trade_id, " +
-        "from_user_id as from_user_id, to_user_id as to_user_id, message as message, create_date as create_date, d.be_message_cnt " +
-        "as be_message_cnt from message m join (select max(create_date) AS max_date, SUM(CASE WHEN to_user_id = ? AND " +
-        "is_read = 0 then 1 ELSE 0 END) " +
-        "as be_message_cnt from message group by trade_id ) d where m.create_date = d.max_date) m " +
+        "SELECT m.trade_id, (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) from_user_id, " +
+        "nickname, image, m.trade_id, title, message, m.be_message_cnt, m.create_date FROM ( SELECT trade_id AS trade_id, " +
+        "from_user_id AS from_user_id, to_user_id AS to_user_id, message AS message, create_date AS create_date, d.be_message_cnt " +
+        "AS be_message_cnt FROM message m JOIN (SELECT MAX(create_date) AS max_date, SUM(CASE WHEN to_user_id = ? AND " +
+        "is_read = 0 THEN 1 ELSE 0 END) " +
+        "AS be_message_cnt FROM message GROUP BY trade_id ) d WHERE m.create_date = d.max_date) m " +
         "JOIN user u ON u.user_id = (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) " +
         "JOIN trade t ON m.trade_id = t.trade_id JOIN post p ON p.post_id = t.post_id JOIN book b ON b.book_id = p.book_id " +
-        "where (m.from_user_id = ? or m.to_user_id = ?) and (CASE WHEN req_user_id = ? THEN be_show_group ELSE do_show_group END) = 1 " +
-        "order by m.create_date desc limit ?, ? ";
+        "WHERE (m.from_user_id = ? OR m.to_user_id = ?) AND (CASE WHEN req_user_id = ? THEN be_show_group ELSE do_show_group END) = 1 " +
+        "ORDER BY m.create_date DESC LIMIT ?, ? ";
 
 
     template_list(

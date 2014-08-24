@@ -16,7 +16,6 @@ var trans_json = json.trans_json
     ,updateDeviceId = gcm.updateDeviceId
     ,connection_closure = template.connection_closure
     ,logger = require('../config/logger');
-var create_hash = template.create_hash;
 var async = require('async');
 var request = require('request');
 
@@ -84,7 +83,7 @@ exports.facebookLogout = function(req,res){
 exports.logout = function(req,res){
     logger.debug('/--------------------------------------- logout ----------------------------------------/');
 
-    req.logout();
+    req.session.destroy();
     if (!req.session.passport.user) {
         console.log('성공!!');
         res.json(trans_json("success", 1));
@@ -140,6 +139,70 @@ exports.updatePassword = function(req,res){
     var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.",0));
     var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));
 
+    connection_closure(function(err,connection){
+        if(err){
+            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
+        } else {
+            async.waterfall([
+                function check_password(callback) {
+                    connection.get_query(
+                        "SELECT password FROM user WHERE user_id = ?",
+                        [user_id],
+                        function (err, rows) {
+                            if (err) {res.json(trans_json('sql에러입니다. ' + err.code, 0));}
+                            else {
+                                if (rows.length === 0) {res.json(trans_json('존재하지 않는 사용자 입니다.', 0));}
+                                else {callback(null);}
+                            }
+                        }
+                    );
+                },
+                function compare_password(callback) {
+                    bcrypt.compare(old_password, rows[0].password, function (err, result) {
+                        if (err) {res.json(trans_json('비밀번호 비교하면서 오류가 발생했습니다.', 0));}
+                        else {
+                            if (rows.length == 0) {
+                                res.json(trans_json('현재 비밀번호가 틀렸습니다. 다시 입력해 주십시오', 0));
+                            } else {
+                                callback(null);
+                            }
+                        }
+                    });
+                },
+                function update_password(callback) {
+                    create_password(new_password, function (err, pass) {
+                        if (err) {
+                            res.json(trans_json('비밀번호 생성에 실패했습니다.', 0));
+                        }
+                        else {
+                            var query = "update user set password = ? where user_id = ?"
+                            connection.get_query(
+                                query,
+                                [pass, user_id],
+                                function (err, rows) {
+                                    if (err) {
+                                        res.json(trans_json('비밀번호 변경에 실패했습니다.', 0));
+                                    }
+                                    else {
+                                        callback(null);
+                                    }
+                                }
+                            );
+                        }
+                    });
+                }
+            ], function (err) {
+                if (err) {
+                    res.json(trans_json('비밀번호 변경에 실패했습니다.', 0));
+                }
+                else {
+                    res.json(trans_json('비밀번호 변경에 성공했습니다.', 1));
+                }
+            });
+        }
+    });
+    // });
+/*
     connectionPool.getConnection(function(err, connection) {
         if (err) {
             res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
@@ -163,19 +226,18 @@ exports.updatePassword = function(req,res){
                     if(err){ res.json(trans_json('비밀번호 생성에 실패했습니다.',0));}
                     else {
                         var query = "update user set password = ? where user_id = ?"
-                        template_post(
-                            res,
+                        template_item(
                             query,
-                            [pass, user_id]
+                            [pass, user_id],
+                            function (err,rows){
+                                if(err) {res.json(trans_json('비밀번호 변경에 실패했습니다.',0));}
+                                else {res.json(trans_json('비밀번호 변경에 성공했습니다.',1));}
+                            }
                         );
                     }
                 });
-
-
             });
-            connection.release();
-
         });
-    });
+    });*/
 
 };

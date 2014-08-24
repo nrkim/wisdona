@@ -55,6 +55,10 @@ var send_mail = function (email,subject,content,verify){
 // api : /request-activation-email/:user_id
 exports.requestActivationEmail = function(req,res){
 
+    logger.debug('/--------------------------------------- requestActivationEmail ----------------------------------------/');
+    logger.debug('params : ',{ user_id : req.params.user_id});
+
+
     //이메일 파라미터 전달
     var user_id = JSON.parse(req.params.user_id) || res.json(trans_json('유저 아이디를 입력하지 않았습니다.',0));
     //전역 이메일
@@ -65,7 +69,8 @@ exports.requestActivationEmail = function(req,res){
 
     connection_closure(function(err,connection){
         async.waterfall([
-            function send_email(callback){
+            //등록된 이메일 가져오기
+            function email_check(callback){
                 connection.get_query(
                     "SELECT email FROM user WHERE user_id = ?",
                     [user_id],
@@ -83,6 +88,7 @@ exports.requestActivationEmail = function(req,res){
                     }
                 )
             },
+            // 랜덤 비밀번호 생성
             function random_token (callback){
                 crypto.randomBytes(48, function(err,buf){
                     if (err) { res.json(trans_json('랜덤 암호 토큰 생성에 실패했습니다.',0)); }
@@ -102,6 +108,7 @@ exports.requestActivationEmail = function(req,res){
                     }
                 });
             },
+            // 인증 토큰 테이블에 저장
             function insert_auth(token,callback){
                 console.log('암호 생성 성공 ',token);
                 template_item(
@@ -139,6 +146,7 @@ exports.requestActivationEmail = function(req,res){
                     }
                 )
             },
+            // 메시지 보내기
             function send_message(token,callback){
                 template = '<a href="http://54.92.19.218/activation-email/'+token+'"> 계정 인증 url입니다. 클릭하세요. </a>';
                 console.log('template : ',template);
