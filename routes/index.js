@@ -14,8 +14,8 @@ var account = require('../routes/account')
     ,trans_json = require('../routes/json').trans_json
     ,create_user = require('../routes/json').create_user
     ,send_email = require('../routes/send_email')
-    ,template_item = require('../routes/template').template_item;
-    //,logger = require('logger');
+    ,template_item = require('../routes/template').template_item
+    ,logger = require('../config/logger');
 
 var isLoggedIn = function (req, res, next) {
 
