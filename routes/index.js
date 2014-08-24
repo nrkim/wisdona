@@ -15,7 +15,8 @@ var account = require('../routes/account')
     ,create_user = require('../routes/json').create_user
     ,send_email = require('../routes/send_email')
     ,template_item = require('../routes/template').template_item
-    ,logger = require('../config/logger');
+    ,logger = require('../config/logger')
+    ,fileManager = require('./fileManager');
 
 var isLoggedIn = function (req, res, next) {
 
@@ -189,7 +190,7 @@ module.exports = function(app,passport) {
     app.get('/posts/list', post.getPostList);
     app.get('/posts/search', post.searchPosts);
     app.post('/users/:user_id/posts/report',isLoggedIn, post.reportPost);
-    app.get('/images/:imagepath', post.getImage);
+
 
     // 교환
     app.post('/users/:user_id/posts/send-request',isLoggedIn, trade.sendRequestPost);
@@ -208,6 +209,6 @@ module.exports = function(app,passport) {
     app.get('/news', other.getNewsList);
     app.get('/faq', other.getFaqList);
 
-    // GCM
-
+    // 파일 매니저
+    app.get('/images/:imagepath', fileManager.getImage);
 };
