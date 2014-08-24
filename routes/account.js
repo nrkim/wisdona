@@ -16,12 +16,11 @@ var template = require('./template')
 
 // 이미지 업로드 관련
 var _ = require('underscore')
-    ,im = require('imagemagick')
-    ,fstools = require('fs-tools')
     ,fs = require('fs')
     ,async = require('async')
     ,path = require('path')
-mime = require('mime');
+    ,logger = require('../config/logger')
+    ,fileManager = require('./fileManager');
 
 var baseImageDir = __dirname + '/../images/profile/';
 
@@ -143,7 +142,6 @@ exports.uploadImage = function (req,res,next){
 
         form.parse(req, function(err, fields, files) {
             req.body = fields;
-
             async.waterfall([
                 function(callback) {
                     var filesArr = _.map(files, function(file) {
@@ -152,84 +150,15 @@ exports.uploadImage = function (req,res,next){
                     callback(null, filesArr);
                 },
                 function(filesArr, callback) {
-                    req.uploadFiles = [];
 
-                    async.each(filesArr, function (file, cb) {
-                        if (file.size) {
-
-                            var destPath = path.normalize(baseImageDir + "original/" + "op_" + path.basename(file.path));
-                            fstools.move(file.path, destPath, function (err) {
-                                if (err) {
-                                    cb(err);//res.json(trans_json(err.message,0));
-                                } else {
-
-                                    var largePath = path.normalize(baseImageDir + "large/" + "lp_" + path.basename(file.path));
-                                    var thumbPath = path.normalize(baseImageDir + "thumbs/" + "tp_" + path.basename(file.path));
-
-                                    async.series([
-                                            function (cb2) {
-                                                im.resize({
-                                                    srcPath: destPath,
-                                                    dstPath: largePath,
-                                                    width:   230
-                                                }, function(err, stdout, stderr) {
-                                                    if (err) {
-                                                        cb2(err);
-                                                    } else {
-                                                        cb2();
-                                                    }
-                                                });
-                                            },
-                                            function (cb2) {
-                                                im.resize({
-                                                    srcPath: largePath,
-                                                    dstPath: thumbPath,
-                                                    width:   80
-                                                }, function(err, stdout, stderr) {
-                                                    if (err) {
-                                                        cb2(err);
-                                                    } else {
-                                                        cb2();
-                                                    }
-                                                });
-                                            }
-                                        ],
-                                        function (err, results) {
-                                            if ( err ){
-                                                callback(err);
-                                            }else{
-                                                // 경로 저장
-                                                var uploadFile = {
-                                                    originalPath : destPath,
-                                                    largePath : largePath,
-                                                    thumbPath : thumbPath
-                                                };
-                                                req.uploadFile = uploadFile;
-                                                cb();
-                                            }
-                                        }
-                                    );
-                                }
-                            });
-                        } else{
-                            fstools.remove(file.path, function(err) {
-                                if (err) {
-                                    cb(err);
-                                    //res.json(trans_json(err.message,0));
-                                } else {
-                                    console.log('Zero file removed!!!');
-                                    cb();
-                                }
-                            });
-                        }
-                    }, function (err) {
-                        if( err){
-                            callback(err);
-                        }else{
-                            callback();
-                        }
-                    });
-
+                    if ( filesArr.length ){
+                        fileManager.saveProfileImage(filesArr[0], function (err, uploadPath) {
+                            req.uploadPath = uploadPath;
+                            next();
+                        });
+                    }else{
+                        callback();
+                    }
                 }
             ], function (err) {
                 if (err) {
@@ -250,15 +179,15 @@ exports.checkOldImage = function(req, res, next){
     var query =
         'SELECT image, thumb_image FROM user WHERE user_id = ? ';
 
-    if (req.uploadFile){
+    if (req.uploadPath){
         connectionPool.getConnection(function (err, connection) {
             if (err) {
-                verify(err,false,'데이터베이스 연결오류 입니다.');
+                res.json(trans_json(err.message,0));
             }
             connection.query(query, req.session.passport.user, function (err, rows) {
                 if (err) {
                     connection.release();
-                    verify(err,false,'sql쿼리 오류입니다.'+err.message);
+                    res.json(trans_json(err.message,0));
                 }
                 else{
 
@@ -281,13 +210,12 @@ exports.checkOldImage = function(req, res, next){
 
 // api : /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
-    console.log('머지?');
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     var updated = {};
 
-    if (req.uploadFile)         updated.image = path.basename(req.uploadFile.largePath);
-    if (req.uploadFile)         updated.thumb_image = path.basename(req.uploadFile.thumbPath);
+    if (req.uploadPath)         updated.image = path.basename(req.uploadPath.largePath);
+    if (req.uploadPath)         updated.thumb_image = path.basename(req.uploadPath.thumbPath);
     if (req.body.self_intro)    updated.self_intro = req.body.self_intro;
     if (req.body.name)          updated.name = req.body.name;
     if (req.body.phone)         updated.phone = req.body.phone;
@@ -297,7 +225,7 @@ exports.updateAccountSettings = function(req,res){
     if(updated.push_settings){
         updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
     }
-
+    logger.debug('req.oldFile',req.oldFile);
 
     query =
         'UPDATE user SET ? WHERE user_id = ? ';
@@ -316,7 +244,7 @@ exports.updateAccountSettings = function(req,res){
             } else {
                 console.log('req.oldFile', req.oldFile);
                 if (req.oldFile){
-                    deleteImage(req.oldFile, function (err) {
+                    fileManager.deleteProfileImage(req.oldFile, function (err) {
                         if (err) res.json(trans_json(msg,0));
                         else res.json(trans_json(msg,1));
                     })
@@ -327,42 +255,3 @@ exports.updateAccountSettings = function(req,res){
         }
     );
 };
-
-
-// 웹 서버에 기존 이미지 삭제
-function deleteImage(row, callback) {
-    var fileNames = [
-        row.largePath,
-        row.thumbPath
-    ];
-
-    async.each(fileNames, function(fileName, cb) {
-
-        // 파일 패스 설정
-        var path = baseImageDir;
-        if ( fileName.indexOf("l_p_") != -1){
-            path = path + "large/";
-        }else{
-            path = path + "thumbs/";
-        }
-
-        // 삭제할 파일패스로 해당 파일 삭제
-        path = path + fileName;
-        fstools.remove(path, function (err) {
-            if (err) {
-                cb(err);
-            } else {
-                cb();
-            }
-        });
-    }, function (err) {
-        if ( err ){
-            callback(err);
-
-            logger.error('서버 이미지 삭제 error : ', err.message);
-            logger.error('/---------------------------------------- end -----------------------------------------/');
-        }else{
-            callback(null);
-        }
-    });
-}

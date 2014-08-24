@@ -8,9 +8,38 @@ var fs = require('fs'),
     fstools = require('fs-tools'),
     s3AuthConfig = require('../config/s3_auth'),
     logger = require('../config/logger'),
-    knox = require('knox');
+    knox = require('knox'),
+    mime = require('mime');
 
 var baseImageDir = __dirname + '/../images/';
+
+
+// 삭제할 파일패스로 해당 파일 삭제
+var s3 = knox.createClient({
+    key: s3AuthConfig.s3Auth.key,
+    secret: s3AuthConfig.s3Auth.secret,
+    region: s3AuthConfig.s3Auth.region,
+    bucket: s3AuthConfig.s3Auth.bucket
+});
+
+function getPath(fileName){
+    var dir;
+    if ( fileName.indexOf("o_") != -1){
+        dir = "original/";
+    }else if(fileName.indexOf("l_") != -1) {
+        dir = "large/";
+    }else if(fileName.indexOf("t_") != -1){
+        dir = "thumbs/";
+    }else if(fileName.indexOf("op_") != -1){
+        dir = "profile/original/";
+    }else if(fileName.indexOf("lp_") != -1){
+        dir = "profile/large/";
+    }else{
+        dir = "profile/thumbs/";
+    }
+    return dir;
+}
+
 
 function saveImage(tempImage, pathArr, largeWidth, thumbWidth, callback ) {
     process.nextTick(function() {
@@ -30,13 +59,6 @@ function saveImage(tempImage, pathArr, largeWidth, thumbWidth, callback ) {
                 if (err) {
                     callback(err);
                 } else {
-                    // s3 설정
-                    var s3 = knox.createClient({
-                        key: s3AuthConfig.s3Auth.key,
-                        secret: s3AuthConfig.s3Auth.secret,
-                        region: s3AuthConfig.s3Auth.region,
-                        bucket: s3AuthConfig.s3Auth.bucket
-                    });
 
                     async.series([
                             function (cb) {
@@ -127,13 +149,64 @@ function saveImage(tempImage, pathArr, largeWidth, thumbWidth, callback ) {
     });
 };
 
+// 웹 서버에 기존 이미지 삭제
+function deleteImage(deletePaths, callback) {
+    process.nextTick(function() {
+
+        async.each(deletePaths, function (path, cb) {
+
+            s3.deleteFile(path, function(err, res){
+                if (err) cb(err);
+                else cb();logger.debug('웹서버 파일 삭제',path);
+
+            });
+
+        }, function (err) {
+            if (err) {
+                callback(err);
+
+                logger.error('서버 이미지 삭제 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
+            } else {
+
+                callback(null);
+            }
+        });
+    });
+};
+
+exports.deletePostImage = function (row, callback){
+    var deletePaths = [
+        getPath(row.original_image_path) + original_image_path,
+        getPath(row.large_image_path) + row.large_image_path,
+        getPath(row.thumbnail_path) + row.thumbnail_path
+    ];
+
+    deleteImage(deletePaths, function(err){
+        if(err) callback(err);
+        else callback();
+    });
+};
+
+exports.deleteProfileImage = function (row, callback){
+    var deletePaths = [
+            getPath(row.image) + row.image,
+            getPath(row.thumb_image) + row.thumb_image
+    ];
+
+    deleteImage(deletePaths, function(err){
+        if(err) callback(err);
+        else callback();
+    });
+};
+
+
+// 게시물 이미지 저장
 exports.savePostImage = function (tempImage, callback) {
     var fileName = path.basename(tempImage.path);
-
     var originalDir = "original/" + "o_" + fileName;
     var largeDir = "large/" + "l_" + fileName;
     var thumbDir = "thumbs/" + "t_" + fileName;
-
     var largeWidth = 720;
     var thumbWidth = 200;
 
@@ -143,13 +216,12 @@ exports.savePostImage = function (tempImage, callback) {
     });
 };
 
-exports.savePostImage = function (tempImage, callback) {
+// 프로필 이미지 저장
+exports.saveProfileImage = function (tempImage, callback) {
     var fileName = path.basename(tempImage.path);
-
-    var originalDir = "profile/original/" + "o_" + fileName;
-    var largeDir = "profile/large/" + "l_" + fileName;
-    var thumbDir = "profile/thumbs/" + "t_" + fileName;
-
+    var originalDir = "profile/original/" + "op_" + fileName;
+    var largeDir = "profile/large/" + "lp_" + fileName;
+    var thumbDir = "profile/thumbs/" + "tp_" + fileName;
     var largeWidth = 230;
     var thumbWidth = 80;
 
@@ -159,31 +231,14 @@ exports.savePostImage = function (tempImage, callback) {
     });
 };
 
-
+// 이미지 출력
 exports.getImage = function(req, res) {
 
     // 파일 패스 설정
-    var dir;
-    if ( req.params.imagepath.indexOf("o_") != -1){
-        dir = "original/";
-    }else if(req.params.imagepath.indexOf("l_") != -1) {
-        dir = "large/";
-    }else if(req.params.imagepath.indexOf("t_") != -1){
-        dir = "thumbs/";
-    }else if(req.params.imagepath.indexOf("lp_") != -1){
-        dir = "profile/large/";
-    }else{
-        dir = "profile/thumbs/";
-    }
+    var dir = getPath(req.params.imagepath);
+
 
     var mimeType = mime.lookup(req.params.imagepath);
-
-    var s3 = knox.createClient({
-        key: s3AuthConfig.s3Auth.key,
-        secret: s3AuthConfig.s3Auth.secret,
-        region: s3AuthConfig.s3Auth.region,
-        bucket: s3AuthConfig.s3Auth.bucket
-    });
 
     logger.debug('//// ', dir + req.params.imagepath );
 
@@ -196,4 +251,4 @@ exports.getImage = function(req, res) {
             rs.pipe(res);
         }
     });
-}
+};
