@@ -19,8 +19,8 @@ exports.getUserPostList = function(req,res){
     console.log(user_id);
 
     // query string 처리
-    var page = JSON.parse(req.query.page) || 0;
-    var count = JSON.parse(req.query.count) || 10;
+    var page = Number(req.query.page) || 0;
+    var count = Number(req.query.count) || 10;
 
     // 페이징 관련 계산
     var start = page*count;
@@ -76,10 +76,10 @@ exports.getReviewList = function(req,res){
     var query =
         "SELECT from_user_id, nickname, image, title, comments, book_image_path, t.post_id " +
         "FROM trade t JOIN review r ON r.trade_id = t.trade_id " +
-            "JOIN post p ON t.post_id = p.post_id " +
-            "JOIN book b ON b.book_id = p.book_id " +
-            "JOIN user u  ON r.from_user_id = u.user_id " +
-            "WHERE r.to_user_id = ? ORDER BY r.create_date DESC LIMIT ?, ? ";
+        "JOIN post p ON t.post_id = p.post_id " +
+        "JOIN book b ON b.book_id = p.book_id " +
+        "JOIN user u  ON r.from_user_id = u.user_id " +
+        "WHERE r.to_user_id = ? ORDER BY r.create_date DESC LIMIT ?, ? ";
     // 테스트 쿼리 : user_id  = 4
 
 
