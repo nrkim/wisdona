@@ -9,8 +9,10 @@ var _ = require('underscore'),
     path = require('path'),
     mime = require('mime'),
     im = require('imagemagick'),
-    formidable = require('formidable')
-    logger = require('../config/logger');
+    formidable = require('formidable'),
+    logger = require('../config/logger'),
+    s3AuthConfig = require('../config/s3_auth'),
+    knox = require('knox');
 
 var promotion = require('./promotion');
 var baseImageDir = __dirname + '/../images/';
@@ -47,116 +49,158 @@ function getConnection(callback) {
 
 // 웹 서버에 기존 이미지 삭제
 function deleteImage(row, callback) {
-    var fileNames = [
-        row.original_image_path,
-        row.large_image_path,
-        row.thumbnail_path
-    ];
+    process.nextTick(function() {
+        var fileNames = [
+            row.original_image_path,
+            row.large_image_path,
+            row.thumbnail_path
+        ];
 
-    async.each(fileNames, function(fileName, cb) {
+        async.each(fileNames, function (fileName, cb) {
 
-        // 파일 패스 설정
-        var path = baseImageDir;
-        if ( fileName.indexOf("o_") != -1){
-            path = path + "original/";
-        }else if(fileName.indexOf("l_") != -1) {
-            path = path + "large/";
-        }else{
-            path = path + "thumbs/";
-        }
-
-        // 삭제할 파일패스로 해당 파일 삭제
-        path = path + fileName;
-        fstools.remove(path, function (err) {
-            if (err) {
-                cb(err);
+            // 파일 패스 설정
+            var path = baseImageDir;
+            if (fileName.indexOf("o_") != -1) {
+                path = path + "original/";
+            } else if (fileName.indexOf("l_") != -1) {
+                path = path + "large/";
             } else {
-                cb();
+                path = path + "thumbs/";
+            }
+
+            // 삭제할 파일패스로 해당 파일 삭제
+            path = path + fileName;
+            fstools.remove(path, function (err) {
+                if (err) {
+                    cb(err);
+                } else {
+                    cb();
+                }
+            });
+        }, function (err) {
+            if (err) {
+                callback(err);
+
+                logger.error('서버 이미지 삭제 error : ', err.message);
+                logger.error('/---------------------------------------- end -----------------------------------------/');
+            } else {
+                callback(null);
             }
         });
-    }, function (err) {
-        if ( err ){
-            callback(err);
-
-            logger.error('서버 이미지 삭제 error : ', err.message);
-            logger.error('/---------------------------------------- end -----------------------------------------/');
-        }else{
-            callback(null);
-        }
     });
-}
+};
 
 // 웹 서버에 원본, 중간, 썸네일 이미지 저장
 function saveImage(image, callback) {
-    logger.debug('imageFile : ', {path:image.path, size:image.size});
-    if (image.size) {
+    process.nextTick(function() {
+        logger.debug('imageFile : ', {path: image.path, size: image.size});
+        if (image.size) {
 
-        // 파일 이동
-        var destPath = path.normalize(baseImageDir + "original/" + "o_" + path.basename(image.path));
-        fstools.move(image.path, destPath, function(err) {
-            if (err) {
-                callback(err);
-            } else {
-                var largePath = path.normalize(baseImageDir + "large/" + "l_" + path.basename(image.path));
-                var thumbPath = path.normalize(baseImageDir + "thumbs/" + "t_" + path.basename(image.path));
+            // 파일 이동
+            var destPath = path.normalize(baseImageDir + "original/" + "o_" + path.basename(image.path));
+            fstools.move(image.path, destPath, function (err) {
+                if (err) {
+                    callback(err);
+                } else {
+                    var largePath = path.normalize(baseImageDir + "large/" + "l_" + path.basename(image.path));
+                    var thumbPath = path.normalize(baseImageDir + "thumbs/" + "t_" + path.basename(image.path));
 
-                async.series([
-                        function (cb) {
-                            im.resize({
-                                srcPath: destPath,
-                                dstPath: largePath,
-                                width:   720
-                            }, function(err, stdout, stderr) {
-                                if (err) {
-                                    cb(err);
-                                } else {
-                                    cb();
-                                }
-                            });
-                        },
-                        function (cb) {
-                            im.resize({
-                                srcPath: largePath,
-                                dstPath: thumbPath,
-                                width:   200
-                            }, function(err, stdout, stderr) {
-                                if (err) {
-                                    cb(err);
-                                } else {
-                                    cb();
-                                }
-                            });
+                    // s3 설정
+                    var s3 = knox.createClient({
+                        key: s3AuthConfig.s3Auth.key,
+                        secret: s3AuthConfig.s3Auth.secret,
+                        region: s3AuthConfig.s3Auth.region,
+                        bucket: s3AuthConfig.s3Auth.bucket
+                    });
+
+                    async.series([
+                            function (cb) {
+                                im.resize({
+                                    srcPath: destPath,
+                                    dstPath: largePath,
+                                    width: 720
+                                }, function (err, stdout, stderr) {
+                                    if (err) {
+                                        cb(err);
+                                    } else
+                                        cb();
+                                    }
+                                );
+                            },
+                            function (cb) {
+                                im.resize({
+                                    srcPath: largePath,
+                                    dstPath: thumbPath,
+                                    width: 200
+                                }, function (err, stdout, stderr) {
+                                    if (err) {
+                                        cb(err);
+                                    } else {
+                                        cb();
+                                    }
+                                });
+                            }
+                        ],
+                        function (err, results) {
+                            if (err) {
+                                callback(err);
+                            } else {
+                                // 경로 저장
+                                var uploadFile = {
+                                    originalPath: destPath,
+                                    largePath: largePath,
+                                    thumbPath: thumbPath
+                                };
+
+//                                async.eachSeries([destPath, largePath, thumbPath], function (filePath, cb2) {
+//                                    fs.stat(filePath, function (err, stats) {
+//
+//                                        var headers = {
+//                                            'Content-Length': stats.size,
+//                                            'Content-Type': mime.lookup(filePath),
+//                                            'x-amz-acl': 'public-read'
+//                                        };
+//                                        var fileName = path.basename(filePath);
+//                                        var rs = fs.createReadStream(filePath);
+//                                        s3.putStream(rs, fileName, headers, function(err, rs) {
+//                                            if (err) {
+//                                                logger.error(err);
+//                                                cb2(err);
+//                                            } else {
+//                                                logger.debug('s3 upload successful!!!', fileName);
+//                                                cb2();
+//                                            }
+//                                        });
+//                                        console.log('hah');
+//                                    });
+//                                }, function (err) {
+//                                    console.log('s3 완료');
+//                                    callback(null, uploadFile);
+//
+//                                });
+                                async.map([destPath, largePath, thumbPath], function (err, cb2) {
+
+                                }, function (err, results) {
+                                    console.log(results);
+                                })
+                            }
                         }
-                    ],
-                    function (err, results) {
-                        if ( err ){
-                            callback(err);
-                        }else{
-                            // 경로 저장
-                            var uploadFile = {
-                                originalPath : destPath,
-                                largePath : largePath,
-                                thumbPath : thumbPath
-                            };
-                            callback(null, uploadFile);
-                        }
-                    }
-                );
-            }
-        });
-    } else {
-        fstools.remove(image.path, function(err) {
-            if (err) {
-                callback(err);
+                    );
+                }
+            });
+        } else {
+            fstools.remove(image.path, function (err) {
+                if (err) {
+                    callback(err);
 
-                logger.error('서버 이미지 저장 error : ', err.message);
-                logger.error('/---------------------------------------- end -----------------------------------------/');
-            } else {
-                callback();
-            }
-        });
-    }
-
+                    logger.error('서버 이미지 저장 error : ', err.message);
+                    logger.error('/---------------------------------------- end -----------------------------------------/');
+                } else {
+                    callback();
+                }
+            });
+        }
+    });
 }
 
 // post_image에 이미지 파일명 변경
@@ -951,15 +995,15 @@ exports.getPostList = function(req,res){
                 break;
             case "first" :
                 sorter = "p.bookmark_cnt DESC,";
-                where = "WHERE b.reg_count = 1 ";
+                where = "WHERE b.reg_count = 1 and ";
                 break;
             case "pub_date" :
                 sorter = "p.bookmark_cnt DESC,";
-                where = "WHERE b.pub_date >= NOW() -  INTERVAL 12 MONTH ";
+                where = "WHERE b.pub_date >= NOW() -  INTERVAL 12 MONTH and ";
                 break;
             case "free" :
                 sorter = "p.bookmark_cnt DESC,";
-                where = "WHERE p.bookmark_cnt = 0 ";
+                where = "WHERE p.bookmark_cnt = 0 and ";
                 break;
             default :
                 return res.json(getJsonData(0, "'theme' 쿼리가 잘못 지정 되었습니다. 다음 중 한가지 ['popular', 'first', 'pub_date', 'free']", null));
@@ -1002,6 +1046,7 @@ exports.getPostList = function(req,res){
         "GROUP BY p.post_id " +
         "ORDER BY " + sorter + " p.create_date DESC LIMIT ?, ?;";
 
+    logger.debug('query', query);
 
     connectionPool.getConnection(function(err, connection) {
         if (err) {

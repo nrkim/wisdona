@@ -23,31 +23,7 @@ exports.updateDeviceId = function(user_id, userDeviceId, callback){
             });
         }
     });
-}
-
-//// 유저 Device Id 가져오기
-//function getUserDeviceID(user_id,  callback) {
-//    connectionPool.getConnection(function(err, connection){
-//        if(err){
-//            callback(err);
-//        }else{
-//            var query = 'SELECT gcm_registration_id FROM users WHERE user_id = ?';
-//            connection.query(query, [user_id], function(err, rows, fields){
-//                if(err){
-//                    connection.release();
-//                    callback(err);
-//                }else{
-//                    connection.release();
-//                    if ( rows.length ){
-//                        callback(null, rows[0].gcm_registration_id);
-//                    }else{
-//                        callback(new Error('해당 사용자가 없습니다.'));
-//                    }
-//                }
-//            });
-//        }
-//    });
-//}
+};
 
 // GCM 보내기
 exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, msg, callback ) {
@@ -81,8 +57,9 @@ exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, ms
             sendUserDeviceIds.push(userDeviceIds[i]);
         }
     }
-
-
+    logger.debug('--------------------------------------------------------------------');
+    logger.debug(sendUserDeviceIds);
+    logger.debug('--------------------------------------------------------------------');
     var sender = new gcm.Sender(gcmConfig.apikey);
 
     sender.send(message, sendUserDeviceIds, 4, function(err, result){
@@ -90,60 +67,13 @@ exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, ms
             logger.error('GCM Error!!',result);
             callback(err);
         }else{
-            logger.debug('GCM Success!!',result);
-            callback();
+            if (result.success == 1 ){
+                logger.debug('GCM Success!!',result);
+            }else{
+                logger.debug('GCM failure!!',result);
+            }
+
+            callback(null, result);
         }
     });
-
-    /*
-    async.each(userDeviceIds,
-        function (deviceId, cb) {
-            sender.send(message, deviceId, 4, function(err, result){
-                if (err){
-                    cb(err);
-                }else{
-                    cb();
-                }
-            });
-        },
-        function (err) {
-            if(err){
-                callback(err);
-            }else{
-                callback();
-            }
-        }
-    );
-*/
-
-
-
-
-    // 디바이스 아이디 등록
-//    async.each(users,
-//        function (user_id, cb) {
-//            var userDeviceId = getUserDeviceID(user_id, function (err, userDeviceId) {
-//                if (err){
-//                    // 에러처리
-//                    cb(err);
-//                }else{
-//                    registrationIds.push(userDeviceId);
-//                    cb();
-//                }
-//            });
-//        },
-//        function (err) {
-//            if(err){
-//                callback(err);
-//            }else{
-//                sender.send(message, registrationIds, 4, function(err, result){
-//                    if (err){
-//                        callback(err);
-//                    }else{
-//                        callback();
-//                    }
-//                });
-//            }
-//        }
-//    );
 };

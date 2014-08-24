@@ -1,4 +1,4 @@
-
+var logger = require('../config/logger');
 var async = require('async');
 
 function presentBookmark(connection, user_id, callback) {
