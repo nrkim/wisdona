@@ -42,18 +42,16 @@ exports.getUserInfo = function(req,res){
 
     var query =
         "SELECT u.user_id, nickname, image, self_intro, bookmark_total_cnt, " +
-        "IFNULL(SUM(CASE WHEN u.user_id = req_user_id THEN be_message_cnt ELSE do_message_cnt END),0) unread_msg_cnt, " +
-        "like_total_cnt, sad_total_cnt " +
-        "FROM post p LEFT JOIN trade t ON p.post_id = t.post_id " +
+        "unread_msg_cnt, like_total_cnt, sad_total_cnt FROM post p LEFT JOIN trade t ON p.post_id = t.post_id " +
         "RIGHT JOIN ( select * from user where sleep_mode = 0) u on p.user_id = u.user_id OR t.req_user_id = u.user_id " +
-        "WHERE u.user_id = ? " +
-        "GROUP BY u.user_id";
+        "join ( select IFNULL(SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END),0) as unread_msg_cnt from message " +
+        "where to_user_id =? ) m WHERE u.user_id = ? GROUP BY u.user_id ";
 
     // note : query중 null이 나온 경우 -> user_id가 아예없는 경우
 
     template_list(
         query,
-        [user_id],
+        [user_id,user_id],
         user_info,
         function(err,result,msg){
             if(err) {res.json(trans_json(msg,0))};

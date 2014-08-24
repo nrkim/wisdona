@@ -108,15 +108,38 @@ exports.createUserReview = function(req,res){
                                 if(rows[0].req_user_id === user_id){            //요청자일 경우
                                     if (point === 1){
                                         console.log('point ==!!1');
-                                        connection.close_conn();
-                                        res.json(trans_json('success', 1,
-                                        { message : '기부자님을 좋아합니다.', trade_id : trade_id}));
+                                        connection.get_query(
+                                            "UPDATE user SET like_total_cnt = like_total_cnt+1 WHERE user_id = ?",
+                                            [user_id],
+                                            function(err){
+                                                if (err) {
+                                                    connection.close_conn();
+                                                    res.json(trans_json('리뷰등록에 실패했습니다.',0));
+                                                }
+                                                else {
+                                                    connection.close_conn();
+                                                    res.json(trans_json('success', 1,
+                                                        { message : '기부자님을 좋아합니다.', trade_id : trade_id}));
+                                                }
+                                            }
+                                        );
                                     }
                                     else {
-                                        console.log('point ==!!0');
-                                        connection.close_conn();
-                                        res.json(trans_json('success', 1,
-                                        { message : '기부자님에게 서운해 합니다.', trade_id : trade_id}));
+                                        connection.get_query(
+                                            "UPDATE user SET sad_total_cnt = sad_total_cnt+1 WHERE user_id = ?",
+                                            [user_id],
+                                            function(err){
+                                                if (err) {
+                                                    connection.close_conn();
+                                                    res.json(trans_json('리뷰등록에 실패했습니다.',0));
+                                                }
+                                                else {
+                                                    connection.close_conn();
+                                                    res.json(trans_json('success', 1,
+                                                        { message : '기부자님에게 서운해 합니다.', trade_id : trade_id}));
+                                                }
+                                            }
+                                        );
                                     }
                                 } else {                                        //기부자일 경우
                                     console.log('point ==!!기부자');

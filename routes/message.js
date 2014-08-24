@@ -13,7 +13,8 @@ var message_window = json.message_window
     ,template_list = template.template_list
     ,unread_msg_lst= json.unread_msg_lst
     ,connection_closure = template.connection_closure
-    ,transaction_closure = template.transaction_closure;
+    ,transaction_closure = template.transaction_closure
+    ,logger = require('../config/logger.js');
 var _ = require('underscore');
 var sendMessage = require('./gcm').sendMessage;
 
@@ -160,7 +161,9 @@ exports.createMsg = function(req,res){
                         [user_id,user_id,message,trade_id],
                         function(err,rows){
                            // console.log('log1',insert_query);
-                            if (err) {console.log('log2');callback(err); }
+                            if (err) {
+                                console.log('log2');callback(err);
+                            }
                             else {
                                 var message_id =rows.insertId;
                                 console.log('log3');callback(null,message_id);
