@@ -69,7 +69,7 @@ exports.getUserInfo = function(req,res){
 exports.destroyUserAccount = function(req,res){
 
     //계정 삭제시 휴면 계정
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    var user_id = req.session.passport.user;
 
     // 타입 검사
     if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
@@ -91,7 +91,7 @@ exports.destroyUserAccount = function(req,res){
 // api : /users/:user_id/account-settings/show
 exports.getAccountSettings = function(req,res){
 
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    var user_id = req.session.passport.user;
 
     console.log('account settings user_id :   ',user_id);
 
@@ -213,7 +213,7 @@ exports.checkOldImage = function(req, res, next){
 // api : /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
 
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    var user_id = req.session.passport.user;
 
     var updated = {};
 

@@ -21,12 +21,9 @@ var account = require('../routes/account')
 var isLoggedIn = function (req, res, next) {
 
     if (req.isAuthenticated() ){
-        //logger.info('인증에 성공 하였습니다.');
         return next();
     }
     else {
-        //버그가 있을 것 같은 ...
-        //logger.info('인증 받지 않았습니다.');
         res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
     }
 };

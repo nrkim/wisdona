@@ -14,12 +14,12 @@ var trans_json = json.trans_json
 // api : /users/:user_id/reviews/create
 exports.createUserReview = function(req,res){
 
-    var user_id  = req.session.passport.user  || res.json(trans_json("아이디를 입력하지 않았습니다.",0));
+    var user_id  = req.session.passport.user;
 
     console.log('session is ',user_id);
 
-    var trade_id = Number(req.body.trade_id) //|| res.json(trans_json("아이디를 입력하지 않았습니다.",0));
-    var comments = String(req.body.comment) //|| res.json(trans_json("아이디를 입력하지 않았습니다.",0));
+    var trade_id = Number(req.body.trade_id);
+    var comments = String(req.body.comment);
     var point   = Number(req.body.point)    || 0;
 
     //타입 검사
