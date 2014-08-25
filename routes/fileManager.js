@@ -246,8 +246,10 @@ exports.getImage = function(req, res) {
 
     s3.getFile(dir + req.params.imagepath, function(err, rs) {
         if (err) {
+            console.log(' 에러 ',err.message);
             res.json({ error: err });
         } else {
+            console.log('성공');
             res.statusCode = 200;
             res.set('Content-Type', mimeType);
             rs.pipe(res);

@@ -153,7 +153,7 @@ exports.updatePassword = function(req,res){
                         function (err, rows) {
                             if (err) {res.json(trans_json('sql에러입니다. ' + err.code, 0));}
                             else {
-                                if (rows.length === 0) {res.json(trans_json('존재하지 않는 사용자 입니다.', 0));}
+                                if (rows.length === 0) {callback()}//res.json(trans_json('존재하지 않는 사용자 입니다.', 0));
                                 else {callback(null);}
                             }
                         }
