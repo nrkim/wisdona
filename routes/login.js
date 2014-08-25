@@ -41,8 +41,15 @@ exports.registerLocal = function(req,res){
 };
 
 exports.login = function(req,res){
+    console.log('req.user...',req.user);
+    console.log('middleware err is ...', req.err_info);
+    console.log('passport is....',req.session.passport);
+    console.log('session is....',req.session.passport.user);
     if (req.session.passport.user) {
-        res.json(trans_json(req.signup_msg,1,create_user(req.user.user_id)));
+        res.json(
+            trans_json('success',1,
+                create_user(req.session.passport.user))
+        );
     } else {
         res.json(trans_json(req.signup_msg,0));
     }
@@ -73,9 +80,9 @@ exports.facebookLogout = function(req,res){
 exports.logout = function(req,res){
     logger.debug('/--------------------------------------- logout ----------------------------------------/');
 
-    //req.session.destroy();
     req.logout();
     req.session.destroy();
+    req.session = null;
     if (!req.isAuthenticated())  {
         console.log('성공!!');
         res.json(trans_json("success", 1));

@@ -225,8 +225,8 @@ exports.updateAccountSettings = function(req,res){
     if (req.body.address)       updated.address = req.body.address;
     if (req.body.push_settings) updated.push_settings = req.body.push_settings;
 
-    if (typeof(req.body.push_settings === 'string')) {res.json(trans_json('push값이 스트링으로 옵니다.',0));}
-    else {
+//    if (typeof(req.body.push_settings === 'string')) {res.json(trans_json('push값이 스트링으로 옵니다.',0));}
+//    else {
         console.log('req.body.push_settings     :     ',req.body.push_settings);
         console.log('req.body.push_settings  type!   :     ',typeof(req.body.push_settings));
 
@@ -262,5 +262,5 @@ exports.updateAccountSettings = function(req,res){
                 }
             }
         );
-    }
+ //   }
 };

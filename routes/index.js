@@ -38,48 +38,25 @@ module.exports = function(app,passport) {
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
                 res.json(trans_json(info.loginMessage,0));
-            } else {/*
+            } else {
                 template_item(
                     "UPDATE user SET gcm_registration_id = ? WHERE user_id = ? ",
                     [req.body.gcm_registration_id,user.user_id],
                     function(err,result,msg){
                         if (err) {
-                            res.json(trans_json('로그인에 실패했습니다.',0));
+                            req.err_info = err;
+                            next();
                         }
                         else {
                             req.session.passport.user = user.user_id;
-                            res.json(trans_json('로그인에 성공했습니다.',1,
-                                    create_user(user.user_id))
-                            );
+                            console.log('error 아니죠!! user는...',user);
+                            next();
                         }
                     }
-                );*/
-
-                req.logIn(user, function(err) {
-                    if (err) {
-                        res.json(trans_json(err.message,0));
-                    }
-                    else{
-                        template_item(
-                            "UPDATE user SET gcm_registration_id = ? WHERE user_id = ? ",
-                            [req.body.gcm_registration_id,user.user_id],
-                            function(err,result,msg){
-                                if (err) {
-                                    res.json(trans_json('로그인에 실패했습니다.',0));
-                                }
-                                else {
-                                    req.session.passport.user = user.user_id;
-                                    res.json(trans_json('로그인에 성공했습니다.',1,
-                                        create_user(user.user_id))
-                                    );
-                                }
-                            }
-                        );
-                    }
-                });
+                );
             }
         })(req, res, next);
-    });
+    },login.login);
 
     app.post('/facebook-signup',
         express.bodyParser(),

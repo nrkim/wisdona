@@ -6,7 +6,7 @@ var LocalStrategy = require('passport-local').Strategy
     , _ = require('underscore')
     , async = require('async')
     ,template = require('../routes/template')
-    ,template_item = template.template_item
+    ,connection_closure = template.connection_closure
     ,create_password = template.create_password
     ,duplication_check = template.duplication_check;
 
@@ -15,11 +15,13 @@ module.exports = function(passport) {
 
     // 세션 얻기
     passport.serializeUser(function (user, done) {
+        console.log('serialize user -------->',user);
         done(null, user.user_id);
     });
 
     // 세션 지우기
     passport.deserializeUser(function (id, done) {
+        console.log('deserialize user ------>',id);
         connectionPool.getConnection(function (err, connection) {
             if (err) {
                 return done(err);
@@ -48,49 +50,59 @@ module.exports = function(passport) {
         function (req, email, password, done) {
 
             process.nextTick(function () {
-                connectionPool.getConnection(function (err, connection) {
-                    if (err){ console.log(err); return done(err); }
-
-                    var selectSql = 'SELECT user_id, email, nickname  FROM user WHERE (email = ? or nickname = ?) and sleep_mode = 0';
-                    connection.query(selectSql, [email, req.body.nickname], function (err, rows, fields) {
-                        if (err) {
-                            connection.release();
-                            return done(err);
-                        }
-                        if (rows.length) {
-                            connection.release();
-                            return done(null, false,duplication_check(rows,req.body.nickname, email));
-                        }
-                        else {
-                            create_password(password, function (err, hashPass) {
-                                if (err) {
-                                    connection.release();
+                connection_closure(function(err,connection){
+                    if(err){ return done(err);}
+                    else {
+                        var selectSql = 'SELECT user_id, email, nickname  FROM user WHERE (email = ? or nickname = ?) and sleep_mode = 0';
+                        connection.get_query(
+                            selectSql,
+                            [email,req.body.nickname],
+                            function(err,rows){
+                                if(err) {
+                                    connection.close_conn();
                                     return done(err);
-                                }
-                                else {
-                                    var user = {};
-                                    user.email = email;
-                                    user.password = hashPass;
-
-                                    var insertSql = 'INSERT INTO user(email,password,nickname,bookmark_total_cnt,' +
-                                        'like_total_cnt,sad_total_cnt,sleep_mode,create_date)' +
-                                        'VALUES(?,?,?,0,0,0,0,now())';
-
-                                    template_item(
-                                        insertSql,
-                                        [user.email, user.password, req.body.nickname],
-                                        function (err, rows, info) {
-                                            if (err) {return done(err);}
-                                            else {
-                                                user.user_id = rows.insertId;
-                                                return done(null, user);
+                                } else{
+                                    if(rows.length == 0){
+                                        create_password(password, function (err, hashPass,salt) {
+                                            if (err) {
+                                                connection.release();
+                                                return done(err);
                                             }
-                                        }
-                                    );
+                                            else {
+                                                var user = {};
+                                                user.email = email;
+                                                user.password = hashPass;
+
+                                                var insert_query = 'INSERT INTO user(email,password,nickname,bookmark_total_cnt,' +
+                                                    'like_total_cnt,sad_total_cnt,sleep_mode,create_date,salt)' +
+                                                    'VALUES(?,?,?,0,0,0,0,now(),?)';
+
+                                                connection.get_query(
+                                                    insert_query,
+                                                    [user.email, user.password, req.body.nickname,salt],
+                                                    function (err, rows, info) {
+                                                        if (err) {
+                                                            connection.close_conn();
+                                                            return done(err);
+                                                        }
+                                                        else {
+                                                            connection.close_conn();
+                                                            user.user_id = rows.insertId;
+                                                            return done(null, user);
+                                                        }
+                                                    }
+                                                );
+                                            }
+                                        });
+
+                                    } else{
+                                        connection.close_conn();
+                                        return done(null, false,duplication_check(rows,req.body.nickname, email));
+                                    }
                                 }
-                            });
-                        }
-                    });
+                            }
+                        )
+                    }
                 });
             });
         }
@@ -106,39 +118,48 @@ module.exports = function(passport) {
             console.log('email',email);
             console.log('password',password);
             process.nextTick(function() {
-                connectionPool.getConnection(function(err, connection) {
-                    if (err) {
-                        console.log('err1');
-                        return done(err);
-                    }
-                    var selectSql = 'SELECT user_id, email, password FROM user WHERE email = ? and sleep_mode = 0';
-                    template_item(
-                        selectSql,
-                        [email],
-                        function(err,rows,msg){
-                            if (err) {
-                                connection.release();
-                                return done(err);
-                            }
-                            if (!rows.length) {
-                                connection.release();
-                                return done(null, false, {'loginMessage' : '존재하지 않는 사용자 입니다.'});
-                            }
-                            var user = rows[0];
-                            connection.release();
-                            bcrypt.compare(password, user.password, function(err, result) {
-                                if (!result){
-                                    return done(null, false, {'loginMessage' : '비밀번호가 틀렸습니다.'});
-                                }
-                                return done(null, user);
-                            });
-                        }
-                    );
+                connection_closure(function(err,connection){
+                    if(err){ return done(err);}
+                    else {
+                        connection.get_query(
+                            'SELECT user_id, email, password, salt FROM user WHERE email = ? and sleep_mode = 0',
+                            [email],
+                            function(err,rows){
+                                if(err){
+                                    connection.close_conn();
+                                    return done(err);
+                                } else{
+                                    if(rows.length ==0){
+                                        connection.close_conn();
+                                        return done(null, false, {'loginMessage' : '존재하지 않는 사용자 입니다.'});
+                                    } else{
+                                        var user = rows[0];
+                                        connection.close_conn();
+                                        bcrypt.compare(password, user.password, function(err, result) {
+                                            console.log('password?!?!?1',password,user.password);
+                                            if(err){
+                                                return done(err);
+                                            }else{
+                                                if (!result){
+                                                    console.log('err!! not match...');
+                                                    return done(null, false, {'loginMessage' : '비밀번호가 틀렸습니다.'});
+                                                }
+                                                else {
+                                                    console.log('its..... match!!!');
+                                                    console.log('user is !!!',user);
+                                                    return done(null, user,{'loginMessage' : 'success'});
+                                                }
+                                            }
+                                        });
 
+                                    }
+                                }
+                            }
+                        )
+                    }
                 });
             });
         })
     );
-
 };
 

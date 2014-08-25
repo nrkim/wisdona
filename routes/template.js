@@ -290,6 +290,7 @@ exports.template_transaction = function(){
 
 */
 // 해쉬 패스워드 생성
+
 exports.create_password = function (password,verify){
     async.waterfall([
             function generateSalt(callback) {
@@ -301,7 +302,7 @@ exports.create_password = function (password,verify){
                         callback("salt 를 생성하지 못했습니다.");
                     }
                     else {
-                        console.log('salt를 생성했습니다.');
+                        console.log('salt를 생성했습니다.',salt);
                         callback(null, salt);
                     }
                 });
@@ -311,13 +312,13 @@ exports.create_password = function (password,verify){
                 bcrypt.hash(password, salt, null,
                     function(err, hashPass) {
                         if(err) {callback('해시 패스워드를 생성하지 못했습니다.');}
-                    else {console.log('callback!!!!'); callback(null, hashPass);}
+                    else {console.log('callback!!!!'); callback(null, hashPass,salt);}
                 });
             }
         ],
-        function(err, hashPass) {
+        function(err, hashPass,salt) {
             if (err) {console.log( 'verify err!!!'); verify(err);}
-            else {console.log('verify err!!!'); verify(null,hashPass);}
+            else {console.log('verify err!!!'); verify(null,hashPass,salt);}
         });
 };
 
