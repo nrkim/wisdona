@@ -41,7 +41,7 @@ module.exports = function(app,passport) {
         passport.authenticate('local-login', function(err, user, info) {
             if (user === false) {
                 res.json(trans_json(info.loginMessage,0));
-            } else {
+            } else {/*
                 template_item(
                     "UPDATE user SET gcm_registration_id = ? WHERE user_id = ? ",
                     [req.body.gcm_registration_id,user.user_id],
@@ -56,8 +56,8 @@ module.exports = function(app,passport) {
                             );
                         }
                     }
-                );
-                /*
+                );*/
+
                 req.logIn(user, function(err) {
                     if (err) {
                         res.json(trans_json(err.message,0));
@@ -79,7 +79,7 @@ module.exports = function(app,passport) {
                             }
                         );
                     }
-                });*/
+                });
             }
         })(req, res, next);
     });
@@ -95,14 +95,14 @@ module.exports = function(app,passport) {
                         res.json(trans_json(err.message,0));
                     }
                     if (rows.length == 0) {
-                        passport.authenticate('facebook-signup', function(err, user, info) {
+                        passport.authenticate('facebook-signup',
+                         function(err, user, info) {
                             if(user){
-                                req.json_file = create_user(user.user_id);
                                 req.session.passport.user = user.user_id;
                                 next();
                             }
                             else{
-                                res.json(trans_json(msg,0));
+                                res.json(trans_json(info,0));
                             }
                         })(req, res, next);
                     } else {
