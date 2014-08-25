@@ -24,6 +24,7 @@ module.exports = function(passport) {
 
             connection.query(selectSql, [id], function(err, rows, fields) {
                 var user = {};
+                console.log('user_id...',id);
                 user.user_id = rows[0].user_id;
                 user.facebookId = rows[0].facebook_id;
                 user.facebookToken = rows[0].facebook_token;
@@ -44,6 +45,8 @@ module.exports = function(passport) {
             clientSecret: configAuth.facebookAuth.clientSecret
         },
         function(accessToken, refreshToken, profile, done) {
+
+            console.log('profile setting ',profile);
         	process.nextTick(function() {
             	connectionPool.getConnection(function(err, connection) {
                     if (err) {
