@@ -40,11 +40,16 @@ exports.getUserPostList = function(req,res){
         query,
         [user_id,start,count],
         post_list,
-        function(err,result,msg){
-            console.log()
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json('success',1,result));
-            else res.json(trans_json(msg,1));
+        function(err,result){
+            if(err) {
+                res.json(trans_json('사용자 기부 게시물을 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('사용자 기부 게시물이 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result));
+                }
+            }
         }
     );
 
@@ -87,10 +92,16 @@ exports.getReviewList = function(req,res){
         query,
         [user_id,start,count],
         review,
-        function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json("success",1,result));
-            else res.json(trans_json(msg,1));
+        function(err,result){
+            if(err) {
+                res.json(trans_json('리뷰 리스트 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('사용자 리뷰 리스트가 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result));
+                }
+            }
         }
     );
 };
@@ -125,10 +136,16 @@ exports.getRequestPostList = function(req,res){
         query,
         [user_id,start,count],
         post_list,
-        function(err,result,msg){
-            if(err) {res.json(trans_json(msg,0));}
-            if(result) {res.json(trans_json('success',1,result));}
-            else {res.json(trans_json("요청한 결과가 없습니다.",1));}
+        function(err,result){
+            if(err) {
+                res.json(trans_json('사용자 요청 게시물을 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('사용자 요청 게시물이 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result));
+                }
+            }
         }
     );
 };
