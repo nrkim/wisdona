@@ -34,7 +34,6 @@ exports.getUserInfo = function(req,res){
     //타입 체크
     if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
 
-
     // 유저 정보를 얻는 쿼리
     // 유저는 게시물을 한번도 써본적이 없거나 혹은 거래를 한번도 해보지 않았거나 거래를 진행 중인 사람으로
     // 각각 unread_msg_cnt를 구하는 연산을 적용
@@ -213,6 +212,7 @@ exports.checkOldImage = function(req, res, next){
 
 // api : /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
+
     var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
 
     var updated = {};
@@ -226,40 +226,41 @@ exports.updateAccountSettings = function(req,res){
     if (req.body.push_settings) updated.push_settings = req.body.push_settings;
 
     if (typeof(req.body.push_settings === 'string')) {res.json(trans_json('push값이 스트링으로 옵니다.',0));}
+    else {
+        console.log('req.body.push_settings     :     ',req.body.push_settings);
+        console.log('req.body.push_settings  type!   :     ',typeof(req.body.push_settings));
 
-    console.log('req.body.push_settings     :     ',req.body.push_settings);
-    console.log('req.body.push_settings  type!   :     ',typeof(req.body.push_settings));
+        if(updated.push_settings){
+            updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
+        }
 
-    if(updated.push_settings){
-        updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
-    }
+        console.log('reduced ... req.body.push_settings     :     ',req.body.push_settings);
+        console.log('reduced ... req.body.push_settings  type!   :     ',typeof(req.body.push_settings));
+        logger.debug('req.oldFile',req.oldFile);
 
-    console.log('reduced ... req.body.push_settings     :     ',req.body.push_settings);
-    console.log('reduced ... req.body.push_settings  type!   :     ',typeof(req.body.push_settings));
-    logger.debug('req.oldFile',req.oldFile);
+        query =
+            'UPDATE user SET ? WHERE user_id = ? ';
 
-    query =
-        'UPDATE user SET ? WHERE user_id = ? ';
+        console.log('push_settings    : ',updated.push_settings);
+        console.log('updated',updated);
 
-    console.log('push_settings    : ',updated.push_settings);
-    console.log('updated',updated);
-
-    template_item(
-        query,
-        [updated,user_id],
-        function(err,rows,msg){
-            if (err) {
-                res.json(trans_json(msg,0));
-            } else {
-                if (req.oldFile){
-                    fileManager.deleteProfileImage(req.oldFile, function (err) {
-                        if (err) res.json(trans_json(msg,0));
-                        else res.json(trans_json(msg,1));
-                    })
-                }else{
-                    res.json(trans_json(msg,1));
+        template_item(
+            query,
+            [updated,user_id],
+            function(err,rows,msg){
+                if (err) {
+                    res.json(trans_json(msg,0));
+                } else {
+                    if (req.oldFile){
+                        fileManager.deleteProfileImage(req.oldFile, function (err) {
+                            if (err) res.json(trans_json(msg,0));
+                            else res.json(trans_json(msg,1));
+                        })
+                    }else{
+                        res.json(trans_json(msg,1));
+                    }
                 }
             }
-        }
-    );
+        );
+    }
 };
