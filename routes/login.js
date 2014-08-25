@@ -160,6 +160,7 @@ exports.updatePassword = function(req,res){
                 },
                 function compare_password(hashPass,rows,callback) {
                     console.log('rows,,,,',rows);
+                    console.log('hash password is ....',hashPass);
 
                     bcrypt.compare(hashPass, rows[0].password, function (err, result) {
                         if (err) {res.json(trans_json('비밀번호 비교하면서 오류가 발생했습니다.'+err, 0));}

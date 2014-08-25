@@ -225,9 +225,17 @@ exports.updateAccountSettings = function(req,res){
     if (req.body.address)       updated.address = req.body.address;
     if (req.body.push_settings) updated.push_settings = req.body.push_settings;
 
+    if (typeof(req.body.push_settings === 'string')) {res.json(trans_json('push값이 스트링으로 옵니다.',0));}
+
+    console.log('req.body.push_settings     :     ',req.body.push_settings);
+    console.log('req.body.push_settings  type!   :     ',typeof(req.body.push_settings));
+
     if(updated.push_settings){
         updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
     }
+
+    console.log('reduced ... req.body.push_settings     :     ',req.body.push_settings);
+    console.log('reduced ... req.body.push_settings  type!   :     ',typeof(req.body.push_settings));
     logger.debug('req.oldFile',req.oldFile);
 
     query =
