@@ -184,7 +184,7 @@ exports.sendRequestPost = function(req,res){
                                 logger.error('교환 요청 GCM 에러!', err.message);
                             }else{
                                 logger.debug('rows', rows);
-                                gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], '위즈도나', req.body.message, 0, function (err, gcm_result) {
+                                gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], 0, '위즈도나', req.body.message, function (err, gcm_result) {
                                     // 완료
                                     if(err){
                                         logger.error('교환 요청 GCM error :', err);
@@ -405,7 +405,7 @@ exports.acceptPost = function(req,res){
                                         logger.error('교환 요청 GCM 에러!', err.message);
                                     } else {
 
-                                        gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], '위즈도나', req.body.message, 3, function (err, gcm_result) {
+                                        gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], 3, '위즈도나', req.body.message, function (err, gcm_result) {
                                             // 완료
                                             if (err) {
                                                 logger.error('교환 수락 GCM error :', err.message);
@@ -613,7 +613,7 @@ exports.cancelPost = function(req,res){
                                 if (err) {
                                     logger.error('교환 요청 GCM 에러!', err.message);
                                 } else {
-                                    gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], '위즈도나', req.body.message, code, function (err, gcm_result) {
+                                    gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], code, '위즈도나', req.body.message, function (err, gcm_result) {
                                         // 완료
                                         if (err) {
                                             logger.error('교환 취소/철회 GCM error :', err.message);
