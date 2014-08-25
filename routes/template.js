@@ -61,10 +61,12 @@ exports.template_list = function(query,params,get_json,verify){
                         function (err, results) {
                             if (err) {
                                 connection.release();
+                                console.log('실패',err.stack);
                                 verify(err);
                             } else {
                                 connection.commit();
                                 connection.release();
+                                console.log('성공');
                                 verify(null, results);    //rows가져 와야 하나?
                             }
                         }

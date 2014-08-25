@@ -35,7 +35,7 @@ exports.review = function(item){
         },
         book_name      : item.title,
         comment        : item.comments,
-        thumbnail_url  : item.book_image_path,
+        thumbnail_url  : item. thumbnail_path,
         post_id        : item.post_id
     };
 };
@@ -43,7 +43,7 @@ exports.review = function(item){
 exports.post_list = function(item){
     return {
         post_id         : item.post_id,
-        thumbnail_url   : item.book_image_path,
+        thumbnail_url   : item.thumbnail_path,
         book_name       : item.title,
         author          : item.author,
         publisher       : item.translator,

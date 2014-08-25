@@ -4,7 +4,8 @@
 var FacebookTokenStrategy = require('passport-facebook-token').Strategy
     , async = require('async')
     , configAuth = require('./facebook_auth')
-    , template_item = require('../routes/template').template_item;
+    , template_item = require('../routes/template').template_item
+    , logger = require('./logger');
 
 module.exports = function(passport) {
 
@@ -102,6 +103,7 @@ module.exports = function(passport) {
                                             var newUser = {};
                                             newUser.facebookId = profile.id;
                                             newUser.facebookToken = accessToken;
+                                            logger.debug('email',profile.emails[0].value);
                                             newUser.facebookEmail = profile.emails[0].value;
                                             newUser.facebookName = profile.name.givenName + ' ' + profile.name.familyName;
                                             newUser.facebookPhoto = "https://graph.facebook.com/v2.1/me/picture?access_token=" + accessToken;
