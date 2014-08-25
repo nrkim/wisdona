@@ -32,9 +32,10 @@ exports.getUserPostList = function(req,res){
     if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
 
     var query =
-        "SELECT post_id, book_image_path, title, author, translator, publisher, pub_date, " +
+        "select p.post_id, title, author, max(thumbnail_path), translator, publisher, pub_date, " +
         "bookmark_cnt FROM post p JOIN book b ON p.book_id = b.book_id " +
-        "WHERE p.user_id = ? ORDER BY p.create_date DESC LIMIT ?, ?";
+        "JOIN post_image pi ON p.post_id = pi.post_id " +
+        "WHERE p.user_id = ? GROUP BY p.post_id  ORDER BY p.create_date DESC LIMIT ?, ?";
 
     template_list(
         query,
@@ -79,12 +80,13 @@ exports.getReviewList = function(req,res){
 
     // 쿼리
     var query =
-        "SELECT from_user_id, nickname, image, title, comments, book_image_path, t.post_id " +
+        "SELECT from_user_id, nickname, image, title, comments, max(thumbnail_path), t.post_id " +
         "FROM trade t JOIN review r ON r.trade_id = t.trade_id " +
         "JOIN post p ON t.post_id = p.post_id " +
         "JOIN book b ON b.book_id = p.book_id " +
         "JOIN user u  ON r.from_user_id = u.user_id " +
-        "WHERE r.to_user_id = ? ORDER BY r.create_date DESC LIMIT ?, ? ";
+        "JOIN post_image pi ON pi.post_id = p.post_id " +
+        "WHERE r.to_user_id = ? group by p.post_id ORDER BY r.create_date DESC LIMIT ?, ? ";
     // 테스트 쿼리 : user_id  = 4
 
 
@@ -127,10 +129,11 @@ exports.getRequestPostList = function(req,res){
     if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
 
     var query =
-        "SELECT t.post_id, book_image_path, title, author, translator, publisher, " +
+        "SELECT t.post_id, max(thumbnail_path), title, author, translator, publisher, " +
         "pub_date, bookmark_cnt, p.current_status FROM trade t JOIN post p ON t.post_id = p.post_id " +
         "JOIN book b ON p.book_id = b.book_id " +
-        "WHERE t.req_user_id = ? ORDER BY p.create_date DESC LIMIT ?, ?";
+        "JOIN post_image pi ON p.post_id = pi.post_image " +
+        "WHERE t.req_user_id = ? group by p.post_id ORDER BY p.create_date DESC LIMIT ?, ? ";
 
     template_list(
         query,
