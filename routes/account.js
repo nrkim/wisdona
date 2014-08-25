@@ -52,10 +52,16 @@ exports.getUserInfo = function(req,res){
         query,
         [user_id,user_id],
         user_info,
-        function(err,result,msg){
-            if(err) {res.json(trans_json(msg,0))};
-            if(result) {res.json(trans_json('success',1,result[0]));}     //반드시 하나의 결과만 나와야 함
-            else {res.json(trans_json(msg,0));}                           // 일치하는 결과가 없을 때는 에러 처리
+        function(err,result){
+            if(err) {
+                res.json(trans_json('계정정보를 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('등록된 계정정보가 없습니다.',0)); // 일치하는 결과가 없을 시에 에러처리
+                } else{
+                    res.json(trans_json('success',1,result[0]));
+                }
+            }
         }
     );
 };
@@ -106,16 +112,13 @@ exports.getAccountSettings = function(req,res){
         [user_id],
         user_detail,
         function(err,result,msg){
-            console.log('result!!!',result);
-            if(err) { res.json(trans_json(msg,0));}
+            if(err) { res.json(trans_json('계정 상세정보 확인에 실패했습니다.',0));}
             else {
                 console.log('res  ',result);
                 if(result.length == 0) {
-                    res.json(trans_json(msg,0));
+                    res.json(trans_json('등록된 계정 상세정보가 없습니다.',0));
                 }
                 else {
-                    console.log('what;;;;');
-                    console.log('res2 : ',result);
                     result[0].push_settings =
                         _.map(result[0].push_settings.split(','),
                             function(str){ return Number(str); });
@@ -124,7 +127,7 @@ exports.getAccountSettings = function(req,res){
                     if(result[0].is_sanction) { result[0].is_sanction = true; }
                     else { result[0].is_sanction = false; }
                     res.json(trans_json('success', 1, result[0]));
-                }   // 일치하는 결과가 없을 때는 에러
+                }
             }
         }
     );
@@ -237,12 +240,9 @@ exports.updateAccountSettings = function(req,res){
         query,
         [updated,user_id],
         function(err,rows,msg){
-            console.log('rows 정보는 : ',rows);
             if (err) {
-                console.log('err is ',err.message);
                 res.json(trans_json(msg,0));
             } else {
-                console.log('req.oldFile', req.oldFile);
                 if (req.oldFile){
                     fileManager.deleteProfileImage(req.oldFile, function (err) {
                         if (err) res.json(trans_json(msg,0));

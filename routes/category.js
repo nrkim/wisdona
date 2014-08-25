@@ -14,10 +14,16 @@ exports.getCategoryList = function(req,res){
         "select category_id, category from category",
         null,
         category_list,
-        function(err,result,msg){
-            if (err) { res.json(trans_json(msg,0)); }
-            if (result){ res.json(trans_json(msg,1,result)); }
-            else { res.json(trans_json(msg,0)); }
+        function(err,result){
+            if(err) {
+                res.json(trans_json('카테고리 리스트를 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('등록된 카테고리 리스트가 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result[0]));
+                }
+            }
         }
     );
 };
