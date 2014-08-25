@@ -84,6 +84,7 @@ function insertImageQuery(connection, post_id, filePath, callback) {
     data = [path.basename(filePath.originalPath), path.basename(filePath.largePath), path.basename(filePath.thumbPath), mimeType, post_id];
     connection.query(query, data, function (err, result) {
         if (err) {
+
             callback(err);
 
             logger.error('이미지 인설트 쿼리 error : ', err.message);

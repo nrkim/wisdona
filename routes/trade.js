@@ -226,7 +226,6 @@ exports.acceptPost = function(req,res){
             var data;
             async.waterfall([
                 function (callback) {
-
                     // 게시물 + 거래 테이블 조회
                     query =
                         "SELECT p.user_id, p.book_id, t.trade_id, t.req_user_id, t.current_status " +
@@ -297,7 +296,6 @@ exports.acceptPost = function(req,res){
                     }else{
                         return callback(new Error("user_id 값이 잘못 되었습니다."));
                     }
-
                     async.parallel([
                         function (cb) {
                             // 거래 단계 변경
@@ -325,8 +323,12 @@ exports.acceptPost = function(req,res){
                                 req.params.trade_id = rows[0].trade_id;
                                 // 메시지 전송
                                 message.createMessage(req, connection, function (err, result) {
-                                    if(err) cb(err);
-                                    else cb();
+                                    if(err) {
+                                        cb(err);
+                                    }
+                                    else{
+                                        cb();
+                                    }
                                 });
                             }else{
                                 cb();
@@ -354,9 +356,10 @@ exports.acceptPost = function(req,res){
                                 // 기부자에게 책갈피 제공
                                 query = "UPDATE book SET trade_count = trade_count + 1 WHERE book_id = ?;";
                                 data = [rows[0].book_id];
-
+                                logger.debug('rows[0].book_id', rows[0].book_id);
                                 connection.query(query, data, function (err, result) {
                                     if (err) {
+                                        logger.debug('에러');
                                         cb(err);
                                     }else{
                                         cb();
@@ -370,6 +373,7 @@ exports.acceptPost = function(req,res){
                         if (err) {
                             callback(err);
                         } else {
+                            logger.debug('66666');
                             callback(null, status_id);
                         }
                     });
@@ -392,7 +396,7 @@ exports.acceptPost = function(req,res){
                                 res.json(getJsonData(0, err.message, null));
                             });
                         }else{
-
+                            logger.debug('ddddddddd');
 
                             var result;
                             // 배송 완료 시 GCM 전송 / status_id == 2
