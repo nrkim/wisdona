@@ -17,9 +17,16 @@ exports.getGenreList = function(req,res) {
         "SELECT genre_id, genre FROM genre",
         null,
         genre_list,
-        function(err,result,msg){
-            if(err) {res.json(trans_json(msg,0));}
-            else {res.json(trans_json(msg,1,result));}
+        function(err,result){
+            if(err) {
+                res.json(trans_json('장르 리스트를 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('등록된 장르리스트가 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result[0]));
+                }
+            }
         }
     );
 };
@@ -30,10 +37,16 @@ exports.getBookConditionList = function(req,res) {
         "SELECT * FROM book_condition",
         null,
         book_state,
-        function(err,result,msg){
-            if(err) {res.json(trans_json(msg,0));}
-            if(result) {res.json(trans_json(msg,1,result))}
-            else {res.json(trans_json(msg,1));}
+        function(err,result){
+            if(err) {
+                res.json(trans_json('책 상태를 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('등록된 책 상태가 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result));
+                }
+            }
         }
     );
 };
@@ -57,10 +70,16 @@ exports.getServiceTerms = function(req,res){
         "SELECT content FROM service_board WHERE service_board_id =1",
         null,
         policy,
-        function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json(msg,1,result[0]));
-            else res.json(trans_json(msg,1));
+        function(err,result){
+            if(err) {
+                res.json(trans_json('서비스정책을 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('등록된 서비스정책이 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result[0]));
+                }
+            }
         }
     );
 };
@@ -70,10 +89,16 @@ exports.getPrivacy = function(req,res) {
         "SELECT content FROM service_board WHERE service_board_id =2",
         null,
         policy,
-        function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json(msg,1,result[0]));
-            else res.json(trans_json(msg,1));
+        function(err,result){
+            if(err) {
+                res.json(trans_json('개인정보정책을 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('등록된 개인정보정책이 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result[0]));
+                }
+            }
         }
     );
 };
@@ -83,10 +108,16 @@ exports.getNewsList = function(req,res){
         "SELECT title, content FROM news",
         null,
         news_list,
-        function(err,result,msg){
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json(msg,1,result));
-            else res.json(trans_json(msg,1));
+        function(err,result){
+            if(err) {
+                res.json(trans_json('공지사항 정보를 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('등록된 공지사항이 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result));
+                }
+            }
         }
     );
 };
@@ -96,11 +127,16 @@ exports.getFaqList = function(req,res){
         "SELECT question, answer FROM faq",
         null,
         faq_list,
-        function(err,result,msg){
-            console.log(trans_json(msg,1,result));
-            if(err) res.json(trans_json(msg,0));
-            if(result) res.json(trans_json(msg,1,result));
-            else res.json(trans_json(msg,1));
+        function(err,result){
+            if(err) {
+                res.json(trans_json('FAQ 정보를 얻는데 실패했습니다.',0));
+            } else{
+                if(result === 0 ){
+                    res.json(trans_json('등록된 FAQ 정보가 없습니다.',1));
+                } else{
+                    res.json(trans_json('success',1,result));
+                }
+            }
         }
     );
 };

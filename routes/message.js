@@ -60,16 +60,16 @@ exports.getMessageGroupList = function(req,res){
         query,
         [user_id,user_id,user_id,user_id,user_id,user_id,start,count],
         message_list,
-        function(err,result,msg){
+        function(err,result){
             if(err) {
-                res.json(trans_json(msg,0));
+                res.json(trans_json('메시지 그룹을 얻는데 실패했습니다.',0));
             }
             else {
-                if(result) {
-                    res.json(trans_json(msg,1,result));
+                if(result.length == 0) {
+                    res.json(trans_json('메시지 그룹이 없습니다.',1));
                 }
                 else {
-                    res.json(trans_json(msg,1));
+                    res.json(trans_json('success',1,result));
                 }
             }
         }
@@ -91,6 +91,7 @@ exports.destroyMessageGroup = function(req,res){
         "do_show_group = (CASE WHEN user_id = ? THEN false ELSE true END) " +
         "WHERE trade_id = ?";
 
+    // 타입 검사
     transaction_closure(function(err,connection){
         if (err){res.json(trans_json('데이터 베이스 커넥션 오류입니다.',0));}
         else{
@@ -135,14 +136,14 @@ exports.createMsg = function(req,res){
     logger.debug('params : ',{trade_id : req.params.trade_id});
 
     //파라미터
-    var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
-    var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    var user_id = req.session.passport.user;
+    var trade_id = Number(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
     var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
 
     //타입 검사
     if (typeof user_id  != "number") { res.json('유저 아이디 타입은 숫자여야 합니다.',0); }
-    if (typeof message  != "string") { res.json('메시지 타입은 문자열여야 합니다.',0); }
-    if (typeof trade_id != "number") { res.json('교환 아이디 타입은 숫자여야 합니다',0); }
+    if (typeof message  != "string") { res.json('메시지 타입은 문자열여야 합니다.',0);    }
+    if (typeof trade_id != "number") { res.json('교환 아이디 타입은 숫자여야 합니다',0);  }
 
 
     connection_closure(function(err,connection){
@@ -161,13 +162,12 @@ exports.createMsg = function(req,res){
                         query,
                         [user_id,user_id,message,trade_id],
                         function(err,rows){
-                           // console.log('log1',insert_query);
                             if (err) {
-                                console.log('log2');callback(err);
+                                callback(err);
                             }
                             else {
                                 var message_id =rows.insertId;
-                                console.log('log3');callback(null,message_id);
+                                callback(null,message_id);
                             }
                         }
                     )
@@ -178,42 +178,33 @@ exports.createMsg = function(req,res){
                         'WHERE m.message_id = ? ',
                         [message_id],
                         function(err,rows,info){
-                            console.log('log4');
                             var device_list=_.map(rows, function(item){
                                 return item.gcm_registration_id;
                             });
-                            console.log('device_list',device_list);
                             var push_settings_arr = _.map(rows, function(item) {
                                 return item.push_settings
                             });
-                            console.log('push ',push_settings_arr);
                             callback(null,device_list,push_settings_arr);
                         }
-                    )
+                    );
                 },
                 function sendGCM (device_list, push_settings_arr, callback){       //GCM 보내는 함수
-                    //userDeviceIds, userPushSettings, code, title, msg, callback ) {
                     sendMessage(device_list,push_settings_arr,5,"wisdona",message,
                         function(err){
-                            if(err) { console.log('log7');callback(err); }
-                            //console.log('log....');res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));}
-                            else { console.log('log8');callback(null);}
-                            //console.log('loglognnbb');res.json(trans_json('메시지 전송에 성공했습니다.',1));}
+                            if(err) { callback(err); }
+                            else { callback(null);}
                         });
                 }
             ],function(err){
                 if(err) {
-
-                    //console.log('log11',err.message);
                     connection.close_conn();
-                    res.json(trans_json('메시지 전송에 실패했습니다.'+err,0));
+                    res.json(trans_json('메시지 전송에 실패했습니다.'+err.stack,0));
                 }
                 else {
-                    //console.log('log12');
                     connection.close_conn();
                     res.json(trans_json('메시지 전송에 성공했습니다.',1));
                 }
-            })
+            });
         }
     });
 
@@ -279,11 +270,14 @@ exports.getMessageList = function(req,res){
         query,
         [trade_id,start,count],
         message_window,
-        function(err,result,msg){
-            if(err) { res.json(trans_json(msg,0)); }
+        function(err,result){
+            if(err) { res.json(trans_json(err.message,0)); }
             else {
-                if(result) res.json(trans_json(msg,1,result));
-                else res.json(trans_json(msg,1));
+                if (result.length == 0){
+                    res.json(trans_json('메시지가 없습니다.',1));
+                } else {
+                    res.json(trans_json('success',1,result));
+                }
             }
         }
     );
@@ -319,7 +313,7 @@ exports.getUnreadMessgeList = function(req,res){
                     template_item(
                         "UPDATE message SET is_sended = TRUE WHERE to_user_id = ? and is_sended = FALSE",
                         [user_id],
-                        function(err,rows){
+                        function(err){
                             if(err) {
                                 logger.error('update message error',err.message);
                                 res.json(trans_json(err.message,0));
