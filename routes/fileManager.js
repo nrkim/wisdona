@@ -1,5 +1,5 @@
 /**
- * Created by onam on 2014. 7. 29..
+ * Created by onami on 2014. 7. 29..
  * email : nicekon@gmail.com
  */
 
@@ -16,13 +16,14 @@ var fs = require('fs'),
 var baseImageDir = __dirname + '/../images/';
 
 
-// 삭제할 파일패스로 해당 파일 삭제
+// s3 config
 var s3 = knox.createClient({
     key: s3AuthConfig.s3Auth.key,
     secret: s3AuthConfig.s3Auth.secret,
     region: s3AuthConfig.s3Auth.region,
     bucket: s3AuthConfig.s3Auth.bucket
 });
+
 
 function getPath(fileName){
     var dir;
@@ -238,8 +239,6 @@ exports.getImage = function(req, res) {
 
     // 파일 패스 설정
     var dir = getPath(req.params.imagepath);
-
-
     var mimeType = mime.lookup(req.params.imagepath);
 
     logger.debug('//// ', dir + req.params.imagepath );
