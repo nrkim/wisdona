@@ -56,6 +56,7 @@ exports.getUserInfo = function(req,res){
             if(err) {
                 res.json(trans_json('계정정보를 얻는데 실패했습니다.',0));
             } else{
+            	console.log('result is ....',result);
                 if(result === 0 ){
                     res.json(trans_json('등록된 계정정보가 없습니다.',0)); // 일치하는 결과가 없을 시에 에러처리
                 } else{
