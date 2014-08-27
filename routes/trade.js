@@ -306,8 +306,6 @@ exports.acceptPost = function(req,res){
                         if (err) {
                             callback(err);
                         }else{
-                            console.log(query);
-                            console.log('rows', rows);
                             if ( rows ){
                                 if ( rows[0].current_status == 5){
                                     callback(new Error('해당 거래는 종료되었습니다.'));
