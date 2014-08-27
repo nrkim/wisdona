@@ -333,12 +333,10 @@ exports.acceptPost = function(req,res){
                             case 2 :
                                 // 평가완료(기부자)
                                 status_id = 3;
-                                //req.body.message = "평가를 완료 했습니다.";
                                 break;
                             case 4 :
                                 // 완료
                                 status_id = 5;
-                                //req.body.message = "평가를 완료 했습니다.";
                                 break;
                             default :
                                 return callback(new Error("작성자 요청 : 값이 잘못되었거나 다음 단계로 진행할 수 없습니다"));
@@ -351,12 +349,10 @@ exports.acceptPost = function(req,res){
                             case 2 :
                                 // 수취 및 평가완료(요청자)
                                 status_id = 4;
-                                //req.body.message = "수취 확인 및 평과 완료.";
                                 break;
                             case 3 :
                                 // 완료
                                 status_id = 5;
-                                //req.body.message = "수취 확인 및 평과 완료.";
                                 break;
                             default :
                                 return callback(new Error("요청자 요청 : 값이 잘못되었거나 다음 단계로 진행할 수 없습니다"));
@@ -372,7 +368,6 @@ exports.acceptPost = function(req,res){
                                 if (err) {
                                     cb(err);
                                 }else{
-                                    //req.params.trade_id = rows[0].trade_id;
                                     cb();
                                 }
                             });
