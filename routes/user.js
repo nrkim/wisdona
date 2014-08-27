@@ -32,13 +32,19 @@ exports.getUserPostList = function(req,res){
     else if (typeof count   != "number") { res.json('카운트 타입은 숫자여야 합니다',0); }
     else {
         var query =
-            "select p.post_id, title, author, max(thumbnail_path) thumbnail_path, translator, publisher, pub_date, " +
-            "bookmark_cnt, (case when ifnull(t.current_status,0) = 0 then 0 when ifnull(t.current_status,0) = 1 then 1 " +
-            "when ifnull(t.current_status,0) = 2 and t.last_update+1 > now() then 2 when ifnull(t.current_status,0) = 2 " +
-            "and t.last_update+1 < now() then 3 when ifnull(t.current_status,0) = 3 then 4 when ifnull(t.current_status,0) = 4 then 5 " +
-            "when ifnull(t.current_status,0) = 5 then 6 end) as current_status FROM (select * from post where current_status = 0) p " +
-            "JOIN book b ON p.book_id = b.book_id JOIN post_image pi ON p.post_id = pi.post_id " +
-            "LEFT JOIN trade t ON p.post_id = t.post_id WHERE p.user_id = ? GROUP BY p.post_id  ORDER BY p.create_date DESC LIMIT ?, ?";
+            "select p.post_id, title, author, max(thumbnail_path) thumbnail_path, translator, publisher, pub_date, bookmark_cnt, (case " +
+            "when ifnull(t.current_status,0) = 0 then 0 " +
+            "when ifnull(t.current_status,0) = 1 then 1 " +
+            "when ifnull(t.current_status,0) = 2 and t.last_update + INTERVAL 1 DAY > now() then 2 " +
+            "when ifnull(t.current_status,0) = 2 and t.last_update + INTERVAL 1 DAY < now() then 3 " +
+            "when ifnull(t.current_status,0) = 3 then 4 " +
+            "when ifnull(t.current_status,0) = 4 then 5 " +
+            "when ifnull(t.current_status,0) = 5 then 6 end) as current_status " +
+            "FROM (select * from post where current_status = 0) p JOIN book b ON p.book_id = b.book_id " +
+            "JOIN post_image pi ON p.post_id = pi.post_id " +
+            "LEFT JOIN (select * from trade where current_status not in (91,92)) t ON p.post_id = t.post_id " +
+            "WHERE p.user_id = ? GROUP BY p.post_id  " +
+            "ORDER BY p.create_date DESC LIMIT ?, ?";
 
         template_list(
             query,
@@ -49,8 +55,11 @@ exports.getUserPostList = function(req,res){
                     res.json(trans_json('사용자 기부 게시물을 얻는데 실패했습니다.',0));
                 } else{
                     if(results === 0 ){
+                        console.log('  기부계시문ㄹ이 없습니다.');
                         res.json(trans_json('사용자 기부 게시물이 없습니다.',1));
                     } else{
+                        if(results.length !== 0 && results[0].current_status ==null ) results[0].current_status = 0;
+                        console.log('result is ', results);
                         res.json(trans_json('success',1,results));
                     }
                 }
@@ -134,12 +143,12 @@ exports.getRequestPostList = function(req,res){
     else {
         var query =
             "SELECT t.post_id, max(thumbnail_path) thumbnail_path, title, author, translator, publisher, " +
-            "pub_date, bookmark_cnt, (case when ifnull(t.current_status,0) = 0 then 0 when ifnull(t.current_status,0) = 1 " +
+            "pub_date, bookmark_cnt, (case when ifnull(t.current_status,0) = 1 " +
             "then 1 when ifnull(t.current_status,0) = 2 and t.last_update+1 > now() then 2 when ifnull(t.current_status,0) = 2 " +
             "and t.last_update+1 < now() then 3 when ifnull(t.current_status,0) = 3 then 4 when ifnull(t.current_status,0) = 4 " +
             "then 5 when ifnull(t.current_status,0) = 5 then 6 end) as current_status FROM (select * from trade where " +
             "current_status NOT IN (91,92)) t JOIN post p ON t.post_id = p.post_id JOIN book b ON p.book_id = b.book_id JOIN post_image " +
-            "pi ON p.post_id = pi.post_id WHERE t.req_user_id = 51 group by p.post_id ORDER BY p.create_date DESC LIMIT 0, 20";
+            "pi ON p.post_id = pi.post_id WHERE t.req_user_id = ? group by p.post_id ORDER BY p.create_date DESC LIMIT ?, ?";
 
         template_list(
             query,
@@ -152,6 +161,8 @@ exports.getRequestPostList = function(req,res){
                     if(result === 0 ){
                         res.json(trans_json('사용자 요청 게시물이 없습니다.',1));
                     } else{
+                        if(result.length !== 0 && result[0].current_status == null) results[0].current_status = 0;
+                        console.log('result is ...',result);
                         res.json(trans_json('success',1,result));
                     }
                 }

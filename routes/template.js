@@ -55,6 +55,8 @@ exports.template_list = function(query,params,get_json,verify){
                     verify(err);
                 }
                 else {
+                    if(rows.length === 0) { verify(null,rows);}
+                    else {
                     async.map(rows,
                         function (item, callback) {
                             callback(null, get_json(item));
@@ -72,6 +74,7 @@ exports.template_list = function(query,params,get_json,verify){
                             }
                         }
                     );
+                    }
                 }
             });
         }
