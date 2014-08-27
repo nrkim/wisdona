@@ -242,7 +242,6 @@ exports.acceptPost = function(req,res){
                                     res.json(getJsonData(0, err.message, null));
                                 });
                             }else{
-                                logger.debug('ddddddddd');
 
                                 var result;
                                 // 배송 완료 시 GCM 전송 / status_id == 2
@@ -291,7 +290,7 @@ exports.acceptPost = function(req,res){
         // 요청자/기부자 판별
         // 1. 게시물 + trade
 
-        function runAccept(connection, cb){
+        function runAccept(connection, cb2){
             var query;
             var data;
             async.waterfall([
@@ -443,15 +442,14 @@ exports.acceptPost = function(req,res){
                         if (err) {
                             callback(err);
                         } else {
-                            logger.debug('66666');
                             callback(null, status_id);
                         }
                     });
                 }
 
             ], function (err, status_id) {
-                if ( err ) cb(err);
-                else cb(null, status_id);
+                if ( err ) cb2(err);
+                else cb2(null, status_id);
             });
         }
     }
