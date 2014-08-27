@@ -762,9 +762,11 @@ exports.getPostDetail = function(req,res){
                         tommorowDate.setDate(tommorowDate.getDate() + 1);
                         var sendDate = new Date(rows[0].last_update);
                         // 익일 = 3
-                        if ( sendDate > tommorowDate ){
+                        if ( sendDate.valueOf() > tommorowDate.valueOf() ){
+                            logger.debug('여기!!');
                             current_status = 3;
                         }else{
+                            logger.debug('아니다!!!!');
                             // 당일 = 2
                             current_status = 2;
                         }

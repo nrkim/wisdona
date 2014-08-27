@@ -657,17 +657,30 @@ exports.cancelPost = function(req,res){
 
 
 exports.changeDay = function(req, res){
+    logger.debug('하하하');
     getConnection(function (connection) {
-        var tommorowDate = new Date();
-        tommorowDate.setDate(tommorowDate.getDate() + 1);
+        //var tommorowDate = new Date();
+        //tommorowDate.setDate(tommorowDate.getDate() + 1);
+        //logger.debug('입력들어옴',tommorowDate,req.body.trade_id);
 
-        var query = "UPDATE trade SET last_update = ? WHERE trade_id = ?";
-        var data = [tommorowDate,req.body.trade_id];
+        var query = "UPDATE trade SET last_update = NOW() + INTERVAL 2 DAY WHERE trade_id = ?";
+        var data = [req.body.trade_id];
         connection.query(query, data, function (err, result) {
             if (err) {
-                callback(err);
-            }else{
-                callback();
+                res.json(getJsonData(0, err.message, null));
+            } else {
+                connection.commit(function (err) {
+                    if (err) {
+                        connection.rollback(function () {
+                            connection.release();
+                            res.json(getJsonData(0, err.message, null));
+                        });
+                    } else {
+                        connection.release();
+                        res.json(getJsonData(1, "success", null));
+
+                    }
+                })
             }
         });
     });

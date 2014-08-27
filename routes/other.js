@@ -24,7 +24,7 @@ exports.getGenreList = function(req,res) {
                 if(result === 0 ){
                     res.json(trans_json('등록된 장르리스트가 없습니다.',1));
                 } else{
-                    res.json(trans_json('success',1,result[0]));
+                    res.json(trans_json('success',1,result));
                 }
             }
         }
