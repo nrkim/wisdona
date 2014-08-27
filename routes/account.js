@@ -28,7 +28,7 @@ var baseImageDir = __dirname + '/../images/profile/';
 exports.getUserInfo = function(req,res){
 
     //var user_id = req.session.passport.user
-	var user_id = Number(req.params.user_id);
+	var user_id = Number(req.params.user_id);    
 
     console.log('get user info : user_id   ',user_id);
 
