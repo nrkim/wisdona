@@ -890,10 +890,10 @@ exports.getPostList = function(req,res){
 
     var data = [start, end];
     var query =
-        "SELECT p.post_id, pi.thumbnail_path, b.title, b.author, b.translator, b.publisher, b.pub_date, p.bookmark_cnt, t.current_status " +
+        "SELECT SQL_CALC_FOUND_ROWS p.post_id, pi.thumbnail_path, b.title, b.author, b.translator, b.publisher, b.pub_date, p.bookmark_cnt, t.current_status " +
         "FROM post p " +
         "JOIN book b ON p.book_id = b.book_id " +
-        "JOIN post_image pi ON p.post_id = pi.post_id " +
+        "LEFT JOIN post_image pi ON p.post_id = pi.post_id " +
         "LEFT JOIN (SELECT post_id, current_status FROM trade WHERE current_status NOT IN(92, 91)) t ON p.post_id = t.post_id " + where + "p.current_status <> 1 " +
         "GROUP BY p.post_id " +
         "ORDER BY " + sorter + " p.create_date DESC LIMIT ?, ?;";
@@ -911,32 +911,41 @@ exports.getPostList = function(req,res){
                 logger.error('/ 게시물 리스트 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
-                var list = [];
-                for ( var i = 0; i < rows.length; i++ ){
-                    var current_status = rows[i].current_status || 0;
-                    var item = {
-                        post_id : rows[i].post_id,
-                        thumbnail_url : rows[i].thumbnail_path,
-                        book_name : rows[i].title,
-                        author : rows[i].author,
-                        publisher : rows[i].translator,
-                        publication_date : rows[i].pub_date,
-                        bookmark_count : rows[i].bookmark_cnt,
-                        current_status : current_status
-                    };
-                    list.push(item);
-                };
 
-                var result = {
-                    total_count: 0,
-                    list: list
-                };
+                query = "SELECT FOUND_ROWS() count;";
+                connection.query(query, function (err, rows2, fields2) {
+                    if (err) {
+                        connection.release();
+                        res.json(getJsonData(0, err.message, null));
+                    } else {
+                        var list = [];
+                        for ( var i = 0; i < rows.length; i++ ){
+                            var current_status = rows[i].current_status || 0;
+                            var item = {
+                                post_id : rows[i].post_id,
+                                thumbnail_url : rows[i].thumbnail_path,
+                                book_name : rows[i].title,
+                                author : rows[i].author,
+                                publisher : rows[i].translator,
+                                publication_date : rows[i].pub_date,
+                                bookmark_count : rows[i].bookmark_cnt,
+                                current_status : current_status
+                            };
+                            list.push(item);
+                        };
 
-                connection.release();
-                res.json(getJsonData(1, 'success', result));
+                        var result = {
+                            total_count: rows2[0].count,
+                            list: list
+                        };
 
-                logger.debug('/ 게시물 리스트 요청 성공!');
-                logger.debug('/--------------------------------------------------------------------------------------/');
+                        connection.release();
+                        res.json(getJsonData(1, 'success', result));
+
+                        logger.debug('/ 게시물 리스트 요청 성공!');
+                        logger.debug('/--------------------------------------------------------------------------------------/');
+                    }
+                });
             }
         });
     });
@@ -973,7 +982,7 @@ exports.searchPosts = function(req,res){
 
     var data = [start, end];
     var query =
-        "SELECT p.post_id, pi.thumbnail_path, b.title, b.author, b.translator, b.publisher, b.pub_date, p.bookmark_cnt, t.current_status " +
+        "SELECT SQL_CALC_FOUND_ROWS p.post_id, pi.thumbnail_path, b.title, b.author, b.translator, b.publisher, b.pub_date, p.bookmark_cnt, t.current_status " +
         "FROM post p " +
         "JOIN book b ON p.book_id = b.book_id " +
         "JOIN post_image pi ON p.post_id = pi.post_id " +
@@ -994,32 +1003,41 @@ exports.searchPosts = function(req,res){
                 logger.error('/ 게시물 검색 error : ', err.message);
                 logger.error('/---------------------------------------- end -----------------------------------------/');
             }else{
-                var list = [];
-                for ( var i = 0; i < rows.length; i++ ){
-                    var current_status = rows[i].current_status || 0;
-                    var item = {
-                        post_id : rows[i].post_id,
-                        thumbnail_url : rows[i].thumbnail_path,
-                        book_name : rows[i].title,
-                        author : rows[i].author,
-                        publisher : rows[i].translator,
-                        publication_date : rows[i].pub_date,
-                        bookmark_count : rows[i].bookmark_cnt,
-                        current_status : current_status
-                    };
-                    list.push(item);
-                }
+                query = "SELECT FOUND_ROWS() count;";
+                connection.query(query, function (err, rows2, fields2) {
+                    if (err) {
+                        connection.release();
+                        res.json(getJsonData(0, err.message, null));
+                    }else{
 
-                var result = {
-                    total_count: 0,
-                    list: list
-                };
+                        var list = [];
+                        for ( var i = 0; i < rows.length; i++ ){
+                            var current_status = rows[i].current_status || 0;
+                            var item = {
+                                post_id : rows[i].post_id,
+                                thumbnail_url : rows[i].thumbnail_path,
+                                book_name : rows[i].title,
+                                author : rows[i].author,
+                                publisher : rows[i].translator,
+                                publication_date : rows[i].pub_date,
+                                bookmark_count : rows[i].bookmark_cnt,
+                                current_status : current_status
+                            };
+                            list.push(item);
+                        }
 
-                connection.release();
-                res.json(getJsonData(1, 'success', result));
+                        var result = {
+                            total_count: rows2[0].count,
+                            list: list
+                        };
 
-                logger.debug('/ 게시물 검색 요청 성공!');
-                logger.debug('/--------------------------------------------------------------------------------------/');
+                        connection.release();
+                        res.json(getJsonData(1, 'success', result));
+
+                        logger.debug('/ 게시물 검색 요청 성공!');
+                        logger.debug('/--------------------------------------------------------------------------------------/');
+                    }
+                });
             }
         });
     });
