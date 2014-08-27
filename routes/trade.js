@@ -214,14 +214,84 @@ exports.acceptPost = function(req,res){
     logger.debug('/--------------------------------------- start ----------------------------------------/');
     logger.debug('/ 거래 단계별 수락 요청 : ', {user_id:req.params.user_id, post_id : req.body.post_id});
 
-    // 요청자/기부자 판별
-    // 1. 게시물 + trade
-
     // 파라미터 체크
     if ( !req.params.user_id || !req.body.post_id  ){
         res.json(getJsonData(0, '값이 없습니다.', null));
     }else{
-        getConnection(function (connection) {
+        if (req.body.connection) {
+            runAccept(req.body.connection, function (err) {
+                if (err) req.body.callback(err);
+                else req.body.callback(null, err);
+            })
+        }else{
+            getConnection(function (connection) {
+                runAccept(connection, function (err, status_id) {
+                    if (err) {
+                        connection.rollback(function () {
+                            connection.release();
+                            res.json(getJsonData(0, err.message, null));
+                        });
+
+                        logger.error('/ 거래 단계별 수락 error : ', err.message);
+                        logger.error('/---------------------------------------- end -----------------------------------------/');
+                    }else{
+                        connection.commit(function (err) {
+                            if (err) {
+                                connection.rollback(function () {
+                                    connection.release();
+                                    res.json(getJsonData(0, err.message, null));
+                                });
+                            }else{
+                                logger.debug('ddddddddd');
+
+                                var result;
+                                // 배송 완료 시 GCM 전송 / status_id == 2
+                                if ( status_id == 2 ){
+                                    // GCM 전송
+                                    query = "SELECT gcm_registration_id, push_settings FROM user WHERE user_id = ?;";
+                                    data = [req.body.to_user_id];
+                                    connection.query(query, data, function (err, rows, fields) {
+                                        if (err) {
+                                            logger.error('교환 요청 GCM 에러!', err.message);
+                                        } else {
+
+                                            gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], 3, '위즈도나', req.body.message, function (err, gcm_result) {
+                                                // 완료
+                                                if (err) {
+                                                    logger.error('교환 수락 GCM error :', err.message);
+                                                } else {
+                                                    if (gcm_result.success == 1 ){
+                                                        logger.debug('교환 수락 GCM 성공!');
+                                                    }else{
+                                                        logger.debug('교환 수락 GCM 실패!');
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                    result = {message:req.body.message, trade_id:req.params.trade_id};
+                                }else{
+                                    result = null;
+                                }
+
+                                connection.release();
+                                res.json(getJsonData(1, 'success', result));
+
+                                logger.debug('/.');
+                                logger.debug('/.');
+                                logger.debug('/거래 단계별 수락 성공!');
+                                logger.debug('/---------------------------------------- end -----------------------------------------/');
+                            }
+                        });
+                    }
+                })
+            });
+        }
+
+        // 요청자/기부자 판별
+        // 1. 게시물 + trade
+
+        function runAccept(connection, cb){
             var query;
             var data;
             async.waterfall([
@@ -236,6 +306,8 @@ exports.acceptPost = function(req,res){
                         if (err) {
                             callback(err);
                         }else{
+                            console.log(query);
+                            console.log('rows', rows);
                             if ( rows ){
                                 if ( rows[0].current_status == 5){
                                     callback(new Error('해당 거래는 종료되었습니다.'));
@@ -380,67 +452,14 @@ exports.acceptPost = function(req,res){
                 }
 
             ], function (err, status_id) {
-                if (err) {
-                    connection.rollback(function () {
-                        connection.release();
-                        res.json(getJsonData(0, err.message, null));
-                    });
-
-                    logger.error('/ 거래 단계별 수락 error : ', err.message);
-                    logger.error('/---------------------------------------- end -----------------------------------------/');
-                }else{
-                    connection.commit(function (err) {
-                        if (err) {
-                            connection.rollback(function () {
-                                connection.release();
-                                res.json(getJsonData(0, err.message, null));
-                            });
-                        }else{
-                            logger.debug('ddddddddd');
-
-                            var result;
-                            // 배송 완료 시 GCM 전송 / status_id == 2
-                            if ( status_id == 2 ){
-                                // GCM 전송
-                                query = "SELECT gcm_registration_id, push_settings FROM user WHERE user_id = ?;";
-                                data = [req.body.to_user_id];
-                                connection.query(query, data, function (err, rows, fields) {
-                                    if (err) {
-                                        logger.error('교환 요청 GCM 에러!', err.message);
-                                    } else {
-
-                                        gcm.sendMessage([rows[0].gcm_registration_id], [rows[0].push_settings], 3, '위즈도나', req.body.message, function (err, gcm_result) {
-                                            // 완료
-                                            if (err) {
-                                                logger.error('교환 수락 GCM error :', err.message);
-                                            } else {
-                                                if (gcm_result.success == 1 ){
-                                                    logger.debug('교환 수락 GCM 성공!');
-                                                }else{
-                                                    logger.debug('교환 수락 GCM 실패!');
-                                                }
-                                            }
-                                        });
-                                    }
-                                });
-                                result = {message:req.body.message, trade_id:req.params.trade_id};
-                            }else{
-                                result = null;
-                            }
-
-                            connection.release();
-                            res.json(getJsonData(1, 'success', result));
-
-                            logger.debug('/.');
-                            logger.debug('/.');
-                            logger.debug('/거래 단계별 수락 성공!');
-                            logger.debug('/---------------------------------------- end -----------------------------------------/');
-                        }
-                    });
-                }
+                if ( err ) cb(err);
+                else cb(null, status_id);
             });
-        });
+        }
     }
+
+
+
 };
 
 exports.cancelPost = function(req,res){
