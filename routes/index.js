@@ -21,12 +21,9 @@ var account = require('../routes/account')
 var isLoggedIn = function (req, res, next) {
 
     if (req.isAuthenticated() ){
-        //logger.info('인증에 성공 하였습니다.');
         return next();
     }
     else {
-        //버그가 있을 것 같은 ...
-        //logger.info('인증 받지 않았습니다.');
         res.json(trans_json("로그아웃되어 있습니다. 다시 로그인 해 주세요.",0));
     }
 };
@@ -47,42 +44,19 @@ module.exports = function(app,passport) {
                     [req.body.gcm_registration_id,user.user_id],
                     function(err,result,msg){
                         if (err) {
-                            res.json(trans_json('로그인에 실패했습니다.',0));
+                            req.err_info = err;
+                            next();
                         }
                         else {
                             req.session.passport.user = user.user_id;
-                            res.json(trans_json('로그인에 성공했습니다.',1,
-                                    create_user(user.user_id))
-                            );
+                            console.log('error 아니죠!! user는...',user);
+                            next();
                         }
                     }
                 );
-                /*
-                req.logIn(user, function(err) {
-                    if (err) {
-                        res.json(trans_json(err.message,0));
-                    }
-                    else{
-                        template_item(
-                            "UPDATE user SET gcm_registration_id = ? WHERE user_id = ? ",
-                            [req.body.gcm_registration_id,user.user_id],
-                            function(err,result,msg){
-                                if (err) {
-                                    res.json(trans_json('로그인에 실패했습니다.',0));
-                                }
-                                else {
-                                    req.session.passport.user = user.user_id;
-                                    res.json(trans_json('로그인에 성공했습니다.',1,
-                                        create_user(user.user_id))
-                                    );
-                                }
-                            }
-                        );
-                    }
-                });*/
             }
         })(req, res, next);
-    });
+    },login.login);
 
     app.post('/facebook-signup',
         express.bodyParser(),
@@ -95,14 +69,14 @@ module.exports = function(app,passport) {
                         res.json(trans_json(err.message,0));
                     }
                     if (rows.length == 0) {
-                        passport.authenticate('facebook-signup', function(err, user, info) {
+                        passport.authenticate('facebook-signup',
+                         function(err, user, info) {
                             if(user){
-                                req.json_file = create_user(user.user_id);
                                 req.session.passport.user = user.user_id;
                                 next();
                             }
                             else{
-                                res.json(trans_json(msg,0));
+                                res.json(trans_json(info,0));
                             }
                         })(req, res, next);
                     } else {

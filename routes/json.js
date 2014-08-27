@@ -31,11 +31,11 @@ exports.review = function(item){
         user           : {
             user_id          : item.user_id,
             nick_name        : item.nickname,
-            profile_image_url: item.book_image_path
+            profile_image_url: item.thumb_image
         },
         book_name      : item.title,
         comment        : item.comments,
-        thumbnail_url  : item. thumbnail_path,
+        thumbnail_url  : item.book_image_path,
         post_id        : item.post_id
     };
 };

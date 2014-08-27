@@ -60,112 +60,113 @@ exports.requestActivationEmail = function(req,res){
 
 
     //이메일 파라미터 전달
-    var user_id = JSON.parse(req.params.user_id) || res.json(trans_json('유저 아이디를 입력하지 않았습니다.',0));
+    var user_id = Number(req.params.user_id) //|| res.json(trans_json('유저 아이디를 입력하지 않았습니다.',0));
     //전역 이메일
     var email ='';
 
     //타입 체크
-    if(typeof user_id !== 'number') res.json(trans_json('유저 아이디는 숫자 타입이어야 합니다.',0));
-
-    connection_closure(function(err,connection){
-        async.waterfall([
-            //등록된 이메일 가져오기
-            function email_check(callback){
-                connection.get_query(
-                    "SELECT email FROM user WHERE user_id = ?",
-                    [user_id],
-                    function(err, result, msg){
-                        if(err) {callback('sql에러 입니다 : '+ err.message);}
-                        else {
-                            if(result.length == 0) {
-                                callback('등록되지 않은 유저 입니다.');
-                            }
+    if(typeof user_id !== 'number') { res.json(trans_json('유저 아이디는 숫자 타입이어야 합니다.',0)); }
+    else {
+        connection_closure(function(err,connection){
+            async.waterfall([
+                //등록된 이메일 가져오기
+                function email_check(callback){
+                    connection.get_query(
+                        "SELECT email FROM user WHERE user_id = ?",
+                        [user_id],
+                        function(err, result, msg){
+                            if(err) {callback('sql에러 입니다 : '+ err.message);}
                             else {
-                                email=result[0].email;
-                                callback(null);
-                            }
-                        }
-                    }
-                )
-            },
-            // 랜덤 비밀번호 생성
-            function random_token (callback){
-                crypto.randomBytes(48, function(err,buf){
-                    if (err) { res.json(trans_json('랜덤 암호 토큰 생성에 실패했습니다.',0)); }
-                    else {
-                        var token =  buf.toString('base64').replace(/\//g,'_').replace(/\+/g,'-');
-                        connection.get_query(
-                            "SELECT auth_token FROM email_auth WHERE auth_token = ? ",
-                            [token],
-                            function(err,rows,msg){
-                                if (err) { callback('sql 쿼리 오류 입니다.'); }
+                                if(result.length == 0) {
+                                    callback('등록되지 않은 유저 입니다.');
+                                }
                                 else {
-                                    if(rows.length == 0){ callback(null,token); }
-                                    else{ random_token(callback); } //같은 인증 토큰이 있으면 다시 수행.
+                                    email=result[0].email;
+                                    callback(null);
                                 }
                             }
-                        );
-                    }
-                });
-            },
-            // 인증 토큰 테이블에 저장
-            function insert_auth(token,callback){
-                console.log('암호 생성 성공 ',token);
-                template_item(
-                    "SELECT email FROM email_auth WHERE user_id = ?",
-                    [user_id],
-                    function(err,rows,msg){
-                        if(err){callback(msg);}
-                        else{
-                            var expire = function(){ var v = new Date(); v.setDate(v.getDate() + 1); return v;}();
-                            expire = expire.format("yy-M-dd h:mm:ss");
-
-                            console.log('expires is : ',expire);
-                            if(rows.length == 0){
-                                connection.get_query(
-                                    "INSERT INTO email_auth(user_id,email,auth_token,expiration_date) VALUES(?,?,?,?)",
-                                    [user_id,email,token,expire],
-                                    function(err,rows,msg){
-                                        if(err) {console.log('err');callback(msg);}
-                                        else {console.log('not err.....');callback(null,token,rows.insertId);}
+                        }
+                    )
+                },
+                // 랜덤 비밀번호 생성
+                function random_token (callback){
+                    crypto.randomBytes(48, function(err,buf){
+                        if (err) { res.json(trans_json('랜덤 암호 토큰 생성에 실패했습니다.',0)); }
+                        else {
+                            var token =  buf.toString('base64').replace(/\//g,'_').replace(/\+/g,'-');
+                            connection.get_query(
+                                "SELECT auth_token FROM email_auth WHERE auth_token = ? ",
+                                [token],
+                                function(err,rows,msg){
+                                    if (err) { callback('sql 쿼리 오류 입니다.'); }
+                                    else {
+                                        if(rows.length == 0){ callback(null,token); }
+                                        else{ random_token(callback); } //같은 인증 토큰이 있으면 다시 수행.
                                     }
-                                );
-                            }
+                                }
+                            );
+                        }
+                    });
+                },
+                // 인증 토큰 테이블에 저장
+                function insert_auth(token,callback){
+                    console.log('암호 생성 성공 ',token);
+                    template_item(
+                        "SELECT email FROM email_auth WHERE user_id = ?",
+                        [user_id],
+                        function(err,rows,msg){
+                            if(err){callback(msg);}
                             else{
-                                connection.get_query(
-                                        "UPDATE email_auth SET auth_token = ?, " +
-                                        "expiration_date = ? WHERE user_id = ? ",
-                                    [token,expire,user_id],
-                                    function(err,rows,msg){
-                                        if(err) {console.log('token',token);callback(msg);}//rows.insertId
-                                        else {console.log('token',token);callback(null,token);}
-                                    }
-                                );
+                                var expire = function(){ var v = new Date(); v.setDate(v.getDate() + 1); return v;}();
+                                expire = expire.format("yy-M-dd h:mm:ss");
+
+                                console.log('expires is : ',expire);
+                                if(rows.length == 0){
+                                    connection.get_query(
+                                        "INSERT INTO email_auth(user_id,email,auth_token,expiration_date) VALUES(?,?,?,?)",
+                                        [user_id,email,token,expire],
+                                        function(err,rows,msg){
+                                            if(err) {console.log('err');callback(msg);}
+                                            else {console.log('not err.....');callback(null,token,rows.insertId);}
+                                        }
+                                    );
+                                }
+                                else{
+                                    connection.get_query(
+                                            "UPDATE email_auth SET auth_token = ?, " +
+                                            "expiration_date = ? WHERE user_id = ? ",
+                                        [token,expire,user_id],
+                                        function(err,rows,msg){
+                                            if(err) {console.log('token',token);callback(msg);}//rows.insertId
+                                            else {console.log('token',token);callback(null,token);}
+                                        }
+                                    );
+                                }
                             }
                         }
-                    }
-                )
-            },
-            // 메시지 보내기
-            function send_message(token,callback){
-                template = '<a href="http://54.92.19.218/activation-email/'+token+'"> 계정 인증 url입니다. 클릭하세요. </a>';
-                console.log('template : ',template);
-                send_mail(email,'[위즈도나] 인증 메일입니다.',template,function(err){
-                    if(err) {callback(err);}
-                    else {callback(null);}
-                });
-            }
-        ], function(err){
-            if (err){
-                connection.close_conn();
-                res.json(trans_json('인증메일 전송에 실패했습니다.',0));
-            }
-            else {
-                connection.close_conn();
-                res.json(trans_json('인증메일 전송에 성공했습니다.',1));
-            }
-        })
-    });
+                    )
+                },
+                // 메시지 보내기
+                function send_message(token,callback){
+                    template = '<a href="http://54.92.19.218/activation-email/'+token+'"> 계정 인증 url입니다. 클릭하세요. </a>';
+                    console.log('template : ',template);
+                    send_mail(email,'[위즈도나] 인증 메일입니다.',template,function(err){
+                        if(err) {callback(err);}
+                        else {callback(null);}
+                    });
+                }
+            ], function(err){
+                if (err){
+                    connection.close_conn();
+                    res.json(trans_json('인증메일 전송에 실패했습니다.',0));
+                }
+                else {
+                    connection.close_conn();
+                    res.json(trans_json('인증메일 전송에 성공했습니다.',1));
+                }
+            })
+        });
+    }
 
 };
 

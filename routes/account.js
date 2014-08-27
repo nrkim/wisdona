@@ -27,13 +27,13 @@ var baseImageDir = __dirname + '/../images/profile/';
 // api: /users/:user_id/profile/show
 exports.getUserInfo = function(req,res){
 
-    var user_id = req.session.passport.user;
+    //var user_id = req.session.passport.user
+	var user_id = Number(req.params.user_id);    
 
     console.log('get user info : user_id   ',user_id);
 
     //타입 체크
     if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
-
 
     // 유저 정보를 얻는 쿼리
     // 유저는 게시물을 한번도 써본적이 없거나 혹은 거래를 한번도 해보지 않았거나 거래를 진행 중인 사람으로
@@ -56,6 +56,7 @@ exports.getUserInfo = function(req,res){
             if(err) {
                 res.json(trans_json('계정정보를 얻는데 실패했습니다.',0));
             } else{
+            	console.log('result is ....',result);
                 if(result === 0 ){
                     res.json(trans_json('등록된 계정정보가 없습니다.',0)); // 일치하는 결과가 없을 시에 에러처리
                 } else{
@@ -70,7 +71,7 @@ exports.getUserInfo = function(req,res){
 exports.destroyUserAccount = function(req,res){
 
     //계정 삭제시 휴면 계정
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    var user_id = req.session.passport.user;
 
     // 타입 검사
     if(typeof user_id != "number") trans_json('사용자 아이디는 숫자 타입이어야 합니다.',0);
@@ -92,7 +93,7 @@ exports.destroyUserAccount = function(req,res){
 // api : /users/:user_id/account-settings/show
 exports.getAccountSettings = function(req,res){
 
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+    var user_id = req.session.passport.user;
 
     console.log('account settings user_id :   ',user_id);
 
@@ -213,7 +214,8 @@ exports.checkOldImage = function(req, res, next){
 
 // api : /users/:user_id/account-settings/update
 exports.updateAccountSettings = function(req,res){
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃 되었습니다. 다시 로그인 해 주세요.",0));
+
+    var user_id = req.session.passport.user;
 
     var updated = {};
 
@@ -225,33 +227,42 @@ exports.updateAccountSettings = function(req,res){
     if (req.body.address)       updated.address = req.body.address;
     if (req.body.push_settings) updated.push_settings = req.body.push_settings;
 
-    if(updated.push_settings){
-        updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
-    }
-    logger.debug('req.oldFile',req.oldFile);
+//    if (typeof(req.body.push_settings === 'string')) {res.json(trans_json('push값이 스트링으로 옵니다.',0));}
+//    else {
+        console.log('req.body.push_settings     :     ',req.body.push_settings);
+        console.log('req.body.push_settings  type!   :     ',typeof(req.body.push_settings));
 
-    query =
-        'UPDATE user SET ? WHERE user_id = ? ';
+        if(updated.push_settings){
+            updated.push_settings =_.reduce(req.body.push_settings, function(memo, num){ return (String(memo) +',' +String(num)); }, '');
+        }
 
-    console.log('push_settings    : ',updated.push_settings);
-    console.log('updated',updated);
+        console.log('reduced ... req.body.push_settings     :     ',req.body.push_settings);
+        console.log('reduced ... req.body.push_settings  type!   :     ',typeof(req.body.push_settings));
+        logger.debug('req.oldFile',req.oldFile);
 
-    template_item(
-        query,
-        [updated,user_id],
-        function(err,rows,msg){
-            if (err) {
-                res.json(trans_json(msg,0));
-            } else {
-                if (req.oldFile){
-                    fileManager.deleteProfileImage(req.oldFile, function (err) {
-                        if (err) res.json(trans_json(msg,0));
-                        else res.json(trans_json(msg,1));
-                    })
-                }else{
-                    res.json(trans_json(msg,1));
+        query =
+            'UPDATE user SET ? WHERE user_id = ? ';
+
+        console.log('push_settings    : ',updated.push_settings);
+        console.log('updated',updated);
+
+        template_item(
+            query,
+            [updated,user_id],
+            function(err,rows,msg){
+                if (err) {
+                    res.json(trans_json(msg,0));
+                } else {
+                    if (req.oldFile){
+                        fileManager.deleteProfileImage(req.oldFile, function (err) {
+                            if (err) res.json(trans_json(msg,0));
+                            else res.json(trans_json(msg,1));
+                        })
+                    }else{
+                        res.json(trans_json(msg,1));
+                    }
                 }
             }
-        }
-    );
+        );
+ //   }
 };

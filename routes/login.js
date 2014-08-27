@@ -16,7 +16,7 @@ var trans_json = json.trans_json
     ,updateDeviceId = gcm.updateDeviceId
     ,connection_closure = template.connection_closure
     ,logger = require('../config/logger');
-//var async = require('async');
+var async = require('async');
 var request = require('request');
 
 
@@ -31,28 +31,25 @@ exports.registerLocal = function(req,res){
         [req.body.nickname, req.body.gcm_registration_id, req.session.passport.user],
         function(err,rows){
             if (err){
-                console.log('error 2222',err.message);
                 res.json(trans_json('로그인에 실패했습니다.',0));
             }
             else {
-                if(req.json_file){
-                    console.log('jsonfile is exist!!');
-                    res.json(trans_json('로그인에 성공했습니다.',1,req.json_file));
-                } else {
-                    console.log('json file is not exist!!!');
-                    res.json(trans_json('로그인에 실패했습니다.',0));
-                }
+                res.json(trans_json('로그인에 성공했습니다.',1,create_user(req.session.passport.user)));
             }
         }
     );
 };
 
 exports.login = function(req,res){
+    console.log('req.user...',req.user);
+    console.log('middleware err is ...', req.err_info);
+    console.log('passport is....',req.session.passport);
+    console.log('session is....',req.session.passport.user);
     if (req.session.passport.user) {
-        req.session.save(function() {
-            console.log(req.session);
-        });
-        res.json(trans_json(req.signup_msg,1,create_user(req.user.user_id)));
+        res.json(
+            trans_json('success',1,
+                create_user(req.session.passport.user))
+        );
     } else {
         res.json(trans_json(req.signup_msg,0));
     }
@@ -83,9 +80,9 @@ exports.facebookLogout = function(req,res){
 exports.logout = function(req,res){
     logger.debug('/--------------------------------------- logout ----------------------------------------/');
 
-    //req.session.destroy();
     req.logout();
     req.session.destroy();
+    req.session = null;
     if (!req.isAuthenticated())  {
         console.log('성공!!');
         res.json(trans_json("success", 1));
@@ -102,33 +99,34 @@ exports.activationEmail = function(req,res){
     logger.debug('/--------------------------------------- activationEmail ----------------------------------------/');
     logger.debug('params : ', {authkey : req.params.authkey});
 
-    var authkey = req.params.authkey || res.send('인증 토큰을 입력하지 않았습니다.');
+    var authkey = String(req.params.authkey) || res.send('인증 토큰을 입력하지 않았습니다.');
 
-    if(typeof authkey != "string") res.send('인증토큰 타입은 문자열 타입이어야 합니다.');
-
-    template_item(
-       "SELECT email, auth_token FROM email_auth WHERE ?",
-        {auth_token : authkey},
-        function(err,rows,msg){
-            console.log('rows...',rows);
-            if(err) { res.send('인증이 완료되지 못했습니다.');}
-            else {
-                console.log('!!');
-                if(rows.length == 0){res.send('인증이 만료되었습니다. 다시 시도해 주세요.');}
-                else{
-                    template_item(
-                        "UPDATE user SET email_auth = 1 WHERE email = ?",
-                        [rows[0].email],
-                        function(err,rows,msg){
-                            console.log('alks;djf');
-                            if(err){ res.send('이메일 인증 상태를 업데이트 하지 못했습니다.');}
-                            else { res.send('이메일 인증을 완료했습니다.');}
-                        }
-                    );
+    if(typeof authkey != "string") { res.send('인증토큰 타입은 문자열 타입이어야 합니다.'); }
+    else {
+        template_item(
+            "SELECT email, auth_token FROM email_auth WHERE ?",
+            {auth_token : authkey},
+            function(err,rows,msg){
+                console.log('rows...',rows);
+                if(err) { res.send('인증이 완료되지 못했습니다.');}
+                else {
+                    console.log('!!');
+                    if(rows.length == 0){res.send('인증이 만료되었습니다. 다시 시도해 주세요.');}
+                    else{
+                        template_item(
+                            "UPDATE user SET email_auth = 1 WHERE email = ?",
+                            [rows[0].email],
+                            function(err,rows,msg){
+                                console.log('alks;djf');
+                                if(err){ res.send('이메일 인증 상태를 업데이트 하지 못했습니다.');}
+                                else { res.send('이메일 인증을 완료했습니다.');}
+                            }
+                        );
+                    }
                 }
             }
-        }
-    );
+        );
+    }
 };
 
 exports.updatePassword = function(req,res){
@@ -137,31 +135,42 @@ exports.updatePassword = function(req,res){
     logger.debug('session : ',req.session.passport.user);
     logger.debug('body : ', req.body);
 
-    var user_id = req.session.passport.user || res.json(trans_json("로그아웃되었습니다. 다시 로그인 해주세요.", 0));
-    var old_password = req.body.old_password || res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.",0));
-    var new_password = req.body.new_password || res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));
+    var user_id = req.session.passport.user //|| res.json(trans_json("로그아웃되었습니다. 다시 로그인 해주세요.", 0));
+    var old_password = Number(req.body.old_password) //|| res.json(trans_json("현재 비밀번호를 입력하지 않았습니다.",0));
+    var new_password = Number(req.body.new_password) //|| res.json(trans_json("새로운 비밀번호를 입력하지 않았습니다.",0));
 
     connection_closure(function(err,connection){
         if(err){
             res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
         } else {
             async.waterfall([
-                function check_password(callback) {
+                function create_pass (callback){
+                    create_password(old_password,function(err,hashPass){
+                       if(err){res.json(trans_json('입력한 비밀번호 생성에 실패했습니다.',0));}
+                       else{
+                           callback(null,hashPass);
+                       }
+                    });
+                },
+                function check_password(hashPass,callback) {
                     connection.get_query(
                         "SELECT password FROM user WHERE user_id = ?",
                         [user_id],
                         function (err, rows) {
                             if (err) {res.json(trans_json('sql에러입니다. ' + err.code, 0));}
                             else {
-                                if (rows.length === 0) {callback()}//res.json(trans_json('존재하지 않는 사용자 입니다.', 0));
-                                else {callback(null);}
+                                if (rows.length === 0) {res.json(trans_json('존재하지 않는 사용자 입니다.', 0));}
+                                else {callback(null,hashPass,rows);}
                             }
                         }
                     );
                 },
-                function compare_password(callback) {
-                    bcrypt.compare(old_password, rows[0].password, function (err, result) {
-                        if (err) {res.json(trans_json('비밀번호 비교하면서 오류가 발생했습니다.', 0));}
+                function compare_password(hashPass,rows,callback) {
+                    console.log('rows,,,,',rows);
+                    console.log('hash password is ....',hashPass);
+
+                    bcrypt.compare(hashPass, rows[0].password, function (err, result) {
+                        if (err) {res.json(trans_json('비밀번호 비교하면서 오류가 발생했습니다.'+err, 0));}
                         else {
                             if (rows.length == 0) {
                                 res.json(trans_json('현재 비밀번호가 틀렸습니다. 다시 입력해 주십시오', 0));

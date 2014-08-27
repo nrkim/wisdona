@@ -22,6 +22,7 @@ module.exports = function(passport) {
             var selectSql = 'SELECT user_id, facebook_id, facebook_token, email, ' +
                 'image FROM user WHERE user_id = ?';
 
+            console.log('deserialize user ------> ',id);
             connection.query(selectSql, [id], function(err, rows, fields) {
                 var user = {};
                 console.log('user_id...',id);
@@ -31,8 +32,6 @@ module.exports = function(passport) {
                 user.facebookEmail = rows[0].email;
                 user.facebookPhoto = rows[0].image;
                 connection.release();
-                console.log('passport.deserializeUser ====> ', user);
-                connecgtion.release();
                 return done(null, user);
             });
         });

@@ -40,40 +40,41 @@ exports.getMessageGroupList = function(req,res){
 
     //타입 체크
     if (typeof user_id != "number") { res.json('유저 아이디 타입은 숫자여야 합니다.',0); }
-    if (typeof user_id != "number") { res.json('페이지 타입은 숫자여야 합니다.',0); }
-    if (typeof count   != "number") { res.json('카운트 타입은 숫자여야 합니다',0); }
+    else if (typeof user_id != "number") { res.json('페이지 타입은 숫자여야 합니다.',0); }
+    else if (typeof count   != "number") { res.json('카운트 타입은 숫자여야 합니다',0); }
+    else {
+        var query =
+            "SELECT m.trade_id, (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) from_user_id, " +
+            "nickname, image, m.trade_id, title, message, m.be_message_cnt, m.create_date FROM ( SELECT trade_id AS trade_id, " +
+            "from_user_id AS from_user_id, to_user_id AS to_user_id, message AS message, create_date AS create_date, d.be_message_cnt " +
+            "AS be_message_cnt FROM message m JOIN (SELECT MAX(create_date) AS max_date, SUM(CASE WHEN to_user_id = ? AND " +
+            "is_read = 0 THEN 1 ELSE 0 END) " +
+            "AS be_message_cnt FROM message GROUP BY trade_id ) d WHERE m.create_date = d.max_date) m " +
+            "JOIN user u ON u.user_id = (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) " +
+            "JOIN trade t ON m.trade_id = t.trade_id JOIN post p ON p.post_id = t.post_id JOIN book b ON b.book_id = p.book_id " +
+            "WHERE (m.from_user_id = ? OR m.to_user_id = ?) AND (CASE WHEN req_user_id = ? THEN be_show_group ELSE do_show_group END) = 1 " +
+            "ORDER BY m.create_date DESC LIMIT ?, ? ";
 
-    var query =
-        "SELECT m.trade_id, (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) from_user_id, " +
-        "nickname, image, m.trade_id, title, message, m.be_message_cnt, m.create_date FROM ( SELECT trade_id AS trade_id, " +
-        "from_user_id AS from_user_id, to_user_id AS to_user_id, message AS message, create_date AS create_date, d.be_message_cnt " +
-        "AS be_message_cnt FROM message m JOIN (SELECT MAX(create_date) AS max_date, SUM(CASE WHEN to_user_id = ? AND " +
-        "is_read = 0 THEN 1 ELSE 0 END) " +
-        "AS be_message_cnt FROM message GROUP BY trade_id ) d WHERE m.create_date = d.max_date) m " +
-        "JOIN user u ON u.user_id = (CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END) " +
-        "JOIN trade t ON m.trade_id = t.trade_id JOIN post p ON p.post_id = t.post_id JOIN book b ON b.book_id = p.book_id " +
-        "WHERE (m.from_user_id = ? OR m.to_user_id = ?) AND (CASE WHEN req_user_id = ? THEN be_show_group ELSE do_show_group END) = 1 " +
-        "ORDER BY m.create_date DESC LIMIT ?, ? ";
 
-
-    template_list(
-        query,
-        [user_id,user_id,user_id,user_id,user_id,user_id,start,count],
-        message_list,
-        function(err,result){
-            if(err) {
-                res.json(trans_json('메시지 그룹을 얻는데 실패했습니다.',0));
-            }
-            else {
-                if(result.length == 0) {
-                    res.json(trans_json('메시지 그룹이 없습니다.',1));
+        template_list(
+            query,
+            [user_id,user_id,user_id,user_id,user_id,user_id,start,count],
+            message_list,
+            function(err,result){
+                if(err) {
+                    res.json(trans_json('메시지 그룹을 얻는데 실패했습니다.',0));
                 }
                 else {
-                    res.json(trans_json('success',1,result));
+                    if(result.length == 0) {
+                        res.json(trans_json('메시지 그룹이 없습니다.',1));
+                    }
+                    else {
+                        res.json(trans_json('success',1,result));
+                    }
                 }
             }
-        }
-    );
+        );
+    }
 
 };
 
@@ -137,76 +138,78 @@ exports.createMsg = function(req,res){
 
     //파라미터
     var user_id = req.session.passport.user;
-    var trade_id = Number(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
-    var message = req.body.message   || res.json(trans_json("메시지를 입력하지 않았습니다.",0));
+    var trade_id = Number(req.params.trade_id) //|| res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    var message = String(req.body.message)   //|| res.json(trans_json("메시지를 입력하지 않았습니다.",0));
+
+    console.log(req.body.message);
 
     //타입 검사
-    if (typeof user_id  != "number") { res.json('유저 아이디 타입은 숫자여야 합니다.',0); }
-    if (typeof message  != "string") { res.json('메시지 타입은 문자열여야 합니다.',0);    }
-    if (typeof trade_id != "number") { res.json('교환 아이디 타입은 숫자여야 합니다',0);  }
-
-
-    connection_closure(function(err,connection){
-        if(err){ res.json(trans_json('커넥션을 얻는데 실패했습니다 : ',+err,0)); }
-        else {
-            async.waterfall([
-                function saveMessage(callback){             // 메시지 저장
-                    var query =
-                        'INSERT INTO message(from_user_id, to_user_id, message, is_read, trade_id, is_sended) ' +
-                        'SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?, 0, t.trade_id, 0 ' +
-                        'FROM trade t ' +
-                        'JOIN post p ON t.post_id = p.post_id ' +
-                        'WHERE t.trade_id = ? ';
-                    logger.debug('user_id,user_id,message,trade_id', user_id,user_id,message,trade_id);
-                    connection.get_query(
-                        query,
-                        [user_id,user_id,message,trade_id],
-                        function(err,rows){
-                            if (err) {
-                                callback(err);
+    if (typeof user_id  != "number") {res.json('유저 아이디 타입은 숫자여야 합니다.',0); }
+    else if (typeof message  != "string") {res.json('메시지 타입은 문자열여야 합니다.',0);    }
+    else if (typeof trade_id != "number") {res.json('교환 아이디 타입은 숫자여야 합니다',0);  }
+    else {
+        connection_closure(function(err,connection){
+            if(err){ res.json(trans_json('커넥션을 얻는데 실패했습니다 : ',+err,0)); }
+            else {
+                async.waterfall([
+                    function saveMessage(callback){             // 메시지 저장
+                        var query =
+                            'INSERT INTO message(from_user_id, to_user_id, message, is_read, trade_id, is_sended) ' +
+                            'SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?, 0, t.trade_id, 0 ' +
+                            'FROM trade t ' +
+                            'JOIN post p ON t.post_id = p.post_id ' +
+                            'WHERE t.trade_id = ? ';
+                        logger.debug('user_id,user_id,message,trade_id', user_id,user_id,message,trade_id);
+                        connection.get_query(
+                            query,
+                            [user_id,user_id,message,trade_id],
+                            function(err,rows){
+                                if (err) {
+                                    callback(err);
+                                }
+                                else {
+                                    var message_id =rows.insertId;
+                                    callback(null,message_id);
+                                }
                             }
-                            else {
-                                var message_id =rows.insertId;
-                                callback(null,message_id);
+                        )
+                    },
+                    function getDeviceId (message_id,callback){            // 디바이스 아이디 추출
+                        connection.get_query(
+                                'SELECT to_user_id, gcm_registration_id, push_settings FROM user u JOIN message m ON u.user_id = m.to_user_id '+
+                                'WHERE m.message_id = ? ',
+                            [message_id],
+                            function(err,rows,info){
+                                var device_list=_.map(rows, function(item){
+                                    return item.gcm_registration_id;
+                                });
+                                var push_settings_arr = _.map(rows, function(item) {
+                                    return item.push_settings
+                                });
+                                callback(null,device_list,push_settings_arr);
                             }
-                        }
-                    )
-                },
-                function getDeviceId (message_id,callback){            // 디바이스 아이디 추출
-                    connection.get_query(
-                        'SELECT to_user_id, gcm_registration_id, push_settings FROM user u JOIN message m ON u.user_id = m.to_user_id '+
-                        'WHERE m.message_id = ? ',
-                        [message_id],
-                        function(err,rows,info){
-                            var device_list=_.map(rows, function(item){
-                                return item.gcm_registration_id;
+                        );
+                    },
+                    function sendGCM (device_list, push_settings_arr, callback){       //GCM 보내는 함수
+                        sendMessage(device_list,push_settings_arr,5,"wisdona",message,
+                            function(err){
+                                if(err) { callback(err); }
+                                else { callback(null);}
                             });
-                            var push_settings_arr = _.map(rows, function(item) {
-                                return item.push_settings
-                            });
-                            callback(null,device_list,push_settings_arr);
-                        }
-                    );
-                },
-                function sendGCM (device_list, push_settings_arr, callback){       //GCM 보내는 함수
-                    sendMessage(device_list,push_settings_arr,5,"wisdona",message,
-                        function(err){
-                            if(err) { callback(err); }
-                            else { callback(null);}
-                        });
-                }
-            ],function(err){
-                if(err) {
-                    connection.close_conn();
-                    res.json(trans_json('메시지 전송에 실패했습니다.'+err.stack,0));
-                }
-                else {
-                    connection.close_conn();
-                    res.json(trans_json('메시지 전송에 성공했습니다.',1));
-                }
-            });
-        }
-    });
+                    }
+                ],function(err){
+                    if(err) {
+                        connection.close_conn();
+                        res.json(trans_json('메시지 전송에 실패했습니다.'+err.stack,0));
+                    }
+                    else {
+                        connection.close_conn();
+                        res.json(trans_json('메시지 전송에 성공했습니다.',1));
+                    }
+                });
+            }
+        });
+    }
 
 };
 
@@ -215,25 +218,32 @@ exports.createMessage = function(req,connection,next){
     // 파라미터
     var user_id = req.session.passport.user;
     var trade_id = Number(req.params.trade_id) || next(new Error("거래 아이디를 입력하지 않았습니다."));
-    var message = req.body.message   || next(new Error("메시지를 입력하지 않았습니다."));
+    var message = String(req.body.message)   || next(new Error("메시지를 입력하지 않았습니다."));
 
+    logger.debug('log222');
+    logger.debug(user_id,message,trade_id);
     //타입 검사
+
     if (typeof user_id  != "number") { next(new Error('유저 아이디 타입은 숫자여야 합니다.'));}
-    if (typeof message  != "string") { next(new Error('메시지 타입은 문자열여야 합니다.'));}
-    if (typeof trade_id != "number") { next(new Error('트레이드 아이디 타입은 숫자여야 합니다'));}
+    else if (typeof message  != "string") { next(new Error('메시지 타입은 문자열여야 합니다.'));}
+    else if (typeof trade_id != "number") { next(new Error('트레이드 아이디 타입은 숫자여야 합니다'));}
+    else {
+        var insert_query =
+            "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
+            "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
+            "FROM trade t " +
+            "JOIN post p ON t.post_id = p.post_id " +
+            "WHERE t.trade_id = ? ";
 
-    var query =
-        "INSERT INTO message(from_user_id, to_user_id, message,is_read, trade_id, is_sended) " +
-        "SELECT ?, (CASE WHEN req_user_id = ? THEN p.user_id ELSE req_user_id END), ?,0, t.trade_id, 0 " +
-        "FROM trade t " +
-        "JOIN post p ON t.post_id = p.post_id " +
-        "WHERE t.trade_id = ? ";
-
-    connection.query(query,[user_id,user_id,message,trade_id],function(err,rows){
-        if (err){ next(err); }
-        else { next(null,rows) }
-    });
-
+        connection.query(
+            insert_query,
+            [user_id,user_id,message,trade_id],
+            function(err,rows){
+                if (err){ next(err); }
+                else { next(null,rows); }
+            }
+        );
+    }
 };
 
 exports.getMessageList = function(req,res){
@@ -245,7 +255,7 @@ exports.getMessageList = function(req,res){
 
     //parameter로 받은 사용자 아이디
     var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
-    var trade_id = req.params.trade_id || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    var trade_id = Number(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     // query string 처리
     var page = Number(req.query.page) || 0;
@@ -255,32 +265,33 @@ exports.getMessageList = function(req,res){
     var start = page*count;
 
     //타입 체크
-    if (typeof user_id != "number") res.json('유저 아이디 타입은 숫자여야 합니다.',0);
-    if (typeof user_id != "number") res.json('페이지 타입은 숫자여야 합니다.',0);
-    if (typeof count   != "number") res.json('카운트 타입은 숫자여야 합니다',0);
+    if (typeof user_id != "number") {res.json('유저 아이디 타입은 숫자여야 합니다.',0);}
+    else if (typeof user_id != "number") {res.json('페이지 타입은 숫자여야 합니다.',0);}
+    else if (typeof count   != "number") {res.json('카운트 타입은 숫자여야 합니다',0);}
+    else {
+        //쿼리문
+        var query =
+            "SELECT user_id, nickname, image, message, m.create_date " +
+            "FROM trade t JOIN message m ON t.trade_id = m.trade_id " +
+            "JOIN user u ON m.from_user_id = u.user_id WHERE t.trade_id = ? LIMIT ?, ? ";
+        //sample 예제 trade_id =3, 0, 10
 
-    //쿼리문
-    var query =
-        "SELECT user_id, nickname, image, message, m.create_date " +
-        "FROM trade t JOIN message m ON t.trade_id = m.trade_id " +
-        "JOIN user u ON m.from_user_id = u.user_id WHERE t.trade_id = ? LIMIT ?, ? ";
-    //sample 예제 trade_id =3, 0, 10
-
-    template_list(
-        query,
-        [trade_id,start,count],
-        message_window,
-        function(err,result){
-            if(err) { res.json(trans_json(err.message,0)); }
-            else {
-                if (result.length == 0){
-                    res.json(trans_json('메시지가 없습니다.',1));
-                } else {
-                    res.json(trans_json('success',1,result));
+        template_list(
+            query,
+            [trade_id,start,count],
+            message_window,
+            function(err,result){
+                if(err) { res.json(trans_json(err.message,0)); }
+                else {
+                    if (result.length == 0){
+                        res.json(trans_json('메시지가 없습니다.',1));
+                    } else {
+                        res.json(trans_json('success',1,result));
+                    }
                 }
             }
-        }
-    );
+        );
+    }
 };
 
 //api : /users/:user_id/message-groups/unreadlist
@@ -335,8 +346,8 @@ exports.confirmMessage = function(req,res){
     logger.debug('session : ',{user_id : req.session.passport.user});
     logger.debug('params : ',{trade_id : req.params.trade_id});
 
-    var user_id = req.session.passport.user  || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
-    var trade_id = JSON.parse(req.params.trade_id) || res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
+    var user_id = req.session.passport.user  //|| res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0));
+    var trade_id = Number(req.params.trade_id) //|| res.json(trans_json("거래 아이디를 입력하지 않았습니다.",0));
 
     var query = "UPDATE message m " +
                 "SET m.is_read = true " +
