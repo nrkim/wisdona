@@ -12,6 +12,7 @@ var async = require('async');
 
 // 커넥션 풀 클로저 함수
 // 중첩 쿼리를 사용 하더라도 커넥션을 계속 유지 할 수 있는 함수
+// 별로 필요는 없는거 같음 ...
 exports.connection_closure = function(next){
     async.waterfall(
         [
@@ -161,134 +162,6 @@ exports.transaction_closure = function(next) {
     );
 };
 
-
-exports.template_transaction = function(connection, sql, funcs ){
-    connection.beginTransaction(function (err) {
-        if (err) {
-            verify(err,'트렌젝션 연결에 실패하였습니다.',0);
-        }
-
-        async.waterfall(funcs , function (err) {
-            if (err) {
-                connection.rollback(function () {
-                    verify(err,'롤백 작업에 실패하였습니다');
-                });
-            }
-            connection.commit(function (err) {
-                if (err) {
-                    connection.rollback(function () {
-                        verify(err,'커밋 작업에 실패하였습니다');
-                    });
-                }
-                verify(err,'success');
-            });
-        });
-    });
-};
-
-exports.template_get = function(res,query,params,get_json,callback){
-    console.log('template get!!!');
-    connectionPool.getConnection(function (err, connection) {
-        if (err) {
-            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
-        } else {
-            connection.query(query, params, function (err, rows, fields) {
-                if (err) {
-                    connection.release();
-                    res.json(trans_json("",0));      // 에러 처리
-                }
-
-                //데이터 결과가 없을 떄 에러인 경우도 있고 에러가 아닌 경우도 있음 / 두가지경우가 있기 때문에 flag parameter 필요
-                //for문을 forEach함수로 바꿈
-
-                if (rows.length == 0) {
-                    console.log('length is 0');
-                    connection.release();
-                    res.json(trans_json("No data found!!!",0));      // 에러 처리
-                }
-                else {
-                    async.map(rows,
-                        function(item, callback) {
-                            callback(null, get_json(item));
-                        },
-                        function(err, results) {
-                            if (err) {
-                                connection.release();
-                                res.json({ error : err });
-                            } else {
-                                connection.release();
-                                res.json(trans_json("success", 1, results));
-                            }
-                        }
-                    );
-                }
-
-
-            });
-        }
-    });
-
-};
-
-//req,res,query,params,callback){
-exports.template_post = function(res,query,params,error_handle,callback){
-    console.log('template_post');
-    connectionPool.getConnection(function (err, connection) {
-        if (err) {
-            res.json(trans_json("데이터 베이스 연결 오류 입니다.", 0));
-        }
-        console.log('template_post');
-        connection.query(query, params, function (err, rows, fields) {
-            if (err) {
-                console.log('connectinon query err: ',err);
-                connection.release();
-                res.json(trans_json(err.code + " sql 에러입니다. ", 0));        //에러 코드 처리 - 중복 데이터 처리
-            }
-            else{
-                console.log('connection success');
-                //if(callback) callback();
-                connection.commit();
-                connection.release();
-                console.log('connection released');
-                res.json(trans_json("success", 1));
-            }
-        });
-    });
-};
-
-
-/*
-exports.template_transaction = function(){
-    connection.beginTransaction(function (err) {
-        if (err) {
-            connection.release();
-            verify(err,false,'트렌젝션 연결에 실패하였습니다.',0);
-            //return res.json(trans_json("트렌젝션 연결에 실패했습니다.",0));
-        }
-
-        async.waterfall(func_list, function (err) {
-            if (err) {
-                connection.rollback(function () {
-                    connection.release();
-                    verify(err,false,'롤백 작업에 실패하였습니다');
-                    //return p.res.json(trans_json("롤백 작업에 실패했습니다.",0));
-                });
-            }
-            p.connection.commit(function (err) {
-                if (err) {
-                    p.connection.rollback(function () {
-                        p.connection.release();
-                        //return p.res.json(trans_json("작업이 취소하였습니다."),0);
-                    });
-                }
-                p.connection.release();
-                p.res.json(trans_json("success",1));
-            });
-        });
-    });
-};
-
-*/
 // 해쉬 패스워드 생성
 
 exports.create_password = function (password,verify){
