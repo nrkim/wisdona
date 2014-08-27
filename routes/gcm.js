@@ -72,9 +72,9 @@ exports.sendMessage = function (userDeviceIds, userPushSettings, code, title, ms
             callback(err);
         }else{
             if (result.success != 0 ){
-                logger.debug('GCM Success!!',result);
+                logger.debug('GCM Success!!!',result);
             }else{
-                logger.debug('GCM failure!!',result);
+                logger.debug('GCM failure!!!',result);
             }
 
             callback(null, result);
