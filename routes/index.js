@@ -185,4 +185,7 @@ module.exports = function(app,passport) {
 
     // 파일 매니저
     app.get('/images/:imagepath', fileManager.getImage);
+
+    // 최종 발표회 시연용 API
+    app.get('/changeTradeDay', trade.changeDay);
 };

@@ -654,3 +654,22 @@ exports.cancelPost = function(req,res){
     });
 
 };
+
+
+exports.changeDay = function(req, res){
+    getConnection(function (connection) {
+        var tommorowDate = new Date();
+        tommorowDate.setDate(tommorowDate.getDate() + 1);
+
+        var query = "UPDATE trade SET last_update = ? WHERE trade_id = ?";
+        var data = [tommorowDate,req.body.trade_id];
+        connection.query(query, data, function (err, result) {
+            if (err) {
+                callback(err);
+            }else{
+                callback();
+            }
+        });
+    });
+
+}
