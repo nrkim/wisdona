@@ -15,7 +15,6 @@ var _ = require('underscore'),
 
 var promotion = require('./promotion');
 
-
 // 출력 JSON
 function getJsonData( code, message, result ){
     var data = {

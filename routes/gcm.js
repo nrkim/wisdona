@@ -11,6 +11,8 @@ var gcm = require('node-gcm'),
 
 // 유저 Device Id 업데이트
 exports.updateDeviceId = function(user_id, userDeviceId, callback){
+    if ( !userDeviceId) callback();
+    
     connectionPool.getConnection(function(err, connection){
         if(err){
             callback(err);
