@@ -170,8 +170,8 @@ module.exports = function(passport) {
                             user.facebookEmail = rows[0].email;
                             user.facebookPhoto = rows[0].image;
                             if (accessToken !== user.facebookToken) {
-                                var updateSql = 'UPDATE user SET facebook_token = ?, image = ? WHERE facebook_id = ?';
-                                connection.query(updateSql, [accessToken, facebookPhoto, profile.id], function(err, result) {
+                                var updateSql = 'UPDATE user SET facebook_token = ? WHERE facebook_id = ?';
+                                connection.query(updateSql, [accessToken, profile.id], function(err, result) {
                                     if (err) {
                                         connection.release();
                                         return done(err);
