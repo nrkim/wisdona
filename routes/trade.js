@@ -663,7 +663,7 @@ exports.changeDay = function(req, res){
         //tommorowDate.setDate(tommorowDate.getDate() + 1);
         //logger.debug('입력들어옴',tommorowDate,req.body.trade_id);
 
-        var query = "UPDATE trade SET last_update = NOW() + INTERVAL 2 DAY WHERE trade_id = ?";
+        var query = "UPDATE trade SET last_update = NOW() - INTERVAL 2 DAY WHERE trade_id = ?";
         var data = [req.body.trade_id];
         connection.query(query, data, function (err, result) {
             if (err) {

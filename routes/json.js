@@ -49,7 +49,8 @@ exports.post_list = function(item){
         publisher       : item.translator,
         published       : item.publisher,
         publication_date: item.pub_date,
-        bookmark_count  : item.bookmark_cnt
+        bookmark_count  : item.bookmark_cnt,
+        current_status  : item.current_status
     };
 };
 

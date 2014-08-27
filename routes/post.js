@@ -758,16 +758,23 @@ exports.getPostDetail = function(req,res){
                     if (rows[0].current_status == 1 ) {
                         current_status = 1;
                     }else if( rows[0].current_status == 2 ){
-                        var tommorowDate = new Date();
-                        tommorowDate.setDate(tommorowDate.getDate() + 1);
+                        // 배송 시작 일시
                         var sendDate = new Date(rows[0].last_update);
+
+                        // 배송 시작 일시 + 1일 구하기
+                        var tommorowDate = new Date();
+                        tommorowDate.setDate(sendDate.getDate() + 1);
+
+                        // 현재 시간
+                        var nowDate = new Date();
+
                         // 익일 = 3
-                        if ( sendDate.valueOf() > tommorowDate.valueOf() ){
-                            logger.debug('여기!!');
+                        if ( nowDate.valueOf() > tommorowDate.valueOf() ){
+                            logger.debug('수취확인 가능');
                             current_status = 3;
                         }else{
-                            logger.debug('아니다!!!!');
                             // 당일 = 2
+                            logger.debug('배송중');
                             current_status = 2;
                         }
                     }else if(rows[0].current_status == 3) {

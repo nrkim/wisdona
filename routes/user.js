@@ -12,9 +12,9 @@ var json = require("./json")
 // api : /users/:user_id/posts/list
 exports.getUserPostList = function(req,res){
     //parameter로 받은 사용자 아이디
-    var user_id = req.session.passport.user ;
+    //var user_id = req.session.passport.user ;
 
-    //var user_id = JSON.parse(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    var user_id =  Number(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     console.log(user_id);
 
@@ -33,10 +33,12 @@ exports.getUserPostList = function(req,res){
     else {
         var query =
             "select p.post_id, title, author, max(thumbnail_path) thumbnail_path, translator, publisher, pub_date, " +
-            "bookmark_cnt FROM post p JOIN book b ON p.book_id = b.book_id " +
-            "JOIN post_image pi ON p.post_id = pi.post_id " +
-            "WHERE p.user_id = ? GROUP BY p.post_id  ORDER BY p.create_date DESC LIMIT ?, ?";
-
+            "bookmark_cnt, (case when ifnull(t.current_status,0) = 0 then 0 when ifnull(t.current_status,0) = 1 then 1 " +
+            "when ifnull(t.current_status,0) = 2 and t.last_update+1 > now() then 2 when ifnull(t.current_status,0) = 2 " +
+            "and t.last_update+1 < now() then 3 when ifnull(t.current_status,0) = 3 then 4 when ifnull(t.current_status,0) = 4 then 5 " +
+            "when ifnull(t.current_status,0) = 5 then 6 end) as current_status FROM (select * from post where current_status = 0) p " +
+            "JOIN book b ON p.book_id = b.book_id JOIN post_image pi ON p.post_id = pi.post_id " +
+            "LEFT JOIN trade t ON p.post_id = t.post_id WHERE p.user_id = ? GROUP BY p.post_id  ORDER BY p.create_date DESC LIMIT ?, ?";
 
         template_list(
             query,
@@ -115,7 +117,7 @@ exports.getRequestPostList = function(req,res){
     //parameter로 받은 사용자 아이디
 
 
-    var user_id = Number(req.params.user_id) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
+    var user_id = Number(req.session.passport.user) || res.json(trans_json("사용자 아이디를 입력하지 않았습니다.",0)) ;
 
     //console.log('user id : ',user_id);
     // query string 처리
@@ -132,10 +134,12 @@ exports.getRequestPostList = function(req,res){
     else {
         var query =
             "SELECT t.post_id, max(thumbnail_path) thumbnail_path, title, author, translator, publisher, " +
-            "pub_date, bookmark_cnt, p.current_status FROM trade t JOIN post p ON t.post_id = p.post_id " +
-            "JOIN book b ON p.book_id = b.book_id " +
-            "JOIN post_image pi ON p.post_id = pi.post_id " +
-            "WHERE t.req_user_id = ? group by p.post_id ORDER BY p.create_date DESC LIMIT ?, ?";
+            "pub_date, bookmark_cnt, (case when ifnull(t.current_status,0) = 0 then 0 when ifnull(t.current_status,0) = 1 " +
+            "then 1 when ifnull(t.current_status,0) = 2 and t.last_update+1 > now() then 2 when ifnull(t.current_status,0) = 2 " +
+            "and t.last_update+1 < now() then 3 when ifnull(t.current_status,0) = 3 then 4 when ifnull(t.current_status,0) = 4 " +
+            "then 5 when ifnull(t.current_status,0) = 5 then 6 end) as current_status FROM (select * from trade where " +
+            "current_status NOT IN (91,92)) t JOIN post p ON t.post_id = p.post_id JOIN book b ON p.book_id = b.book_id JOIN post_image " +
+            "pi ON p.post_id = pi.post_id WHERE t.req_user_id = 51 group by p.post_id ORDER BY p.create_date DESC LIMIT 0, 20";
 
         template_list(
             query,
